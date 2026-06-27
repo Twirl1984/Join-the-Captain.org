@@ -6,6 +6,7 @@ import type { AffiliateTool } from "@/lib/types";
 // Affiliate-Klick erfassen und weiterleiten.
 // Compliance: Klick läuft IMMER über diesen Endpoint (Tracking + Redirect),
 // nie direkt auf die affiliate_url. Keine PII im Tracking (nur Referrer-Host).
+// (Segment heißt [tool]; hier wird der Wert als Tool-ID interpretiert.)
 
 async function track(id: string, req: NextRequest): Promise<AffiliateTool | null> {
   const tool = await queryOne<AffiliateTool>(
@@ -25,19 +26,19 @@ async function track(id: string, req: NextRequest): Promise<AffiliateTool | null
     }
   }
 
-  await query(
-    "INSERT INTO tool_click (tool_id, referrer) VALUES ($1, $2)",
-    [id, referrerHost],
-  );
+  await query("INSERT INTO tool_click (tool_id, referrer) VALUES ($1, $2)", [
+    id,
+    referrerHost,
+  ]);
   return tool;
 }
 
 // GET — direkter Link-Klick: erfassen, dann 302 auf die App.
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ tool: string }> },
 ) {
-  const { id } = await params;
+  const { tool: id } = await params;
   const tool = await track(id, req);
   if (!tool) return fehler("Tool nicht gefunden.", 404);
   if (!tool.affiliate_url) {
@@ -49,9 +50,9 @@ export async function GET(
 // POST — programmatisch: erfassen, Ziel-URL zurückgeben.
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ tool: string }> },
 ) {
-  const { id } = await params;
+  const { tool: id } = await params;
   const tool = await track(id, req);
   if (!tool) return fehler("Tool nicht gefunden.", 404);
   return ok({ url: tool.affiliate_url });
