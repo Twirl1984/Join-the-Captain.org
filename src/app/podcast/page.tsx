@@ -39,6 +39,21 @@ export default async function PodcastPage() {
           "@type": "PodcastSeries",
           name: "Segeln & Selbstständigkeit",
           description: "Der Podcast von Join the Captain.",
+          ...(episodes.length
+            ? {
+                episode: episodes.map((ep) => ({
+                  "@type": "PodcastEpisode",
+                  name: ep.titel,
+                  episodeNumber: ep.folge_nr,
+                  datePublished: ep.veroeffentlicht_am || undefined,
+                  description: ep.beschreibung || undefined,
+                  associatedMedia: {
+                    "@type": "MediaObject",
+                    contentUrl: ep.audio_url,
+                  },
+                })),
+              }
+            : {}),
         }}
       />
       <div className="stack" style={{ gap: 6, marginBottom: 24 }}>
