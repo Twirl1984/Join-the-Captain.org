@@ -11,9 +11,8 @@ export function getStripe(): Stripe {
     throw new Error("STRIPE_SECRET_KEY fehlt.");
   }
   if (!stripe) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2024-12-18.acacia",
-    });
+    // Ohne apiVersion nutzt das SDK seine gepinnte Standard-Version.
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   }
   return stripe;
 }

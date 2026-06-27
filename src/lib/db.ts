@@ -24,16 +24,21 @@ function createPool(): Pool {
   });
 }
 
-export const pool: Pool = global.__jtcPool ?? createPool();
-if (process.env.NODE_ENV !== "production") {
-  global.__jtcPool = pool;
+// Pool erst bei erstem Zugriff erzeugen. So bricht der Next-Build (der
+// Route-Module importiert) nicht, wenn DATABASE_URL fehlt – der Fehler
+// kommt erst zur Laufzeit beim ersten Query.
+export function getPool(): Pool {
+  if (!global.__jtcPool) {
+    global.__jtcPool = createPool();
+  }
+  return global.__jtcPool;
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[],
 ): Promise<T[]> {
-  const res = await pool.query<T>(text, params as never[]);
+  const res = await getPool().query<T>(text, params as never[]);
   return res.rows;
 }
 
@@ -49,7 +54,7 @@ export async function queryOne<T extends QueryResultRow = QueryResultRow>(
 export async function withTransaction<T>(
   fn: (client: import("pg").PoolClient) => Promise<T>,
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query("BEGIN");
     const result = await fn(client);
