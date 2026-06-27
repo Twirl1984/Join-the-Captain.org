@@ -1,0 +1,40 @@
+# Lokales Setup: App + PostgreSQL.
+# Migrationen/Seed laufen auf dem Host (brauchen Dev-Deps/tsx):
+#   npm run db:migrate && npm run db:seed
+# oder einmalig im Builder-Container.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jtc_org
+    ports:
+      - "5432:5432"
+    volumes:
+      - jtc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      # Keys aus der Host-Umgebung durchreichen (leer = Feature deaktiviert).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${NEXT_PUBLIC_PLAUSIBLE_DOMAIN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  jtc_pgdata:
