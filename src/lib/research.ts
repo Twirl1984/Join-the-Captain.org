@@ -18,7 +18,12 @@
 import { callJsonTool, webRecherche, MODEL_HAIKU, MODEL_SONNET } from "./anthropic";
 import { query, queryOne } from "./db";
 import { slugify } from "./slug";
-import type { AffiliateTool, FeatureRequest, OssTyp } from "./types";
+import type {
+  AffiliateProgrammStatus,
+  AffiliateTool,
+  FeatureRequest,
+  OssTyp,
+} from "./types";
 
 // ── Stellschrauben (per .env überschreibbar, Kosten-/Lastkontrolle) ──
 // Bewusst konservativ, damit ein Nacht-Lauf das Guthaben nicht leersaugt.
@@ -107,10 +112,22 @@ interface AffiliateAlternative {
 }
 interface AffiliateRecherche {
   hat_programm: boolean;
-  netzwerk: string | null; // Awin, Impact, CJ, direkt, …
+  // Läuft das Affiliate über einen Mutterkonzern/Netzwerk statt ein eigenes
+  // Programm? (z.B. Navionics → "Garmin Affiliate Program"). null = nein.
+  via_partner: string | null;
+  netzwerk: string | null; // Awin, Impact, CJ, Tapfiliate, direkt, …
   programm_url: string | null; // Anmelde-/Partnerseite
   tool_url: string; // beste öffentliche URL zum Tool
   kurzbeschreibung: string;
+  // Teilnahmebedingungen: Mindest-Traffic/Besucher, Genehmigung, Provision,
+  // Cookie-Dauer, Auszahlschwelle. Klartext, knapp.
+  bedingungen: string | null;
+  // Erfüllt JTC die Bedingungen voraussichtlich schon? (Bei Traffic-Schwellen
+  // i.d.R. nein, solange wir das nicht messen.)
+  voraussetzungen_erfuellt: boolean | null;
+  // Falls etwas fehlt: knappe Dev-Aufgabe, um teilnahmefähig zu werden
+  // (z.B. „Besucherzahlen tracken und Schwelle X erreichen"). null = nichts nötig.
+  roadmap_hinweis: string | null;
   confidence: number; // 0..1
   quellen: string[];
   // Nur gesetzt, wenn das Tool selbst KEIN Programm hat:
@@ -134,17 +151,30 @@ export async function recherchiereAffiliateProgramm(
         "Finde heraus, ob ein etabliertes Segel-/Reise-Tool ein reales " +
         "Affiliate- oder Partnerprogramm hat. Suche nach 'Tool + affiliate', " +
         "'Tool + partner program', prüfe Netzwerke (Awin, Impact, CJ, " +
-        "Tradedoubler, PartnerStack, Tapfiliate) und die offizielle Seite. " +
-        "Erfinde NICHTS. Wenn es kein Programm gibt, sag das klar — und suche " +
-        "dann eine vergleichbar gute, beliebte Alternative, die EIN " +
-        "Affiliate-Programm hat (damit wir monetarisieren können).",
+        "Tradedoubler, PartnerStack, Tapfiliate, AvantLink) und die offizielle Seite. " +
+        "Erfinde NICHTS.\n" +
+        "WICHTIG: Hat das Tool kein EIGENES Programm, prüfe den MUTTERKONZERN/" +
+        "ein Netzwerk (Beispiel: Navionics hat kein eigenes Programm, ist aber " +
+        "über das Garmin Affiliate Program monetarisierbar) → via_partner setzen. " +
+        "Gibt es auch das nicht, suche eine vergleichbar gute, beliebte " +
+        "ALTERNATIVE mit eigenem Programm (alternative_mit_programm).\n" +
+        "Recherchiere zu JEDEM gefundenen Programm die BEDINGUNGEN: " +
+        "Mindest-Traffic/Besucherzahl, Genehmigungs-/Aufnahmekriterien, " +
+        "Provision, Cookie-Dauer, Auszahlschwelle. Schätze, ob eine kleine " +
+        "junge Community diese voraussichtlich schon erfüllt " +
+        "(voraussetzungen_erfuellt). Falls etwas fehlt (z.B. Mindest-Traffic), " +
+        "formuliere in roadmap_hinweis eine knappe Dev-Aufgabe, um " +
+        "teilnahmefähig zu werden (z.B. Besucher tracken + Schwelle erreichen).",
       user:
         `Tool: ${tool.name}\n` +
         `Kontext: ${tool.kurzbeschreibung ?? ""}\n\n` +
-        "1) Hat dieses Tool ein Affiliate-/Partnerprogramm? Netzwerk? " +
+        "1) Hat dieses Tool ein eigenes Affiliate-/Partnerprogramm? Netzwerk? " +
         "Anmelde-URL und beste öffentliche Tool-URL?\n" +
-        "2) Falls NICHT: Welche vergleichbare, beliebte Alternative hat ein " +
-        "Affiliate-Programm? Mit Anmelde-URL.",
+        "2) Falls nicht: Läuft Affiliate über den Mutterkonzern/ein Netzwerk " +
+        "(via_partner)? Sonst: vergleichbare Alternative mit eigenem Programm?\n" +
+        "3) Welche Teilnahme-BEDINGUNGEN hat das Programm (Mindest-Traffic, " +
+        "Genehmigung, Provision, Auszahlung)? Erfüllen wir sie schon? Wenn " +
+        "nicht: was müssen wir bauen/erreichen?",
     });
 
     // 2) In sauberes JSON gießen.
@@ -164,10 +194,26 @@ export async function recherchiereAffiliateProgramm(
         type: "object",
         properties: {
           hat_programm: { type: "boolean" },
+          via_partner: {
+            type: ["string", "null"],
+            description: "Mutterkonzern/Netzwerk, über den Affiliate läuft, z.B. 'Garmin Affiliate Program'. null wenn nicht.",
+          },
           netzwerk: { type: ["string", "null"] },
           programm_url: { type: ["string", "null"] },
           tool_url: { type: "string", description: "Beste öffentliche URL zum Tool." },
           kurzbeschreibung: { type: "string", description: "1 Satz, Du-Form." },
+          bedingungen: {
+            type: ["string", "null"],
+            description: "Teilnahmebedingungen: Mindest-Traffic/Besucher, Genehmigung, Provision, Cookie-Dauer, Auszahlschwelle. Knapp.",
+          },
+          voraussetzungen_erfuellt: {
+            type: ["boolean", "null"],
+            description: "Erfüllt eine kleine junge Community die Bedingungen voraussichtlich schon?",
+          },
+          roadmap_hinweis: {
+            type: ["string", "null"],
+            description: "Knappe Dev-Aufgabe, falls Bedingungen noch nicht erfüllt (z.B. Besucher tracken). null wenn nichts nötig.",
+          },
           confidence: { type: "number" },
           quellen: { type: "array", items: { type: "string" } },
           alternative_mit_programm: {
@@ -190,25 +236,34 @@ export async function recherchiereAffiliateProgramm(
     const programmUrl = out.hat_programm ? out.programm_url || "" : "";
     const zielUrl = programmUrl || out.tool_url || tool.affiliate_url || "";
     const linkOk = zielUrl ? await urlLebt(zielUrl) : false;
-    const status = out.hat_programm ? "hat_programm" : "kein_programm";
+    let status: AffiliateProgrammStatus;
+    if (out.hat_programm) status = "hat_programm";
+    else if (out.via_partner) status = "ueber_partner"; // z.B. Navionics → Garmin
+    else status = "kein_programm";
     const confOk = out.confidence >= MIN_CONFIDENCE;
     const publish = confOk && linkOk && !!zielUrl;
+    // Bei via_partner den Partner als „Netzwerk" ausweisen.
+    const netzwerk = out.netzwerk ?? out.via_partner ?? null;
 
     await query(
       `UPDATE affiliate_tool
        SET affiliate_url = COALESCE(NULLIF($1,''), affiliate_url),
            affiliate_programm_status = $2,
            affiliate_netzwerk = $3,
-           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $4),
-           recherche_quellen_json = $5,
-           recherche_confidence = $6,
+           affiliate_bedingungen = $4,
+           affiliate_voraussetzungen_erfuellt = $5,
+           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $6),
+           recherche_quellen_json = $7,
+           recherche_confidence = $8,
            recherchiert_am = now(),
-           veroeffentlicht = (veroeffentlicht OR $7)
-       WHERE id = $8`,
+           veroeffentlicht = (veroeffentlicht OR $9)
+       WHERE id = $10`,
       [
         zielUrl,
         confOk ? status : "unbekannt",
-        out.netzwerk ?? null,
+        netzwerk,
+        out.bedingungen ?? null,
+        out.voraussetzungen_erfuellt ?? null,
         out.kurzbeschreibung.slice(0, 240),
         JSON.stringify([...new Set([...(out.quellen ?? []), ...recherche.quellen])]),
         out.confidence,
@@ -216,6 +271,18 @@ export async function recherchiereAffiliateProgramm(
         tool.id,
       ],
     );
+
+    // Auto-Roadmap: fehlt eine Voraussetzung (z.B. Mindest-Traffic), lege eine
+    // Dev-Aufgabe an — genau das „dann brauchen wir ein Feature, um da
+    // hinzukommen" aus dem Brief.
+    if (out.roadmap_hinweis && out.voraussetzungen_erfuellt !== true) {
+      await legeRoadmapAn(
+        `Affiliate-Voraussetzung: ${tool.name}`,
+        out.roadmap_hinweis,
+        "affiliate_voraussetzung",
+        tool.id,
+      );
+    }
 
     // 4) Stufe „beste Alternative zwingend mit Affiliate": hat das Tool selbst
     //    kein Programm, aber es gibt eine vergleichbare mit Programm → als
@@ -288,6 +355,21 @@ async function eindeutigerToolSlug(basis: string): Promise<string> {
     slug = `${basis}-${n}`;
   }
   return slug;
+}
+
+// Legt eine interne Dev-Roadmap-Aufgabe an (idempotent über den Titel).
+export async function legeRoadmapAn(
+  titel: string,
+  beschreibung: string,
+  kategorie: string,
+  toolId: string | null,
+): Promise<void> {
+  await query(
+    `INSERT INTO roadmap_item (titel, beschreibung, quelle, kategorie, bezug_tool_id)
+     VALUES ($1, $2, 'research_scout', $3, $4)
+     ON CONFLICT (titel) DO UPDATE SET beschreibung = EXCLUDED.beschreibung`,
+    [titel.slice(0, 200), beschreibung, kategorie, toolId],
+  );
 }
 
 // ── Schritt B: Open-Source-Recherche ────────────────────────────────

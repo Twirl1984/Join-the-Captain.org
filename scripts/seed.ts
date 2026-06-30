@@ -19,10 +19,13 @@
 // Belege:
 //   • Navily: premium, fast unersetzlich, KEIN öffentliches Affiliate-Programm.
 //   • PredictWind hat ein echtes Affiliate-Programm (Tapfiliate, 25%) → hat_programm.
-//   • Navionics/Pantaenius/Splitwise/Google Fotos: kein öffentliches Programm.
+//   • Navionics: kein eigenes Programm, aber über Garmin (Mutterkonzern) → ueber_partner.
+//   • Pantaenius/Splitwise/Google Fotos: kein öffentliches Programm.
 //   • PackPoint: unklar → bewusst unveröffentlicht (Confidence-Guardrail-Demo).
 //   • OSS: Spliit/split-pro (MIT, forkbar), OpenCPN (GPLv2, nur Referenz),
 //     Immich/PhotoPrism (AGPL, nur Referenz).
+//   • Affiliate-Bedingungen werden gespeichert; fehlende Voraussetzungen
+//     (z.B. Mindest-Traffic) erzeugen Dev-Roadmap-Aufgaben (roadmap_item).
 //
 //   npm run db:seed
 //
@@ -47,8 +50,8 @@ async function main() {
     // Inhalts-Tabellen leeren (CASCADE räumt Votes/Pledges/Clicks mit).
     await client.query(`
       TRUNCATE feature_request, affiliate_tool, oss_kandidat, community_feedback,
-               podcast_episode, partner, runde, vote, pledge, tool_click,
-               mod_log, pipeline_log, research_log
+               roadmap_item, podcast_episode, partner, runde, vote, pledge,
+               tool_click, mod_log, pipeline_log, research_log
       RESTART IDENTITY CASCADE;
     `);
 
@@ -174,8 +177,10 @@ async function main() {
       rating: number;
       icon: string;
       pc: Record<string, unknown>;
-      status: "hat_programm" | "kein_programm" | "unbekannt";
+      status: "hat_programm" | "kein_programm" | "ueber_partner" | "unbekannt";
       netzwerk: string | null;
+      bedingungen?: string | null;
+      erfuellt?: boolean | null;
       conf: number;
       quellen: string[];
       publish: boolean;
@@ -222,12 +227,15 @@ async function main() {
           kosten: "Basis-App gratis, Karten-Abo je Region ab etwa 20 € im Jahr.",
           crew: "Für jede Crew, die auch ohne Netz sicher ankommen will.",
           pro: ["Sehr verbreitet", "Detaillierte Karten", "Gute Hafendaten"],
-          contra: ["Karten-Abo kostet extra", "Seit Garmin-Übernahme weniger eigenständig"],
+          contra: ["Kein eigenes Affiliate-Programm", "Seit Garmin-Übernahme weniger eigenständig"],
         },
-        status: "kein_programm",
-        netzwerk: null,
-        conf: 0.6,
-        quellen: ["https://www.navionics.com/", "https://www.garmin.com/en-US/p/904463/"],
+        // Kein eigenes Programm, aber über Garmin (Mutterkonzern) monetarisierbar.
+        status: "ueber_partner",
+        netzwerk: "Garmin Affiliate Program (Mutterkonzern)",
+        bedingungen: "Navionics hat kein eigenes Programm; Monetarisierung über Garmins Partnernetzwerk (z.B. AvantLink/Impact). Aufnahme erfordert Bewerbung/Genehmigung; Provisions-, Cookie- und ggf. Mindest-Traffic-Bedingungen vor Beitritt prüfen.",
+        erfuellt: false,
+        conf: 0.7,
+        quellen: ["https://www.navionics.com/", "https://www.garmin.com/en-US/affiliate-program/"],
         publish: true,
       },
       {
@@ -272,6 +280,8 @@ async function main() {
         },
         status: "hat_programm",
         netzwerk: "Tapfiliate",
+        bedingungen: "25% Provision auf den ersten Kauf (Abo startet ab Free), Abwicklung über Tapfiliate, Auszahlung per PayPal. Keine Mindest-Traffic-Hürde bekannt — direkt teilnehmbar.",
+        erfuellt: true,
         conf: 0.92,
         quellen: [
           "https://www.predictwind.com/affiliate",
@@ -357,14 +367,16 @@ async function main() {
         `INSERT INTO affiliate_tool
           (feature_id, name, slug, kategorie, journey_phase, kurzbeschreibung,
            beschreibung_md, affiliate_url, rating, icon_key, pro_contra_json,
-           affiliate_programm_status, affiliate_netzwerk, recherche_quellen_json,
+           affiliate_programm_status, affiliate_netzwerk, affiliate_bedingungen,
+           affiliate_voraussetzungen_erfuellt, recherche_quellen_json,
            recherche_confidence, recherchiert_am, veroeffentlicht)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now(),$16)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,now(),$18)
          RETURNING id`,
         [
           t.feature_id, t.name, t.slug, t.kategorie, t.phase, t.kurz,
           t.kurz, t.url, t.rating, t.icon, JSON.stringify(t.pc),
-          t.status, t.netzwerk, JSON.stringify(t.quellen), t.conf, t.publish,
+          t.status, t.netzwerk, t.bedingungen ?? null, t.erfuellt ?? null,
+          JSON.stringify(t.quellen), t.conf, t.publish,
         ],
       );
       toolId[t.slug] = res.rows[0].id;
@@ -522,6 +534,27 @@ async function main() {
       );
     }
 
+    // ── Dev-Roadmap: Aufgaben aus Affiliate-Bedingungen ────────────
+    // Genau das „dann brauchen wir ein Feature, um da hinzukommen": viele
+    // Programme verlangen Mindest-Traffic → wir müssen Besucher zählen/ausweisen.
+    await client.query(
+      `INSERT INTO roadmap_item (titel, beschreibung, quelle, kategorie, prioritaet)
+       VALUES
+        ('Besucher-/Traffic-Zählung für Affiliate-Qualifikation',
+         'Viele Affiliate-Programme verlangen Mindest-Traffic. Plausible ist eingebunden — wir brauchen ein internes Dashboard, das monatliche Besucher/Visits ausweist, um Aufnahme-Schwellen zu belegen und zu erreichen.',
+         'research_scout', 'tracking', 'hoch')
+       ON CONFLICT (titel) DO NOTHING`,
+    );
+    await client.query(
+      `INSERT INTO roadmap_item (titel, beschreibung, quelle, kategorie, prioritaet, bezug_tool_id)
+       VALUES
+        ('Affiliate-Voraussetzung: Navionics Boating',
+         'Navionics hat kein eigenes Programm — über Garmins Partnernetzwerk (AvantLink/Impact) bewerben. Aufnahmekriterien, Provision und Cookie-Dauer prüfen und dokumentieren.',
+         'research_scout', 'affiliate_voraussetzung', 'mittel', $1)
+       ON CONFLICT (titel) DO NOTHING`,
+      [toolId["navionics-boating"]],
+    );
+
     // ── 2 Podcast-Folgen ───────────────────────────────────────────
     await client.query(
       `INSERT INTO podcast_episode
@@ -552,7 +585,7 @@ async function main() {
     await client.query("COMMIT");
     console.log(
       "Seed erfolgreich: 1 Runde, 4 Features, 7 Tools (6 publiziert), " +
-        "5 OSS-Kandidaten, 2 Folgen, 4 Partner.",
+        "5 OSS-Kandidaten, 2 Roadmap-Aufgaben, 2 Folgen, 4 Partner.",
     );
   } catch (err) {
     await client.query("ROLLBACK");

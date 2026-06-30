@@ -14,8 +14,10 @@ Für jedes Thema strebt der Scout vier Ebenen an — von „sofort empfehlbar" b
    gelistet, selbst wenn es kein Partnerprogramm hat (z. B. **Navily** — fast
    unersetzlich, aber kein öffentliches Affiliate-Programm).
 2. **Beste Alternative — zwingend mit Affiliate** — hat die Premium-App kein
-   Programm, sucht der Scout eine vergleichbar gute Alternative, **die eins hat**
-   (Monetarisierungspfad), und legt sie als eigenes Tool an (`hat_programm`).
+   eigenes Programm, prüft der Scout zuerst den **Mutterkonzern/ein Netzwerk**
+   (z. B. **Navionics → Garmin Affiliate Program** ⇒ Status `ueber_partner`).
+   Geht auch das nicht, sucht er eine vergleichbar gute Alternative, **die ein
+   eigenes Programm hat**, und legt sie als eigenes Tool an (`hat_programm`).
 3. **Kostenlose OSS-Alternative (mit gutem Rating)** — fertige Open-Source-App,
    Stars als Qualitätssignal (`oss_kandidat`, `typ='alternative'`).
 4. **Eigene Web-App aus forkbarer Basis** — wenn die Community Wünsche hat, die
@@ -25,6 +27,24 @@ Für jedes Thema strebt der Scout vier Ebenen an — von „sofort empfehlbar" b
 Funde werden **auto-publiziert** (kein händisches Review). Guardrails statt
 Handarbeit: Auto-Publish nur bei `confidence ≥ RESEARCH_MIN_CONFIDENCE` **und**
 erreichbarem Link (HTTP-Check). Dubioses landet als unveröffentlichter Entwurf.
+
+## Affiliate-Bedingungen & Auto-Roadmap
+
+Jedes Programm hat **Teilnahmebedingungen**, die klar sein müssen, bevor wir
+werben: Mindest-Traffic/Besucherzahl, Genehmigung/Aufnahmekriterien, Provision,
+Cookie-Dauer, Auszahlschwelle. Der Scout recherchiert sie und legt sie in
+`affiliate_tool.affiliate_bedingungen` ab; ob wir sie voraussichtlich erfüllen,
+steht in `affiliate_voraussetzungen_erfuellt`.
+
+**Auto-Roadmap:** Fehlt uns eine Voraussetzung (klassisch: ein Programm verlangt
+Mindest-Traffic, den wir erst messen/erreichen müssen), erzeugt der Scout
+automatisch eine **interne Dev-Aufgabe** in `roadmap_item` (`quelle =
+research_scout`, idempotent über den Titel). So landet „dafür brauchen wir noch
+ein Feature" direkt in der Roadmap statt verloren zu gehen. Beispiel-Seed:
+„Besucher-/Traffic-Zählung für Affiliate-Qualifikation".
+
+> `roadmap_item` ist die **interne** Entwickler-Roadmap und getrennt von der
+> Community-Pipeline (`feature_request`).
 
 ## Lizenz-Sorgfalt beim Forken (wichtig)
 
@@ -47,8 +67,10 @@ dokumentiert. Beispiele aus dem Seed: **Spliit/SplitPro** (MIT → forkbar),
 
 | Objekt | Zweck |
 |---|---|
-| `affiliate_tool.*` (neue Spalten) | `affiliate_programm_status`, `affiliate_netzwerk`, `recherche_quellen_json`, `recherche_confidence`, `recherchiert_am` |
+| `affiliate_tool.*` (0002) | `affiliate_programm_status` (`hat_programm`\|`kein_programm`\|`ueber_partner`\|`unbekannt`), `affiliate_netzwerk`, `recherche_quellen_json`, `recherche_confidence`, `recherchiert_am` |
+| `affiliate_tool.*` (0003) | `affiliate_bedingungen`, `affiliate_voraussetzungen_erfuellt` |
 | `oss_kandidat` | gefundene OSS: `typ` = `alternative` \| `forkbar`, Repo, Lizenz, Sterne, `wettbewerbs_einschaetzung`, `lizenz_risiko`, `fork_kommerziell_ok`, `lizenz_hinweis` |
+| `roadmap_item` (0003) | interne Dev-Aufgaben (auto aus Affiliate-Bedingungen + manuell) |
 | `research_log` | Idempotenz/Retry (ein OK-Lauf pro Ziel+Schritt) |
 | `community_feedback` | Crew-Review: `signal` = `melden` \| `hilfreich` |
 

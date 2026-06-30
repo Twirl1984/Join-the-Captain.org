@@ -76,7 +76,13 @@ export interface Runde {
   voting_endet_am: string | null;
 }
 
-export type AffiliateProgrammStatus = "hat_programm" | "kein_programm" | "unbekannt";
+// 'ueber_partner' = kein eigenes Programm, aber via Mutterkonzern/Netzwerk
+// monetarisierbar (z.B. Navionics → Garmin Affiliate Program).
+export type AffiliateProgrammStatus =
+  | "hat_programm"
+  | "kein_programm"
+  | "ueber_partner"
+  | "unbekannt";
 
 export interface AffiliateTool {
   id: string;
@@ -98,6 +104,9 @@ export interface AffiliateTool {
   recherche_quellen_json: string[] | null;
   recherche_confidence: number | null;
   recherchiert_am: string | null;
+  // Migration 0003: Teilnahmebedingungen des Programms + ob wir sie erfüllen.
+  affiliate_bedingungen: string | null;
+  affiliate_voraussetzungen_erfuellt: boolean | null;
   created_at: string;
 }
 
@@ -143,6 +152,25 @@ export interface CommunityFeedback {
   user_id: string;
   signal: FeedbackSignal;
   grund: string | null;
+  created_at: string;
+}
+
+// Interne Dev-Roadmap (Migration 0003). Auto-Einträge entstehen, wenn der
+// Scout eine Affiliate-Bedingung findet, die JTC noch nicht erfüllt
+// (z.B. Mindest-Traffic → Besucher-Zählung bauen).
+export type RoadmapQuelle = "research_scout" | "community" | "manuell";
+export type RoadmapPrioritaet = "niedrig" | "mittel" | "hoch";
+export type RoadmapStatus = "offen" | "in_arbeit" | "erledigt" | "verworfen";
+
+export interface RoadmapItem {
+  id: string;
+  titel: string;
+  beschreibung: string | null;
+  quelle: RoadmapQuelle;
+  kategorie: string | null;
+  bezug_tool_id: string | null;
+  prioritaet: RoadmapPrioritaet;
+  status: RoadmapStatus;
   created_at: string;
 }
 
