@@ -1,6 +1,6 @@
 # Isolierte TEST-Instanz auf dem VPS — parallel zu allem anderen.
 # Start:  docker compose -p jtc-org-test -f docker-compose.test.yml up -d --build
-# Web nur an 127.0.0.1:3100 (Zugriff per SSH-Tunnel, nichts öffentlich).
+# Web öffentlich auf :3100 (Test über http://join-the-captain.org:3100, ohne TLS).
 # Eigene DB + eigenes Volume → berührt weder .de noch eine spätere .org-Prod.
 
 services:
@@ -22,7 +22,7 @@ services:
   web:
     build: .
     ports:
-      - "127.0.0.1:3100:3000"
+      - "3100:3000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org?sslmode=disable
       NEXT_PUBLIC_SITE_URL: http://localhost:3100
