@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
+import { ThemeToggle } from "./ThemeToggle";
 
-// Globaler Header der .org-Site (Navy Deep, volle Breite).
+// Globaler Header der .org-Site (Navy in beiden Themes, Gold-Akzent).
 export function SiteHeader() {
   const buchungUrl = "https://join-the-captain.de";
   return (
@@ -18,20 +19,23 @@ export function SiteHeader() {
         <nav className="site-nav">
           <Link href="/tools">Tools</Link>
           <Link href="/podcast">Podcast</Link>
-          <Link href="/entrepreneurs">Entrepreneurs</Link>
           <Link href="/community">Community</Link>
+          <Link href="/entrepreneurs">Entrepreneurs</Link>
         </nav>
-        <a
-          className="header-cta"
-          href={buchungUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Zur Buchung <Icon name="arrow-right" size={16} />
-        </a>
-        <button className="burger" aria-label="Menü öffnen">
-          <Icon name="menu" size={24} />
-        </button>
+        <div className="header-actions">
+          <ThemeToggle />
+          <a
+            className="header-cta"
+            href={buchungUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Zur Buchung <Icon name="arrow-right" size={16} />
+          </a>
+          <button className="burger" aria-label="Menü öffnen">
+            <Icon name="menu" size={24} />
+          </button>
+        </div>
       </div>
     </header>
   );

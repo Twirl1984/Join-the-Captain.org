@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Plausible } from "@/components/Plausible";
 
-const poppins = Poppins({
+const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -31,9 +39,21 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// Setzt data-theme vor dem ersten Paint (kein Flackern beim Laden).
+// Default = dunkel (neues Startdesign); gespeicherte Wahl gewinnt.
+const themeScript = `(function(){try{var t=localStorage.getItem('jtc-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" className={poppins.variable}>
+    <html
+      lang="de"
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${outfit.variable} ${playfair.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <Plausible />
         <SiteHeader />

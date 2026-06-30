@@ -29,3 +29,9 @@ yarn-error.log*
 
 # docker
 .dockerignore.local
+
+# Design-Quellen: große Startseite-ZIP (12 MB, v.a. Fotos) nicht ins Repo.
+# Genutzte Fotos liegen in public/assets/photos; die kleine Feature-Board-ZIP
+# bleibt als Referenz versioniert (siehe docs/design/).
+/Join the Captain*.zip
+docs/design/quellen/Join the Captain Startseite.zip
