@@ -114,6 +114,11 @@ async function getYouTubeOEmbed(videoUrl: string): Promise<{
 // Stub: YouTube-Suche via YouTube Data API (wenn Key vorhanden + ENABLED).
 // Real-Implementierung würde hier die Search API aufrufen.
 // Für nun: Rückgabe leeres Array (Feature-geflaggt, deaktiviert bis Key vorhanden).
+//
+// TODO (Teil D): Bei Real-Implementierung:
+// 1. Videos nach publishedAt absteigend sortieren (neueste bevorzugen)
+// 2. Top-Kommentare via commentThreads.list (modernes Feedback als Qualitätssignal)
+// 3. publishedAt in DiscoveryCandidate speichern → Haiku kann Aktualität bewerten
 async function searchYouTube(
   _query: string,
   _maxResults: number,
@@ -123,12 +128,14 @@ async function searchYouTube(
     return [];
   }
 
-  // Real-Implementierung:
+  // Real-Implementierung (TODO):
+  // 1. Search API mit relevanceLanguage=de, order=date (neueste zuerst)
   // const res = await fetch(
-  //   `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&q=${query}&type=video&part=snippet&maxResults=${maxResults}`,
+  //   `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&q=${_query}&type=video&part=snippet&maxResults=${_maxResults}&relevanceLanguage=de&order=date`,
   // );
-  // const json = await res.json();
-  // Dann für jedes Video: oEmbed, top comments, extract mentions, etc.
+  // 2. Pro Video: Videos API für publishedAt, viewCount
+  // 3. Pro Video: Top 1-2 Kommentare via commentThreads.list (openness=open_replies)
+  //    → published_at als Qualitätssignal: moderne Kommentare sind wertvoll
 
   console.warn("[discovery] YouTube Data API-Stub (kein Key konfiguriert) — Rückgabe []");
   return [];
