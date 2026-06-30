@@ -89,9 +89,9 @@ Ton = JTC-Brand-Voice (Du-Form, ruhig, nicht oberlehrerhaft).
 | Journey-Phase | Beispiel-Kategorien | Affiliate-Potenzial |
 |---|---|---|
 | Vor Buchung | Wetter-Apps, Revierführer, Packlisten-Tools | mittel |
-| Planung | Crew-Koordination, Bordkassen-Splitting | hoch |
+| Planung | **Versicherung (Kaution/Haftpflicht — vor dem Törn!)**, Crew-Koordination, Bordkassen-Splitting | **sehr hoch** (Versicherung!) |
 | Auf dem Törn | Navigation, Logbuch-Apps, Knoten-Lern-Apps | hoch |
-| Danach | Foto-Sharing, Versicherungen, Kontakt halten | **sehr hoch** (Versicherung!) |
+| Danach | Foto-Sharing, Kontakt halten (Versicherung nur noch Support/Schadenklärung) | mittel |
 
 Jeder Community-Wunsch, für den es schon eine App gibt → landet hier als
 empfohlenes Tool mit Affiliate-Link. So schließt sich der Kreis.

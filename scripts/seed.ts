@@ -142,7 +142,8 @@ async function main() {
         name: "Skipper-Versicherung",
         slug: "skipper-versicherung",
         kategorie: "Versicherung",
-        phase: "danach",
+        // Versicherung gehört VOR den Törn — danach ist es zu spät.
+        phase: "planung",
         kurz: "Schutz für Skipper und Crew — Haftung, Kaution, Unfall.",
         url: "https://example.com/versicherung?ref=jtc",
         rating: 4.4,

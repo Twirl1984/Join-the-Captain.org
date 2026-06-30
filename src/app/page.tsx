@@ -55,15 +55,16 @@ export default async function Home() {
           <img src="/assets/photos/captain-crash.jpg" alt="Crew an Bord nach einem Anlegemanöver" />
         </div>
         <div className="focus-body">
-          <span className="eyebrow">Im Fokus · Absicherung</span>
+          <span className="eyebrow">Vor dem Törn · Absicherung</span>
           <h2 style={{ margin: 0 }}>
             Kaution &amp; Captain-Crash — <em>entspannt</em> abgesichert
           </h2>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 300, lineHeight: 1.8, color: "var(--fg-muted)" }}>
             Die Kaution beim Charter ist schnell vierstellig. Eine
-            Kautionsversicherung deckt den Selbstbehalt, wenn an Bord mal etwas zu
-            Bruch geht — plus Skipper-Haftpflicht, wenn es ernster wird. Wir nennen
-            dir die Anbieter, die im Schadensfall wirklich zahlen.
+            Kautionsversicherung deckt den Selbstbehalt, plus Skipper-Haftpflicht,
+            wenn es ernster wird. Wichtig: rechtzeitig <strong>vor dem Törn</strong>{" "}
+            abschließen — danach ist es zu spät. Später bleibt höchstens noch
+            Support, um einen Schadensfall zu klären.
           </p>
           <ul className="focus-list">
             <li><Icon name="shield-check" size={17} /> Kaution &amp; Selbstbehalt bis 5.000&nbsp;€ abgedeckt</li>
@@ -71,7 +72,7 @@ export default async function Home() {
             <li><Icon name="clock" size={17} /> Tagesgenau buchbar — auch für den einen Törn</li>
           </ul>
           <div className="row" style={{ gap: 18, flexWrap: "wrap", marginTop: 4 }}>
-            <Link href="/tools?phase=danach" className="btn btn-gold">
+            <Link href="/tools?phase=planung" className="btn btn-gold">
               Versicherung ansehen <Icon name="arrow-right" size={15} />
             </Link>
             <span className="affiliate-note">Affiliate · ohne Mehrkosten</span>
