@@ -232,34 +232,31 @@ export async function recherchiereAffiliateProgramm(
       },
     });
 
-    // 3) Auswerten + (auto-)publizieren.
+    // 3) Auswerten + in Anmeldungs-Liste legen statt Auto-Publish.
+    // Links werden nur publiziert, wenn affiliate_programm.status='aktiv' + affiliate_url gefüllt.
     const programmUrl = out.hat_programm ? out.programm_url || "" : "";
-    const zielUrl = programmUrl || out.tool_url || tool.affiliate_url || "";
-    const linkOk = zielUrl ? await urlLebt(zielUrl) : false;
+    const linkOk = programmUrl ? await urlLebt(programmUrl) : false;
     let status: AffiliateProgrammStatus;
     if (out.hat_programm) status = "hat_programm";
     else if (out.via_partner) status = "ueber_partner"; // z.B. Navionics → Garmin
     else status = "kein_programm";
     const confOk = out.confidence >= MIN_CONFIDENCE;
-    const publish = confOk && linkOk && !!zielUrl;
     // Bei via_partner den Partner als „Netzwerk" ausweisen.
     const netzwerk = out.netzwerk ?? out.via_partner ?? null;
 
+    // Speichere Recherche-Ergebnis im Tool (nicht als Affiliate-Link auto-publiziert)
     await query(
       `UPDATE affiliate_tool
-       SET affiliate_url = COALESCE(NULLIF($1,''), affiliate_url),
-           affiliate_programm_status = $2,
-           affiliate_netzwerk = $3,
-           affiliate_bedingungen = $4,
-           affiliate_voraussetzungen_erfuellt = $5,
-           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $6),
-           recherche_quellen_json = $7,
-           recherche_confidence = $8,
-           recherchiert_am = now(),
-           veroeffentlicht = (veroeffentlicht OR $9)
-       WHERE id = $10`,
+       SET affiliate_programm_status = $1,
+           affiliate_netzwerk = $2,
+           affiliate_bedingungen = $3,
+           affiliate_voraussetzungen_erfuellt = $4,
+           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $5),
+           recherche_quellen_json = $6,
+           recherche_confidence = $7,
+           recherchiert_am = now()
+       WHERE id = $8`,
       [
-        zielUrl,
         confOk ? status : "unbekannt",
         netzwerk,
         out.bedingungen ?? null,
@@ -267,10 +264,21 @@ export async function recherchiereAffiliateProgramm(
         out.kurzbeschreibung.slice(0, 240),
         JSON.stringify([...new Set([...(out.quellen ?? []), ...recherche.quellen])]),
         out.confidence,
-        publish,
         tool.id,
       ],
     );
+
+    // Lege gefundenes Programm als "gefunden" in die Anmeldungs-Liste
+    // (statt Auto-Publish). Status bleibt "gefunden", bis Admin anmeldung bestätigt.
+    if (confOk && linkOk && programmUrl) {
+      await legeAffiliateProgrammAn(
+        tool,
+        status,
+        programmUrl,
+        netzwerk,
+        out.bedingungen ?? null,
+      );
+    }
 
     // Auto-Roadmap: fehlt eine Voraussetzung (z.B. Mindest-Traffic), lege eine
     // Dev-Aufgabe an — genau das „dann brauchen wir ein Feature, um da
@@ -295,9 +303,9 @@ export async function recherchiereAffiliateProgramm(
 
     await logSchritt("affiliate_tool", tool.id, "affiliate_programm", "ok", {
       ...out,
-      publiziert: publish,
       link_ok: linkOk,
       alternative_angelegt: alternativeAngelegt,
+      programm_gelegt: confOk && linkOk && !!programmUrl,
     });
     return recherche.suchen;
   } catch (err) {
@@ -631,6 +639,29 @@ export async function runResearchScan(): Promise<ScanErgebnis> {
   }
 
   return ergebnis;
+}
+
+// ── Affiliate-Programm in Anmeldungs-Liste ─────────────────────────────
+// Gefundene Programme landen als "gefunden" in der internen Anmeldungs-Liste.
+// Status bleibt "gefunden", bis ein Admin die Anmeldung durchführt und den
+// echten affiliate_url eintragen kann → status='aktiv' → Link wird öffentlich.
+async function legeAffiliateProgrammAn(
+  tool: AffiliateTool,
+  programmStatus: AffiliateProgrammStatus,
+  programmUrl: string,
+  netzwerk: string | null,
+  bedingungen: string | null,
+): Promise<void> {
+  await query(
+    `INSERT INTO affiliate_programm
+       (tool_id, programm_name, netzwerk, signup_url, bedingungen, status)
+     VALUES ($1, $2, $3, $4, $5, 'gefunden')
+     ON CONFLICT (tool_id, signup_url) DO UPDATE
+       SET bedingungen = COALESCE(EXCLUDED.bedingungen, affiliate_programm.bedingungen),
+           status = CASE WHEN affiliate_programm.status = 'abgelehnt' THEN 'abgelehnt'
+                        ELSE 'gefunden' END`,
+    [tool.id, tool.name, netzwerk, programmUrl, bedingungen],
+  );
 }
 
 // ── Community-Reaktion ──────────────────────────────────────────────
