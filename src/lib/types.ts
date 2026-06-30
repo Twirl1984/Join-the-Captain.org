@@ -76,6 +76,8 @@ export interface Runde {
   voting_endet_am: string | null;
 }
 
+export type AffiliateProgrammStatus = "hat_programm" | "kein_programm" | "unbekannt";
+
 export interface AffiliateTool {
   id: string;
   feature_id: string | null;
@@ -90,6 +92,57 @@ export interface AffiliateTool {
   icon_key: string | null;
   pro_contra_json: ProContra | null;
   veroeffentlicht: boolean;
+  // Vom Research-Scout (Migration 0002) befüllt:
+  affiliate_programm_status: AffiliateProgrammStatus | null;
+  affiliate_netzwerk: string | null;
+  recherche_quellen_json: string[] | null;
+  recherche_confidence: number | null;
+  recherchiert_am: string | null;
+  created_at: string;
+}
+
+// Open-Source-Fund des Research-Scouts.
+//   typ='alternative' → fertige OSS, löst das Problem direkt (Empfehlung).
+//   typ='forkbar'     → Basis für einen JTC-Eigenbau (weiterentwickeln).
+export type OssTyp = "alternative" | "forkbar";
+
+// Lizenz-Risiko fürs Forken in eine eigene, VERKAUFBARE Closed-Source-App.
+//   niedrig = permissiv (MIT/Apache/BSD) → bedenkenlos forkbar
+//   mittel  = schwaches Copyleft (MPL/LGPL) → mit Sorgfalt
+//   hoch    = starkes Copyleft (GPL/AGPL) → Offenlegungspflicht, meiden
+export type LizenzRisiko = "niedrig" | "mittel" | "hoch" | "unklar";
+
+export interface OssKandidat {
+  id: string;
+  feature_id: string | null;
+  tool_id: string | null;
+  typ: OssTyp;
+  name: string;
+  repo_url: string;
+  lizenz: string | null;
+  sterne: number | null;
+  journey_phase: JourneyPhase | null;
+  beschreibung: string | null;
+  wettbewerbs_einschaetzung: string | null;
+  lizenz_risiko: LizenzRisiko | null;
+  fork_kommerziell_ok: boolean | null;
+  lizenz_hinweis: string | null;
+  quellen_json: string[] | null;
+  confidence: number | null;
+  veroeffentlicht: boolean;
+  created_at: string;
+}
+
+export type FeedbackSignal = "melden" | "hilfreich";
+export type FeedbackZielTyp = "affiliate_tool" | "oss_kandidat";
+
+export interface CommunityFeedback {
+  id: string;
+  ziel_typ: FeedbackZielTyp;
+  ziel_id: string;
+  user_id: string;
+  signal: FeedbackSignal;
+  grund: string | null;
   created_at: string;
 }
 

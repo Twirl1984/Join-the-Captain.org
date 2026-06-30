@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "pipeline:run": "tsx scripts/run-pipeline.ts"
+    "pipeline:run": "tsx scripts/run-pipeline.ts",
+    "research:run": "tsx scripts/run-research.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

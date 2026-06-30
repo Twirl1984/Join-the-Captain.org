@@ -27,6 +27,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# Research-Scout: Lauf-Reports (lokal/VPS, nicht versioniert)
+/reports/
+
 # docker
 .dockerignore.local
 
