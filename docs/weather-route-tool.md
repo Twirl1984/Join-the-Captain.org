@@ -1,0 +1,159 @@
+# Wetter-Routen-Tool (`/wetter`) — erste eigene JTC-Implementierung
+
+Stand: 2026-06-30 · Branch: `feat/weather-route` · Status: **Backend fertig & getestet, Leaflet-UI offen**
+
+Das erste echte Eigenbau-Tool auf `join-the-captain.org`: Ein Segler zieht auf einer
+Karte eine Route, wählt Abfahrtszeit + Boot, und bekommt **Wind, Welle, Sturm-/
+Gewitter-Warnungen und ETA pro Leg** — berechnet aus freien Open-Meteo-Daten.
+
+Herkunft: Der Routen-/ETA-Kern ist aus dem Schwesterprojekt `jtc.de`
+(`feat/weather-service`, Module `lib/weather/route-forecast.js` + `polar.js`) nach
+TypeScript portiert. Die schwere Modell-**Validierungsstudie** (Scoreboard/Ledger/
+Python-Fetcher) wurde bewusst **weggelassen** — fürs Web-Tool nicht nötig.
+
+---
+
+## Architektur
+
+```
+src/lib/weather/
+  polar.ts             ✅ Bootsgeschwindigkeit (Segel/Motor, TWA) — Port, getestet
+  route-forecast.ts    ✅ Haversine, Kurs, Leg-ETA, Warnungen — Port, getestet
+  open-meteo.ts        ✅ buildSampler(): Open-Meteo → sampleForecast (Cache 1 h)
+  reviere.ts           ✅ 3 Reviere (Ostsee/Istrien/Dalmatien) + 14 Häfen, Kartencenter
+  __tests__/route-forecast.test.ts  ✅ 11 Tests grün (node:test)
+src/app/api/weather/route/route.ts  ✅ POST: waypoints → Plan (Legs+ETA+Warnungen)
+src/app/wetter/page.tsx             ⛔ OFFEN — Leaflet-Karte + Ergebnis-UI
+```
+
+Datenfluss: `/wetter`-Seite → `POST /api/weather/route` → `buildSampler()` holt
+Open-Meteo für die Leg-Mittelpunkte (ein Request je API, Multi-Location) →
+`planRoute()` rechnet deterministisch → JSON zurück → UI rendert Legs + Warnungen.
+
+---
+
+## ✅ Fertig & verifiziert (auf diesem Branch)
+
+- **Kern portiert** (`polar.ts`, `route-forecast.ts`) — reine, I/O-freie Geometrie.
+  Tests aus jtc.de mitportiert, laufen grün:
+  `node --import tsx --test src/lib/weather/__tests__/route-forecast.test.ts`
+- **Open-Meteo-Adapter** (`open-meteo.ts`):
+  - Atmosphäre: `api.open-meteo.com/v1/forecast` (`wind_speed_10m`, `wind_gusts_10m`,
+    `wind_direction_10m`, `cape`; `wind_speed_unit=kn`, `timezone=UTC`, `forecast_days=7`).
+  - Welle: `marine-api.open-meteo.com/v1/marine` (`wave_height`) — für landnahe Punkte
+    fehlertolerant (`null`).
+  - Sturm = Böen ≥ 34 kn (8 Bft) · Gewitter-Proxy = CAPE ≥ 800 J/kg (wie jtc.de-Fetcher).
+  - Caching über Next.js `fetch(..., { next: { revalidate: 3600 } })` → 1 Request/Punkt/Stunde.
+  - Base-URLs + optionaler `OPEN_METEO_API_KEY` per env überschreibbar (Free-Tier ↔ kommerziell).
+- **API-Route** (`/api/weather/route`): Input-Validierung, max. 25 Wegpunkte,
+  Boot-Profil-Merge, 502 bei Open-Meteo-Ausfall.
+
+### API-Contract
+
+`POST /api/weather/route`
+```jsonc
+// Request
+{
+  "waypoints": [{ "lat": 54.679, "lon": 13.432, "name": "Kap Arkona" },
+                { "lat": 54.95,  "lon": 12.46,  "name": "Klintholm" }],
+  "startTime": "2026-07-01T08:00:00Z",   // optional, Default: jetzt
+  "mode": "sail",                          // "sail" | "motor"
+  "boat": { "cruise_speed_motor_kn": 6.5, "hull_speed_kn": 7.2,
+            "upwind_no_go_deg": 35, "drive_efficiency": 0.62 }  // optional
+}
+// Response 200
+{
+  "plan": {
+    "legs": [{ "leg": 1, "from": "Kap Arkona", "to": "Klintholm",
+               "distance_nm": 19.2, "course_deg": 312, "mode": "sail",
+               "speed_kn": 5.8, "wind_kn": 14, "wind_from_deg": 250,
+               "wave_m": 0.6, "eta": "2026-07-01T11:18:00Z",
+               "duration_h": 3.3, "warnings": [] }],
+    "total_nm": 19.2, "eta": "2026-07-01T11:18:00Z", "warnings": []
+  },
+  "source": "open-meteo"
+}
+```
+
+---
+
+## ⛔ OFFEN — `src/app/wetter/page.tsx` (Leaflet-UI)
+
+Interaktive Karte zum Setzen der Route + Ergebnis-Panel. Folgt dem JTC-Design
+(`docs/design-paket.md` Teil A). **Eigene Implementierung → KEINE Affiliate-Kennzeichnung**,
+aber Quellen-Attribution „Wetterdaten: Open-Meteo (CC-BY 4.0)" im Footer Pflicht.
+
+### Dependencies (vom bauenden Agenten hinzuzufügen + installieren)
+```
+npm i leaflet react-leaflet
+npm i -D @types/leaflet
+```
+Leaflet rendert clientseitig → Karten-Komponente als eigenes `"use client"`-Modul,
+in `page.tsx` via `next/dynamic` mit `{ ssr: false }` einbinden (sonst SSR-Crash auf
+`window`). Leaflet-CSS in `layout.tsx` oder per Import in der Client-Komponente laden.
+
+### UX-Fluss
+1. **Revier wählen** (Dropdown aus `REVIERE`) → Karte zentriert (`center`/`zoom`),
+   Häfen als anklickbare Marker.
+2. **Route bauen**: Klick auf Karte ODER auf Hafen-Marker hängt Wegpunkt an die Liste
+   (Polyline verbindet sie, fortlaufend nummeriert). Wegpunkt entfernen/neu ordnen via
+   Liste daneben. Drag der Marker optional (P2).
+3. **Abfahrt + Modus + Boot**: Datetime-Picker (Default jetzt+1 Tag, 08:00), Toggle
+   Segel/Motor, optional Boot-Defaults (vorbelegt aus `DEFAULT_BOAT`).
+4. **„Route berechnen"** (Teal-CTA) → `POST /api/weather/route` → Ergebnis-Panel.
+
+### Ergebnis-Panel (JTC-Kartenstil)
+- Kopf: Gesamt-Distanz, Gesamt-ETA, Journey-Tag **„Planung"** (Blau BG `#E6F1FB`/Text `#185FA5`).
+- **Warnungen zuerst**, falls vorhanden: rot-getöntes Band, `ti-alert-triangle`,
+  je Warnung eine Zeile („Sturm (≥8 Bft) auf Leg 2 → Vis").
+- **Leg-Liste**, je Leg eine Karte (Weiß, 0.5px Border, radius 12px): „Leg n: von → nach",
+  Distanz sm, Kurs°, Wind kn + Richtung (Pfeil-Icon gedreht), Welle m, Modus (Segel/Motor),
+  Dauer h, ETA (lokale Zeit, `de-DE`). Leg mit Warnung → Border/Akzent rot.
+- **States**: Loading (Karten-Skelett + Shimmer), Empty (vor erster Berechnung Hinweis-Text),
+  Error (freundliche Meldung bei 502 „Wetterdaten gerade nicht verfügbar, bitte später").
+
+### Tokens (aus Teil A)
+Navy `#0B2545`/`#13315C` · Teal `#2EA39E` (CTA/Icons) · Gold `#C9A24B` · Salt-White `#F4EEE2`
+· Poppins · Tabler Outline Icons (`Icon.tsx` existiert) · Touch-Targets ≥ 44px · Mobile: Karte
+oben, Eingabe/Ergebnis darunter gestapelt.
+
+### Verzeichnis-Eintrag
+- `/wetter` zusätzlich als Tool im Verzeichnis listen (Phase **Planung**), Karte verlinkt
+  auf `/wetter`. Prüfen, wie Tools in `src/lib/data.ts` / Migration `0001_init.sql` modelliert
+  sind — entweder als seed-Eintrag mit interner URL oder als Sonderfall „eigene App" (kein
+  `affiliate_url`). Im Zweifel klein halten: erstmal nur die `/wetter`-Seite + Header-Nav-Link.
+- Header-Nav (`SiteHeader.tsx`) optional um „Wetter" ergänzen.
+
+---
+
+## Verifikation vor dem Mergen
+```bash
+npm install                 # zieht leaflet etc.
+node --import tsx --test src/lib/weather/__tests__/route-forecast.test.ts   # 11 grün
+npm run typecheck           # tsc --noEmit, muss sauber sein
+npm run build               # next build, muss durchlaufen
+npm run dev                 # /wetter manuell: Route klicken → berechnen → Legs/Warnungen
+# echter Open-Meteo-Smoke (Netz):
+curl -s -X POST localhost:3000/api/weather/route -H 'content-type: application/json' \
+  -d '{"waypoints":[{"lat":54.679,"lon":13.432,"name":"Arkona"},{"lat":54.95,"lon":12.46,"name":"Klintholm"}],"mode":"sail"}' | jq .plan.legs
+```
+
+## Deploy (bestehender `.org`-Flow, siehe `docs/DEPLOYMENT.md`)
+1. PR `feat/weather-route` → `main`, mergen.
+2. Erst **Test-Instanz** (`:3100`, hinter Basic-Auth): `git pull && docker compose -f docker-compose.test.yml up -d --build`, `/wetter` prüfen.
+3. Dann **Prod**: `cd /srv/jtc-org/repo && git pull && docker compose up -d --build`.
+4. **Keine DB-Migration nötig** (Tool ist rein berechnend). VPS hat ausgehendes HTTPS für Open-Meteo.
+5. Optional `OPEN_METEO_API_KEY` in `.env` setzen, falls auf den kommerziellen Plan gewechselt wird.
+
+## Kosten
+- Open-Meteo **Free-Tier: 0 €** (kein Key, ~10k Req/Tag, CC-BY → Attribution Pflicht).
+  Mit 1-h-Cache + max. ~24 Sample-Punkten/Route bleibt der Verbrauch winzig.
+- Streng genommen ist kommerzielle Nutzung der **API-Plan** (~29 €/Mon) — reiner env-Switch
+  (`OPEN_METEO_*`-URLs + `OPEN_METEO_API_KEY`), kein Code-Umbau. Fürs MVP/Launch Free-Tier + Attribution.
+- Keine LLM-Kosten im Kernpfad (Route ist deterministische Mathematik).
+
+## Spätere Ausbaustufen (nicht MVP)
+- Freitext-Routeneingabe per Claude („Von Split nach Vis über Hvar") → Wegpunkte.
+- Modell-Auswahl / das beste Modell je Revier aus der jtc.de-Validierungsstudie ziehen.
+- Nutzer-Feedback zur Vorhersagegüte (wie im jtc.de-Bot-Konzept), Marker-Drag, GPX-Export.
+```
