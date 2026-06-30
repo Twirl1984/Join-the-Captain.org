@@ -16,10 +16,14 @@ function createPool(): Pool {
   }
   return new Pool({
     connectionString,
-    // Supabase verlangt TLS; lokal (localhost) wird SSL ignoriert.
-    ssl: connectionString.includes("localhost")
-      ? undefined
-      : { rejectUnauthorized: false },
+    // Supabase verlangt TLS; lokale/Docker-DB ohne SSL
+    // (sslmode=disable in der URL oder localhost/127.0.0.1).
+    ssl:
+      /sslmode=disable/.test(connectionString) ||
+      connectionString.includes("localhost") ||
+      connectionString.includes("127.0.0.1")
+        ? undefined
+        : { rejectUnauthorized: false },
     max: 10,
   });
 }

@@ -25,9 +25,12 @@ async function main() {
 
   const pool = new Pool({
     connectionString,
-    ssl: connectionString.includes("localhost")
-      ? undefined
-      : { rejectUnauthorized: false },
+    ssl:
+      /sslmode=disable/.test(connectionString) ||
+      connectionString.includes("localhost") ||
+      connectionString.includes("127.0.0.1")
+        ? undefined
+        : { rejectUnauthorized: false },
   });
 
   await pool.query(`

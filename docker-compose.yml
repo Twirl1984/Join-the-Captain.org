@@ -25,7 +25,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org?sslmode=disable
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       # Keys aus der Host-Umgebung durchreichen (leer = Feature deaktiviert).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
