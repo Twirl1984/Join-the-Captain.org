@@ -55,6 +55,18 @@ export const REVIERE: Revier[] = [
       { name: "Leuchtturm Stončica", lat: 43.062, lon: 16.265 },
     ],
   },
+  {
+    id: "brombachsee",
+    label: "Brombachsee (Fränkisches Seenland)",
+    center: [49.138, 10.925],
+    zoom: 13,
+    haefen: [
+      { name: "Ramsberg (Segelhafen)", lat: 49.147, lon: 10.945 },
+      { name: "Enderndorf", lat: 49.128, lon: 10.895 },
+      { name: "Absberg / Seespitz", lat: 49.123, lon: 10.915 },
+      { name: "Pleinfeld (Staudamm)", lat: 49.141, lon: 10.962 },
+    ],
+  },
 ];
 
 export function getRevier(id: string): Revier | undefined {

@@ -125,8 +125,18 @@ test.describe("/wetter — Playback & Feedback", () => {
     await page.getByTestId("feedback-ok").click();
     await page.getByTestId("feedback-star-4").click();
     await page.getByTestId("feedback-text").fill("Passt — gerne noch Strömung dazu.");
+    await page.getByTestId("feedback-name").fill("Kai Testskipper");
+    await page.getByTestId("feedback-email").fill("kai@example.com");
     await page.getByTestId("feedback-submit").click();
     await expect(page.getByTestId("feedback-thanks")).toBeVisible();
+  });
+
+  test("Brombachsee ist als Revier wählbar und zeigt Häfen", async ({ page }) => {
+    await openWithMap(page);
+    await page.getByTestId("revier-select").selectOption("brombachsee");
+    // Hafen-Marker des Sees erscheinen auf der Karte
+    await expect(page.locator(".hafen-marker").first()).toBeVisible();
+    expect(await page.locator(".hafen-marker").count()).toBeGreaterThanOrEqual(3);
   });
 
   test("Modell-Wahl zeigt eine Begründung", async ({ page }) => {

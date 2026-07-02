@@ -79,6 +79,8 @@ export function WetterApp() {
   const [fbRating, setFbRating] = useState<number | null>(null);
   const [fbOk, setFbOk] = useState<boolean | null>(null);
   const [fbText, setFbText] = useState("");
+  const [fbName, setFbName] = useState("");
+  const [fbEmail, setFbEmail] = useState("");
   const [fbState, setFbState] = useState<"idle" | "sending" | "done">("idle");
 
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
@@ -253,6 +255,8 @@ export function WetterApp() {
           zufriedenheit: fbRating ?? undefined,
           vorhersage_ok: fbOk ?? undefined,
           freitext: fbText || undefined,
+          name: fbName.trim() || undefined,
+          email: fbEmail.trim() || undefined,
           kontext: plan
             ? {
                 waypoints: apiWaypoints(),
@@ -786,6 +790,33 @@ export function WetterApp() {
                   value={fbText}
                   onChange={(e) => setFbText(e.target.value)}
                 />
+                {/* Optionale Kontaktdaten für Rückfragen */}
+                <div className="wetter-specs-grid">
+                  <label className="stack" style={{ gap: 4 }}>
+                    <span className="caption">Name (optional)</span>
+                    <input
+                      data-testid="feedback-name"
+                      type="text"
+                      maxLength={120}
+                      className="wetter-select"
+                      placeholder="z.B. Kai"
+                      value={fbName}
+                      onChange={(e) => setFbName(e.target.value)}
+                    />
+                  </label>
+                  <label className="stack" style={{ gap: 4 }}>
+                    <span className="caption">E-Mail (optional, für Rückfragen)</span>
+                    <input
+                      data-testid="feedback-email"
+                      type="email"
+                      maxLength={200}
+                      className="wetter-select"
+                      placeholder="du@beispiel.de"
+                      value={fbEmail}
+                      onChange={(e) => setFbEmail(e.target.value)}
+                    />
+                  </label>
+                </div>
                 <button
                   type="button"
                   data-testid="feedback-submit"

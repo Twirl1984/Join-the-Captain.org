@@ -31,6 +31,16 @@ export async function POST(req: NextRequest) {
   if (zufriedenheit == null && vorhersageOk == null && !freitext) {
     return fehler("Leeres Feedback — mindestens eine Angabe machen.");
   }
+  // Optionale Kontaktdaten (für Rückfragen) — freiwillig, grob geprüft, gekappt.
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) || null : null;
+  let email: string | null = null;
+  if (typeof body.email === "string" && body.email.trim()) {
+    const e = body.email.trim().slice(0, 200);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) {
+      return fehler("email: bitte eine gültige Adresse angeben oder das Feld leer lassen.");
+    }
+    email = e;
+  }
   // Kontext nur als geprüftes, kompaktes JSON übernehmen (kein Blob-Durchgriff).
   let kontext: string | null = null;
   if (body.kontext && typeof body.kontext === "object") {
@@ -41,9 +51,9 @@ export async function POST(req: NextRequest) {
   const user = await getOrCreateUser().catch(() => null);
 
   await query(
-    `INSERT INTO weather_feedback (user_id, zufriedenheit, vorhersage_ok, freitext, kontext_json)
-     VALUES ($1, $2, $3, $4, $5::jsonb)`,
-    [user?.id ?? null, zufriedenheit, vorhersageOk, freitext, kontext],
+    `INSERT INTO weather_feedback (user_id, zufriedenheit, vorhersage_ok, freitext, kontext_json, name, email)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)`,
+    [user?.id ?? null, zufriedenheit, vorhersageOk, freitext, kontext, name, email],
   );
   return ok({ ok: true });
 }
