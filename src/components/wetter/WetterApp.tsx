@@ -11,7 +11,7 @@ import { Icon } from "@/components/Icon";
 import { REVIERE } from "@/lib/weather/reviere";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
 import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
-import { boatFromSpecs, type BoatSpecs } from "@/lib/weather/polar";
+import { boatFromSpecs, BOAT_PRESETS, type BoatSpecs } from "@/lib/weather/polar";
 import { boatPositionAt } from "@/lib/weather/playback";
 import { WEATHER_MODELS, type WeatherModel, type TimelinePoint } from "@/lib/weather/open-meteo";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
@@ -488,6 +488,20 @@ export function WetterApp() {
               Boot anpassen (optional)
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              {/* Standard-Boote: Klick übernimmt alle Parameter (danach editierbar) */}
+              <div className="pills">
+                {BOAT_PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    data-testid={`boat-preset-${p.id}`}
+                    className={`pill ${specs.name === p.specs.name ? "active" : ""}`}
+                    onClick={() => setSpecs({ ...p.specs })}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               <div className="wetter-specs-grid">
                 <label className="stack" style={{ gap: 4 }}>
                   <span className="caption">Wasserlinie (m)</span>
@@ -565,10 +579,47 @@ export function WetterApp() {
                     }
                   />
                 </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Mindestwind (kn, Segeln)</span>
+                  <input
+                    data-testid="boat-minwind"
+                    type="number" min={1} max={30} step={1}
+                    className="wetter-select"
+                    placeholder="z.B. 4 (Jolle)"
+                    value={specs.min_wind_kn ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({ ...s, min_wind_kn: e.target.value ? Number(e.target.value) : null }))
+                    }
+                  />
+                </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Max. Wind (kn, Bootslimit)</span>
+                  <input
+                    data-testid="boat-maxwind"
+                    type="number" min={5} max={80} step={1}
+                    className="wetter-select"
+                    placeholder="z.B. 16 (Jolle)"
+                    value={specs.max_wind_kn ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({ ...s, max_wind_kn: e.target.value ? Number(e.target.value) : null }))
+                    }
+                  />
+                </label>
               </div>
+              <label className="row" style={{ gap: 8 }}>
+                <input
+                  data-testid="boat-noengine"
+                  type="checkbox"
+                  checked={specs.has_engine === false}
+                  onChange={(e) => setSpecs((s) => ({ ...s, has_engine: e.target.checked ? false : true }))}
+                />
+                <span className="caption">Ohne Motor (Jolle/Kat) — Flaute wird dann gewarnt</span>
+              </label>
               <p className="caption" data-testid="boat-derived">
-                → Rumpfgeschwindigkeit {boat.hull_speed_kn} kn · Marschfahrt{" "}
-                {boat.cruise_speed_motor_kn} kn
+                → Rumpfgeschwindigkeit {boat.hull_speed_kn} kn ·{" "}
+                {boat.has_engine ? `Marschfahrt ${boat.cruise_speed_motor_kn} kn` : "ohne Motor"}
+                {boat.min_wind_kn != null ? ` · min ${boat.min_wind_kn} kn Wind` : ""}
+                {boat.max_wind_kn != null ? ` · max ${boat.max_wind_kn} kn` : ""}
               </p>
             </div>
           </details>
@@ -671,7 +722,7 @@ export function WetterApp() {
                           <span className="caption">
                             {s.avoid
                               ? s.warnings[0]
-                              : `${s.max_gust_kn} kn Böen · ${s.duration_h} h${isRec ? " · empfohlen" : ""}`}
+                              : `${s.min_wind_kn}–${s.max_wind_kn} kn Wind · Böen ${s.max_gust_kn} · ${s.duration_h} h${isRec ? " · empfohlen" : ""}`}
                           </span>
                         </button>
                       </li>

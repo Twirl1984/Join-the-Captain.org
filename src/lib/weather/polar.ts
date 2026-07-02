@@ -19,6 +19,12 @@ export interface Boat {
   upwind_no_go_deg: number;
   /** Spitzen-Anteil von TWS, der in Fahrt umgesetzt wird. */
   drive_efficiency: number;
+  /** false = Jolle/Kat ohne Motor: kein Motor-Fallback bei Flaute. */
+  has_engine: boolean;
+  /** Unter diesem MITTELwind (kn): "zu wenig Wind"-Warnung (Segeln). */
+  min_wind_kn: number | null;
+  /** Über diesem MITTELwind (kn): "über Bootslimit"-Warnung (Kentergefahr/Charterlimit). */
+  max_wind_kn: number | null;
 }
 
 /** Default-Profil eines fahrtentauglichen ~35-Fuß-Charterbootes. */
@@ -28,6 +34,9 @@ export const DEFAULT_BOAT: Boat = {
   hull_speed_kn: 7.2,
   upwind_no_go_deg: 35,
   drive_efficiency: 0.62,
+  has_engine: true,
+  min_wind_kn: null, // Yacht mit Motor: Flaute ist kein Sicherheitsthema
+  max_wind_kn: 35,
 };
 
 export type SailMode = "sail" | "motor";
@@ -45,7 +54,60 @@ export interface BoatSpecs {
   engine_hp?: number;
   /** Direkte Marschfahrt (kn) — überschreibt die PS-Ableitung. */
   cruise_speed_motor_kn?: number;
+  /** false = kein Motor an Bord (Jolle/Kat) → kein Flaute-Fallback. */
+  has_engine?: boolean;
+  /** Mindest-Mittelwind (kn) fürs sinnvolle Segeln. */
+  min_wind_kn?: number | null;
+  /** Max. Mittelwind (kn) — darüber Bootslimit (Kentergefahr/Charterregel). */
+  max_wind_kn?: number | null;
 }
+
+/**
+ * Anklickbare Standard-Boote — übernehmen alle Parameter auf einen Schlag.
+ * Werte sind bewusst konservative Faustwerte (editierbar nach Übernahme).
+ */
+export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }> = [
+  {
+    id: "jolle",
+    label: "Jolle (z.B. 420er)",
+    specs: {
+      name: "Jolle", length_waterline_m: 4, has_engine: false,
+      min_wind_kn: 4, max_wind_kn: 16,
+    },
+  },
+  {
+    id: "katamaran",
+    label: "Strand-Kat (z.B. Hobie 16)",
+    specs: {
+      name: "Strand-Katamaran", length_waterline_m: 5, has_engine: false,
+      min_wind_kn: 5, max_wind_kn: 20,
+    },
+  },
+  {
+    id: "kielboot",
+    label: "Kleinkreuzer / Kielboot",
+    specs: {
+      name: "Kleinkreuzer", length_waterline_m: 6.5, displacement_t: 1.2, engine_hp: 6,
+      has_engine: true, min_wind_kn: 3, max_wind_kn: 22,
+    },
+  },
+  {
+    id: "charter35",
+    label: "Charter-Yacht 35 ft",
+    specs: {
+      name: "Charter 35ft", length_waterline_m: 10, displacement_t: 8, engine_hp: 40,
+      has_engine: true, min_wind_kn: null, max_wind_kn: 35,
+    },
+  },
+  {
+    id: "yacht45",
+    label: "Yacht 45 ft",
+    specs: {
+      name: "Yacht 45ft", length_waterline_m: 12.5, displacement_t: 12, engine_hp: 75,
+      has_engine: true, min_wind_kn: null, max_wind_kn: 40,
+    },
+  },
+];
 
 /** Rumpfgeschwindigkeit (kn) aus der Wasserlinie: 1.34·√LWL[ft] = 2.43·√LWL[m]. */
 export function hullSpeedKn(lengthWaterlineM: number): number {
@@ -93,6 +155,9 @@ export function boatFromSpecs(specs: BoatSpecs = {}): Boat {
     hull_speed_kn: hull,
     upwind_no_go_deg: DEFAULT_BOAT.upwind_no_go_deg,
     drive_efficiency: DEFAULT_BOAT.drive_efficiency,
+    has_engine: specs.has_engine ?? true,
+    min_wind_kn: specs.min_wind_kn ?? null,
+    max_wind_kn: specs.max_wind_kn ?? DEFAULT_BOAT.max_wind_kn,
   };
 }
 
@@ -140,9 +205,14 @@ export function effectiveSpeed({
   mode?: SailMode;
   boat?: Boat;
 }): { speed_kn: number; mode: SailMode } {
+  const sail = sailSpeed(twsKn, twaDeg, boat);
+  // Ohne Motor (Jolle/Kat) gibt es keinen Fallback: bei Flaute bleibt nur
+  // Kriechfahrt (Paddeln/Treiben) — die Flaute-WARNUNG kommt aus planRoute.
+  if (boat.has_engine === false) {
+    return { speed_kn: Math.max(sail, 0.5), mode: "sail" };
+  }
   const motor = motorSpeed(boat);
   if (mode === "motor") return { speed_kn: motor, mode: "motor" };
-  const sail = sailSpeed(twsKn, twaDeg, boat);
   // Unter ~60% Marschfahrt würde man realistisch den Motor zuschalten.
   if (sail < 0.6 * motor) return { speed_kn: motor, mode: "motor" };
   return { speed_kn: sail, mode: "sail" };

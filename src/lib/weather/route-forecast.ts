@@ -162,6 +162,9 @@ export function planRoute({
     const anyThunder = legSamples.some((s) => s.thunderstorm);
     const anyHighWave = legSamples.some((s) => s.high_wave);
     const maxGust = Math.max(...legSamples.map((s) => s.gust_kn ?? s.wind_speed_kn ?? 0));
+    const meanWinds = legSamples.map((s) => s.wind_speed_kn ?? 0);
+    const minMeanWind = Math.min(...meanWinds);
+    const maxMeanWind = Math.max(...meanWinds);
 
     const legWarn: string[] = [];
     if (anyThunder) legWarn.push("Gewitter");
@@ -171,6 +174,17 @@ export function planRoute({
       legWarn.push(`${sev.label} (${sev.bft} Bft)${sev.severe ? " ⚠ gefährlich" : ""}`);
     }
     if (anyHighWave) legWarn.push("Hohe Welle");
+    // Boots-Grenzen (unabhängig vom Risiko-Regler — harte Bootsdaten):
+    // zu wenig Wind für Jolle/Kat (kein Motor) bzw. gesetztes Minimum,
+    // zu viel MITTELwind fürs Boot (Kentergefahr/Charterlimit).
+    if (boat.min_wind_kn != null && mode === "sail" && minMeanWind < boat.min_wind_kn) {
+      legWarn.push(
+        `Zu wenig Wind (${round(minMeanWind, 0)} kn < min ${boat.min_wind_kn} kn${boat.has_engine === false ? " · kein Motor" : ""})`,
+      );
+    }
+    if (boat.max_wind_kn != null && maxMeanWind > boat.max_wind_kn) {
+      legWarn.push(`Wind über Bootslimit (${round(maxMeanWind, 0)} kn > max ${boat.max_wind_kn} kn)`);
+    }
     legWarn.forEach((w) =>
       warnings.push(`${w} auf Leg ${i + 1} (→ ${to.name || waypointLabel(to)})`),
     );

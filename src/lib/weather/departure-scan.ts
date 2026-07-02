@@ -20,6 +20,9 @@ export interface DepartureSlot {
   /** Höchste Böe (kn) und Welle (m) entlang der Route. */
   max_gust_kn: number;
   max_wave_m: number | null;
+  /** Mittelwind-Spanne (kn) entlang der Route — fürs "reicht der Wind?"-Gefühl. */
+  min_wind_kn: number;
+  max_wind_kn: number;
   /** Anteil der Strecke unter Motor (0..1). */
   motor_share: number;
   /** Kleiner = besser; Slots mit Warnungen bekommen einen großen Malus. */
@@ -50,6 +53,7 @@ export function scoreSlot(s: Omit<DepartureSlot, "score" | "avoid">): number {
 
 function slotFromPlan(departure: Date, plan: RoutePlan): DepartureSlot {
   const gusts = plan.legs.map((l) => l.gust_kn);
+  const winds = plan.legs.map((l) => l.wind_kn);
   const waves = plan.legs.map((l) => l.wave_m).filter((w): w is number => w != null);
   const motorNm = plan.legs.filter((l) => l.mode === "motor").reduce((s, l) => s + l.distance_nm, 0);
   const durationH = (new Date(plan.eta).getTime() - departure.getTime()) / 3600e3;
@@ -60,6 +64,8 @@ function slotFromPlan(departure: Date, plan: RoutePlan): DepartureSlot {
     warnings: plan.warnings,
     max_gust_kn: gusts.length ? Math.max(...gusts) : 0,
     max_wave_m: waves.length ? Math.max(...waves) : null,
+    min_wind_kn: winds.length ? Math.min(...winds) : 0,
+    max_wind_kn: winds.length ? Math.max(...winds) : 0,
     motor_share: plan.total_nm > 0 ? Math.round((motorNm / plan.total_nm) * 100) / 100 : 0,
   };
   return { ...base, score: scoreSlot(base), avoid: plan.warnings.length > 0 };

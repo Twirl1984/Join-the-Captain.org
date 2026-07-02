@@ -153,3 +153,72 @@ test("scanDepartures: ruhigere Slots bekommen kleinere Scores (Monotonie im Scor
   const minStorm = Math.min(...stormSlots.map((s) => s.score));
   assert.ok(maxCalm < minStorm, "jeder warnungsfreie Slot schlägt jeden Sturm-Slot");
 });
+
+// ── Wind-Grenzen fürs Boot (Jolle/Kat ohne Motor) ────────────────────────────
+
+import { effectiveSpeed as effSpeed } from "../polar";
+import { boatFromSpecs as bfs, BOAT_PRESETS } from "../polar";
+
+const jolle = bfs(BOAT_PRESETS.find((p) => p.id === "jolle")!.specs);
+
+test("Jolle ohne Motor: Flaute crasht nicht, Kriechfahrt statt Motor-Fallback", () => {
+  const r = effSpeed({ twsKn: 1, twaDeg: 30, mode: "sail", boat: jolle });
+  assert.equal(r.mode, "sail"); // kein Motor-Fallback
+  assert.ok(r.speed_kn >= 0.5 && r.speed_kn < 2, `${r.speed_kn}`);
+});
+
+test("planRoute (Jolle): zu wenig Wind erzeugt Flaute-Warnung, endliche Dauer", () => {
+  const still = (): ForecastSample => ({ wind_speed_kn: 2, wind_from_deg: 270, gust_kn: 3 });
+  const r = planRoute({
+    waypoints: [
+      { lat: 49.147, lon: 10.945, name: "Ramsberg" },
+      { lat: 49.128, lon: 10.895, name: "Enderndorf" },
+    ],
+    startTime: "2026-07-05T10:00:00Z",
+    boat: jolle,
+    mode: "sail",
+    sampleForecast: still,
+  });
+  assert.ok(r.warnings.some((w) => w.includes("Zu wenig Wind")), r.warnings.join());
+  assert.ok(r.warnings.some((w) => w.includes("kein Motor")));
+  assert.ok(r.legs[0].duration_h != null && Number.isFinite(r.legs[0].duration_h));
+});
+
+test("planRoute (Jolle): Mittelwind über Bootslimit warnt", () => {
+  const fresh = (): ForecastSample => ({ wind_speed_kn: 20, wind_from_deg: 270, gust_kn: 25 });
+  const r = planRoute({
+    waypoints: [
+      { lat: 49.147, lon: 10.945 },
+      { lat: 49.128, lon: 10.895 },
+    ],
+    startTime: "2026-07-05T10:00:00Z",
+    boat: jolle,
+    mode: "sail",
+    sampleForecast: fresh,
+  });
+  assert.ok(r.warnings.some((w) => w.includes("Bootslimit")), r.warnings.join());
+});
+
+test("scanDepartures (Jolle am Brombachsee): Flaute-Morgen wird gemieden, segelbarer Mittag empfohlen", () => {
+  const MITTAG = Date.parse("2026-07-05T11:00:00Z");
+  const seeWind = ({ at }: { lat: number; lon: number; at: Date }): ForecastSample =>
+    at.getTime() < MITTAG
+      ? { wind_speed_kn: 2, wind_from_deg: 200, gust_kn: 3 } // Morgenflaute
+      : { wind_speed_kn: 10, wind_from_deg: 250, gust_kn: 13 }; // Thermik
+  const scan = scanDepartures({
+    waypoints: [
+      { lat: 49.147, lon: 10.945, name: "Ramsberg" },
+      { lat: 49.128, lon: 10.895, name: "Enderndorf" },
+    ],
+    windowStart: new Date("2026-07-05T07:00:00Z"),
+    windowEnd: new Date("2026-07-05T15:00:00Z"),
+    stepH: 2,
+    boat: jolle,
+    mode: "sail",
+    sampleForecast: seeWind,
+  });
+  assert.ok(scan.recommended);
+  assert.ok(Date.parse(scan.recommended!.departure) >= MITTAG, scan.recommended!.departure);
+  const morgens = scan.slots.filter((s) => Date.parse(s.departure) < MITTAG);
+  assert.ok(morgens.length > 0 && morgens.every((s) => s.avoid), "Flaute-Slots gemieden");
+});

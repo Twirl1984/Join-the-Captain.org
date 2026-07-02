@@ -84,6 +84,17 @@ test.describe("/wetter — Abfahrts-Empfehlung & Boot", () => {
     expect(await page.getByTestId("departure-slot").count()).toBeGreaterThanOrEqual(3);
   });
 
+  test("Boots-Preset Jolle übernimmt Parameter (ohne Motor, min/max Wind)", async ({ page }) => {
+    await page.goto("/wetter");
+    await page.locator(".wetter-details summary").click();
+    await page.getByTestId("boat-preset-jolle").click();
+    await expect(page.getByTestId("boat-derived")).toContainText(/ohne Motor/);
+    await expect(page.getByTestId("boat-derived")).toContainText(/min 4 kn/);
+    await expect(page.getByTestId("boat-noengine")).toBeChecked();
+    await expect(page.getByTestId("boat-minwind")).toHaveValue("4");
+    await expect(page.getByTestId("boat-maxwind")).toHaveValue("16");
+  });
+
   test("Bootsdaten ändern die abgeleiteten Geschwindigkeiten", async ({ page }) => {
     await page.goto("/wetter");
     await page.locator(".wetter-details summary").click();

@@ -82,11 +82,21 @@ export function mergeBoat(raw: unknown): Boat {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 && n <= max ? n : fallback;
   };
+  const optPos = (v: unknown, max: number): number | null => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 && n <= max ? n : null;
+  };
+  const minWind = optPos(r.min_wind_kn, 30);
+  const maxWind = optPos(r.max_wind_kn, 80);
   return {
     name: typeof r.name === "string" ? r.name.slice(0, MAX_NAME_LEN) : DEFAULT_BOAT.name,
     cruise_speed_motor_kn: pos(r.cruise_speed_motor_kn, DEFAULT_BOAT.cruise_speed_motor_kn, 30),
     hull_speed_kn: pos(r.hull_speed_kn, DEFAULT_BOAT.hull_speed_kn, 40),
     upwind_no_go_deg: pos(r.upwind_no_go_deg, DEFAULT_BOAT.upwind_no_go_deg, 90),
     drive_efficiency: pos(r.drive_efficiency, DEFAULT_BOAT.drive_efficiency, 1),
+    has_engine: r.has_engine === false ? false : true,
+    // min < max erzwingen, sonst Minimum verwerfen (Fehlbedienung tolerieren).
+    min_wind_kn: minWind != null && maxWind != null && minWind >= maxWind ? null : minWind,
+    max_wind_kn: maxWind ?? DEFAULT_BOAT.max_wind_kn,
   };
 }
