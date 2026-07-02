@@ -17,11 +17,12 @@ Programm über **Tapfiliate**, 25 % Provision auf den ersten Kauf, Auszahlung vi
 - [ ] **Step 3 — ref-URL einsetzen/einbetten.** Über Medien nutzen; in Tapfiliate stehen Assets/Grafiken bereit (E-Mail, Website-Link, YouTube etc.). Ziel: PredictWind-Startseite **oder** Pricing-Seite. Cookie erkennt den Affiliate-Kauf.
   - Danach: ref-URL als `affiliate_programm.affiliate_url` eintragen + Status auf `aktiv` setzen → Link wird auf der Website sichtbar (mit Kennzeichnung + `rel="sponsored nofollow"`).
 
-## Navionics (Seekarten) — Status: `gefunden`
+## Navionics (Seekarten) — Status: `beworben`
 
 Kein eigenes Programm → über den **Mutterkonzern Garmin** (Garmin Affiliate Program, i.d.R. via AvantLink/Impact).
 
-- [ ] Beim Garmin-Partnerprogramm bewerben: https://www.garmin.com/en-US/affiliate-program/
+- [x] Beim Garmin-Partnerprogramm beworben (2026-07-02): https://www.garmin.com/en-US/affiliate-program/
+- [ ] **⏳ Freigabe abwarten — noch nichts im Dashboard. REGELMÄSSIG PRÜFEN** (wöchentliche Erinnerung eingerichtet).
 - [ ] Aufnahmekriterien, Provision und Cookie-Dauer prüfen und hier + in `affiliate_programm.bedingungen` dokumentieren.
 - [ ] Nach Freigabe: ref-/Affiliate-Link eintragen, Status auf `aktiv`.
 
