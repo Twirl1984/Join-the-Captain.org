@@ -16,9 +16,19 @@ import { classify, DEFAULT_SENSITIVITY, type WeatherMetrics } from "./warnings";
 
 const ATMO_BASE = process.env.OPEN_METEO_FORECAST_URL || "https://api.open-meteo.com/v1/forecast";
 const MARINE_BASE = process.env.OPEN_METEO_MARINE_URL || "https://marine-api.open-meteo.com/v1/marine";
+// Archiv der damaligen VORHERSAGEN — für "hätte das Tool gewarnt?"-Validierung.
+const ARCHIVE_BASE =
+  process.env.OPEN_METEO_HISTORICAL_URL || "https://historical-forecast-api.open-meteo.com/v1/forecast";
 const API_KEY = process.env.OPEN_METEO_API_KEY || ""; // leer = Free-Tier
 
 const REVALIDATE_S = 3600; // 1 h Cache (Open-Meteo-Update-Takt)
+const ARCHIVE_THRESHOLD_H = 12; // Fenster älter als das → Archiv-APIs
+
+/** Zeitfenster, das der Sampler abdecken soll (Route: Start bis grobe Ankunft). */
+export interface TimeWindow {
+  start: Date;
+  end: Date;
+}
 
 interface PointSeries {
   lat: number;
@@ -38,11 +48,11 @@ interface PointSeries {
  */
 export async function buildSampler(
   points: Waypoint[],
-  opts: { sensitivity?: number } = {},
+  opts: { sensitivity?: number; window?: TimeWindow } = {},
 ): Promise<SampleForecast> {
   if (!points.length) throw new Error("Keine Sample-Punkte.");
   const sensitivity = opts.sensitivity ?? DEFAULT_SENSITIVITY;
-  const series = await fetchSeries(points);
+  const series = await fetchSeries(points, opts.window);
 
   return ({ lat, lon, at }): ForecastSample => {
     const ps = nearestSeries(series, { lat, lon });
@@ -69,18 +79,43 @@ export async function buildSampler(
   };
 }
 
-async function fetchSeries(points: Waypoint[]): Promise<PointSeries[]> {
+/** true, wenn das Fenster klar in der Vergangenheit liegt → Archiv-APIs. */
+export function isArchiveWindow(window?: TimeWindow): boolean {
+  if (!window) return false;
+  return window.end.getTime() < Date.now() - ARCHIVE_THRESHOLD_H * 3600e3;
+}
+
+const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+
+async function fetchSeries(points: Waypoint[], window?: TimeWindow): Promise<PointSeries[]> {
   const lats = points.map((p) => p.lat).join(",");
   const lons = points.map((p) => p.lon).join(",");
   const key = API_KEY ? `&apikey=${encodeURIComponent(API_KEY)}` : "";
 
+  // Zukunft: Live-Forecast (+7 Tage Rückblick — deckt lückenlos alles ab, was
+  // nicht schon im Archiv-Modus landet). Vergangenheit: archivierte Vorhersagen
+  // + historische Wellen über start_date/end_date — damit lassen sich vergangene
+  // Sturm-/Gewitterlagen nachstellen ("hätte das Tool gewarnt?").
+  let atmoBase = ATMO_BASE;
+  let range = `&past_days=7&forecast_days=7`;
+  let marineRange = `&past_days=7&forecast_days=7`;
+  if (isArchiveWindow(window) && window) {
+    atmoBase = ARCHIVE_BASE;
+    const startD = isoDate(window.start);
+    // +1 Tag Puffer hinter der erwarteten Ankunft, aber nie in der Zukunft.
+    const endMs = Math.min(window.end.getTime() + 24 * 3600e3, Date.now());
+    const endD = isoDate(new Date(endMs));
+    range = `&start_date=${startD}&end_date=${endD}`;
+    marineRange = range;
+  }
+
   const atmoUrl =
-    `${ATMO_BASE}?latitude=${lats}&longitude=${lons}` +
+    `${atmoBase}?latitude=${lats}&longitude=${lons}` +
     `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape` +
-    `&wind_speed_unit=kn&timezone=UTC&forecast_days=7${key}`;
+    `&wind_speed_unit=kn&timezone=UTC${range}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wave_height&timezone=UTC&forecast_days=7${key}`;
+    `&hourly=wave_height&timezone=UTC${marineRange}${key}`;
 
   // Marine-API liefert für Binnen-/landnahe Punkte ggf. einen Fehler → tolerieren.
   const [atmo, marine] = await Promise.all([

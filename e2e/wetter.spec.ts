@@ -71,6 +71,32 @@ test.describe("/wetter — Seite & Route", () => {
   });
 });
 
+test.describe("/wetter — Abfahrts-Empfehlung & Boot", () => {
+  test("Abfahrts-Scan liefert Slots mit einer Empfehlung", async ({ page }) => {
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    const resp = page.waitForResponse((r) => r.url().includes("/api/weather/departure"));
+    await page.getByTestId("departure-scan-button").click();
+    await resp;
+    await expect(page.getByTestId("departure-result")).toBeVisible();
+    // genau ein empfohlener + weitere Slots (3-h-Raster über ~2 Tage)
+    await expect(page.getByTestId("departure-recommended")).toHaveCount(1);
+    expect(await page.getByTestId("departure-slot").count()).toBeGreaterThanOrEqual(3);
+  });
+
+  test("Bootsdaten ändern die abgeleiteten Geschwindigkeiten", async ({ page }) => {
+    await page.goto("/wetter");
+    await page.locator(".wetter-details summary").click();
+    const derived = page.getByTestId("boat-derived");
+    const before = await derived.textContent();
+    await page.getByTestId("boat-lwl").fill("12");
+    await page.getByTestId("boat-disp").fill("10");
+    await page.getByTestId("boat-hp").fill("15");
+    const after = await derived.textContent();
+    expect(after).not.toBe(before);
+  });
+});
+
 test.describe("/wetter — Robustheit", () => {
   test("API-502 zeigt freundliche Fehlermeldung statt Absturz", async ({ page }) => {
     await page.route("**/api/weather/route", (r) =>

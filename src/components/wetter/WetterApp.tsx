@@ -1,7 +1,8 @@
 "use client";
 
-// Wetter-Routen-Planer — Client-Shell: Revier, Karte, Wegpunkte, Abfahrt,
-// Segel/Motor, Risiko-Schieberegler → POST /api/weather/route → Ergebnis-Panel.
+// Wetter-Routen-Planer — Client-Shell: Revier, Karte, Wegpunkte (mit optionaler
+// Liegezeit), Bootsprofil (PS/Länge/Verdrängung → Geschwindigkeit), Abfahrt,
+// Risiko-Schieberegler, Abfahrts-Empfehlung im Zeitfenster → Ergebnis-Panel.
 // data-testid-Attribute sind der E2E-Vertrag (e2e/wetter.spec.ts).
 
 import { useMemo, useRef, useState } from "react";
@@ -10,7 +11,9 @@ import { Icon } from "@/components/Icon";
 import { REVIERE } from "@/lib/weather/reviere";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
 import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
+import { boatFromSpecs, type BoatSpecs } from "@/lib/weather/polar";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
+import type { DepartureScan, DepartureSlot } from "@/lib/weather/departure-scan";
 
 // Wegpunkt mit stabiler UI-Id — Keys dürfen nicht am Array-Index hängen,
 // sonst remountet React (und Leaflet) beim Löschen aus der Mitte alle Nachfolger.
@@ -49,23 +52,40 @@ export function WetterApp() {
   const [startTime, setStartTime] = useState(defaultStart);
   const [mode, setMode] = useState<"sail" | "motor">("sail");
   const [sensitivity, setSensitivity] = useState(RECOMMENDED_SENSITIVITY);
+  const [specs, setSpecs] = useState<BoatSpecs>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<RoutePlan | null>(null);
+  const [source, setSource] = useState<string | null>(null);
+  // Abfahrts-Empfehlung
+  const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 72 * 3600e3)));
+  const [scan, setScan] = useState<DepartureScan | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
 
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
   const maxStart = useMemo(() => toLocalInput(new Date(Date.now() + 7 * 24 * 3600e3)), []);
+  const boat = useMemo(() => boatFromSpecs(specs), [specs]);
 
   const addWaypoint = (w: Waypoint) =>
     setWaypoints((prev) => [...prev, { ...w, id: `wp-${nextId.current++}` }]);
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
+  const setWaypointDepart = (id: string, value: string) =>
+    setWaypoints((prev) =>
+      prev.map((w) =>
+        w.id === id ? { ...w, depart_at: value ? new Date(value).toISOString() : undefined } : w,
+      ),
+    );
   const reset = () => {
     setWaypoints([]);
     setPlan(null);
+    setScan(null);
     setError(null);
   };
 
-  async function calculate() {
+  const apiWaypoints = () =>
+    waypoints.map(({ lat, lon, name, depart_at }) => ({ lat, lon, name, depart_at }));
+
+  async function calculate(startIso?: string) {
     setLoading(true);
     setError(null);
     setPlan(null);
@@ -74,13 +94,18 @@ export function WetterApp() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          waypoints: waypoints.map(({ lat, lon, name }) => ({ lat, lon, name })),
-          startTime: new Date(startTime).toISOString(),
+          waypoints: apiWaypoints(),
+          startTime: startIso ?? new Date(startTime).toISOString(),
           mode,
           sensitivity,
+          boat,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { plan?: RoutePlan; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        plan?: RoutePlan;
+        source?: string;
+        error?: string;
+      };
       if (!res.ok || !data.plan) {
         setError(
           res.status === 502
@@ -90,12 +115,51 @@ export function WetterApp() {
         return;
       }
       setPlan(data.plan);
+      setSource(data.source ?? null);
     } catch {
       setError("Netzwerkfehler — bitte später erneut versuchen.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function scanWindow() {
+    setScanLoading(true);
+    setError(null);
+    setScan(null);
+    try {
+      const res = await fetch("/api/weather/departure", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          waypoints: apiWaypoints(),
+          windowStart: new Date(startTime).toISOString(),
+          windowEnd: new Date(scanTo).toISOString(),
+          stepH: 3,
+          mode,
+          sensitivity,
+          boat,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as Partial<DepartureScan> & {
+        error?: string;
+      };
+      if (!res.ok || !data.slots) {
+        setError(data.error || "Abfahrts-Scan fehlgeschlagen — bitte Eingaben prüfen.");
+        return;
+      }
+      setScan(data as DepartureScan);
+    } catch {
+      setError("Netzwerkfehler — bitte später erneut versuchen.");
+    } finally {
+      setScanLoading(false);
+    }
+  }
+
+  const adoptSlot = (slot: DepartureSlot) => {
+    setStartTime(toLocalInput(new Date(slot.departure)));
+    void calculate(slot.departure);
+  };
 
   return (
     <div className="wetter-app stack" style={{ gap: 20 }}>
@@ -130,7 +194,7 @@ export function WetterApp() {
         </div>
 
         <div className="stack" style={{ gap: 16 }}>
-          {/* Wegpunkt-Liste */}
+          {/* Wegpunkt-Liste inkl. optionaler Liegezeit */}
           <div className="card stack" style={{ gap: 8 }}>
             <span className="section-label">Route</span>
             {waypoints.length === 0 ? (
@@ -140,21 +204,37 @@ export function WetterApp() {
             ) : (
               <ol className="wetter-wp-list">
                 {waypoints.map((w, i) => (
-                  <li key={w.id} data-testid="waypoint-item" className="row-between">
-                    <span className="row" style={{ gap: 8 }}>
-                      <span className="wp-marker wp-marker-inline">{i + 1}</span>
-                      <span style={{ fontSize: 13 }}>
-                        {w.name || `${w.lat.toFixed(3)}, ${w.lon.toFixed(3)}`}
+                  <li key={w.id} data-testid="waypoint-item" className="stack" style={{ gap: 4 }}>
+                    <span className="row-between">
+                      <span className="row" style={{ gap: 8 }}>
+                        <span className="wp-marker wp-marker-inline">{i + 1}</span>
+                        <span style={{ fontSize: 13 }}>
+                          {w.name || `${w.lat.toFixed(3)}, ${w.lon.toFixed(3)}`}
+                        </span>
                       </span>
+                      <button
+                        type="button"
+                        className="wetter-remove"
+                        aria-label={`Wegpunkt ${i + 1} entfernen`}
+                        onClick={() => removeWaypoint(w.id)}
+                      >
+                        <Icon name="x" size={14} />
+                      </button>
                     </span>
-                    <button
-                      type="button"
-                      className="wetter-remove"
-                      aria-label={`Wegpunkt ${i + 1} entfernen`}
-                      onClick={() => removeWaypoint(w.id)}
-                    >
-                      <Icon name="x" size={14} />
-                    </button>
+                    {/* Liegezeit ("Weiterfahrt ab") an Zwischenstopps */}
+                    {i > 0 && i < waypoints.length - 1 && (
+                      <label className="row" style={{ gap: 6, paddingLeft: 28, flexWrap: "wrap" }}>
+                        <span className="caption">Weiterfahrt ab</span>
+                        <input
+                          type="datetime-local"
+                          className="wetter-select"
+                          style={{ minHeight: 34, fontSize: 12, maxWidth: 210 }}
+                          value={w.depart_at ? toLocalInput(new Date(w.depart_at)) : ""}
+                          onChange={(e) => setWaypointDepart(w.id, e.target.value)}
+                          aria-label={`Weiterfahrt ab Wegpunkt ${i + 1}`}
+                        />
+                      </label>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -169,7 +249,9 @@ export function WetterApp() {
           {/* Abfahrt + Modus */}
           <div className="card stack" style={{ gap: 12 }}>
             <label className="stack" style={{ gap: 6 }}>
-              <span className="caption">Abfahrt (max. 7 Tage voraus)</span>
+              <span className="caption">
+                Abfahrt (bis 7 Tage voraus · Vergangenheit = Archiv-Check)
+              </span>
               <input
                 type="datetime-local"
                 className="wetter-select"
@@ -198,6 +280,97 @@ export function WetterApp() {
             </div>
           </div>
 
+          {/* Bootsprofil */}
+          <details className="card wetter-details">
+            <summary className="section-label" style={{ cursor: "pointer" }}>
+              Boot anpassen (optional)
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              <div className="wetter-specs-grid">
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Wasserlinie (m)</span>
+                  <input
+                    data-testid="boat-lwl"
+                    type="number"
+                    min={4}
+                    max={40}
+                    step={0.1}
+                    className="wetter-select"
+                    placeholder="z.B. 10"
+                    value={specs.length_waterline_m ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({
+                        ...s,
+                        length_waterline_m: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Verdrängung (t)</span>
+                  <input
+                    data-testid="boat-disp"
+                    type="number"
+                    min={0.5}
+                    max={100}
+                    step={0.1}
+                    className="wetter-select"
+                    placeholder="z.B. 8"
+                    value={specs.displacement_t ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({
+                        ...s,
+                        displacement_t: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Motor (PS)</span>
+                  <input
+                    data-testid="boat-hp"
+                    type="number"
+                    min={2}
+                    max={500}
+                    step={1}
+                    className="wetter-select"
+                    placeholder="z.B. 40"
+                    value={specs.engine_hp ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({
+                        ...s,
+                        engine_hp: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Marschfahrt (kn, überschreibt)</span>
+                  <input
+                    data-testid="boat-cruise"
+                    type="number"
+                    min={2}
+                    max={30}
+                    step={0.1}
+                    className="wetter-select"
+                    placeholder="autom."
+                    value={specs.cruise_speed_motor_kn ?? ""}
+                    onChange={(e) =>
+                      setSpecs((s) => ({
+                        ...s,
+                        cruise_speed_motor_kn: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+              <p className="caption" data-testid="boat-derived">
+                → Rumpfgeschwindigkeit {boat.hull_speed_kn} kn · Marschfahrt{" "}
+                {boat.cruise_speed_motor_kn} kn
+              </p>
+            </div>
+          </details>
+
           {/* Risiko-Schieberegler */}
           <div className="card stack" style={{ gap: 10 }}>
             <span className="section-label">Warn-Empfindlichkeit</span>
@@ -218,7 +391,8 @@ export function WetterApp() {
             </div>
             <p className="caption">
               Fehlalarm (FP) heißt: unnötig in den Hafen. Verpasste Warnung (FN) heißt: ungewarnt
-              im Sturm — schwere Stürme (≥&nbsp;9&nbsp;Bft) warnen deshalb immer, unabhängig vom Regler.
+              im Sturm — schwere Stürme (≥&nbsp;9&nbsp;Bft) warnen deshalb immer, unabhängig vom
+              Regler.
             </p>
           </div>
 
@@ -227,11 +401,76 @@ export function WetterApp() {
             type="button"
             className="btn btn-teal btn-block"
             disabled={waypoints.length < 2 || loading}
-            onClick={calculate}
+            onClick={() => void calculate()}
           >
             {loading ? "Berechne …" : "Route berechnen"}
             {!loading && <Icon name="arrow-right" size={16} />}
           </button>
+
+          {/* Abfahrts-Empfehlung */}
+          <div className="card stack" style={{ gap: 10 }}>
+            <span className="section-label">Beste Abfahrt finden</span>
+            <p className="caption">
+              Charter-Fenster angeben — wir rechnen alle Abfahrten (3-h-Raster) von der Abfahrtszeit
+              oben bis zum spätesten Start durch und empfehlen den Slot, der Unwetter umgeht.
+            </p>
+            <label className="stack" style={{ gap: 4 }}>
+              <span className="caption">spätester Start</span>
+              <input
+                data-testid="departure-to"
+                type="datetime-local"
+                className="wetter-select"
+                value={scanTo}
+                max={maxStart}
+                onChange={(e) => setScanTo(e.target.value)}
+              />
+            </label>
+            <button
+              data-testid="departure-scan-button"
+              type="button"
+              className="btn btn-outline-teal btn-block"
+              disabled={waypoints.length < 2 || scanLoading}
+              onClick={scanWindow}
+            >
+              {scanLoading ? "Prüfe Slots …" : "Abfahrt empfehlen"}
+            </button>
+            {scan && (
+              <div className="stack" style={{ gap: 6 }} data-testid="departure-result">
+                {scan.all_windy && (
+                  <p className="wetter-warnband" style={{ fontSize: 12 }}>
+                    Im ganzen Fenster gibt es Warnungen — unten der am wenigsten kritische Slot.
+                  </p>
+                )}
+                <ol className="wetter-slot-list">
+                  {scan.slots.map((s) => {
+                    const isRec = scan.recommended?.departure === s.departure;
+                    return (
+                      <li key={s.departure}>
+                        <button
+                          type="button"
+                          data-testid={isRec ? "departure-recommended" : "departure-slot"}
+                          className={`wetter-slot ${s.avoid ? "avoid" : ""} ${isRec ? "recommended" : ""}`}
+                          onClick={() => adoptSlot(s)}
+                          title={s.warnings.join(" · ") || "keine Warnungen"}
+                        >
+                          <span className="row" style={{ gap: 6 }}>
+                            <Icon name={s.avoid ? "shield" : "check"} size={14} />
+                            {fmtEta(s.departure)}
+                          </span>
+                          <span className="caption">
+                            {s.avoid
+                              ? s.warnings[0]
+                              : `${s.max_gust_kn} kn Böen · ${s.duration_h} h${isRec ? " · empfohlen" : ""}`}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className="caption">Klick auf einen Slot übernimmt ihn als Abfahrt.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -254,6 +493,11 @@ export function WetterApp() {
         <div data-testid="result-panel" className="stack" style={{ gap: 16 }}>
           <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
             <span className="tag phase-planung">Planung</span>
+            {source === "open-meteo-archive" && (
+              <span className="tag badge-verworfen" data-testid="archive-badge">
+                Archivdaten · Validierung
+              </span>
+            )}
             <strong>{plan.total_nm} sm</strong>
             <span className="muted">Ankunft {fmtEta(plan.eta)}</span>
           </div>
@@ -297,7 +541,11 @@ export function WetterApp() {
 function LegCard({ leg }: { leg: RouteLeg }) {
   const warn = leg.warnings.length > 0;
   return (
-    <div data-testid="leg-card" className={`card stack ${warn ? "wetter-leg-warn" : ""}`} style={{ gap: 10 }}>
+    <div
+      data-testid="leg-card"
+      className={`card stack ${warn ? "wetter-leg-warn" : ""}`}
+      style={{ gap: 10 }}
+    >
       <div className="row-between">
         <h3 style={{ fontSize: 14, fontFamily: "var(--font-sans)", fontWeight: 500 }}>
           Leg {leg.leg}: {leg.from} → {leg.to}
@@ -306,6 +554,9 @@ function LegCard({ leg }: { leg: RouteLeg }) {
           {leg.mode === "sail" ? "Segel" : "Motor"}
         </span>
       </div>
+      {leg.layover_h != null && (
+        <p className="caption">⚓ Liegezeit {leg.layover_h} h · Weiterfahrt {fmtEta(leg.depart)}</p>
+      )}
       <div className="wetter-leg-facts">
         <span>{leg.distance_nm} sm</span>
         <span>Kurs {leg.course_deg}°</span>

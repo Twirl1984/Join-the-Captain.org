@@ -32,6 +32,70 @@ export const DEFAULT_BOAT: Boat = {
 
 export type SailMode = "sail" | "motor";
 
+// ── Bootsdaten → Geschwindigkeiten (Verdränger-Heuristik) ────────────────────
+// Für Segler, die Länge/Verdrängung/PS kennen, aber keine Marschfahrt.
+
+export interface BoatSpecs {
+  name?: string;
+  /** Wasserlinienlänge in Metern. */
+  length_waterline_m?: number;
+  /** Verdrängung in Tonnen. */
+  displacement_t?: number;
+  /** Motorleistung in PS. */
+  engine_hp?: number;
+  /** Direkte Marschfahrt (kn) — überschreibt die PS-Ableitung. */
+  cruise_speed_motor_kn?: number;
+}
+
+/** Rumpfgeschwindigkeit (kn) aus der Wasserlinie: 1.34·√LWL[ft] = 2.43·√LWL[m]. */
+export function hullSpeedKn(lengthWaterlineM: number): number {
+  return round(2.43 * Math.sqrt(lengthWaterlineM));
+}
+
+/**
+ * Erreichbare Verdrängerfahrt (kn) aus PS + Verdrängung + Wasserlinie.
+ * Klassische Displacement-Formel: SLR = 10.665 / (lb/SHP)^(1/3), v = SLR·√LWL[ft],
+ * gedeckelt bei SLR 1.34 (Rumpfgeschwindigkeit). Marschfahrt = 85 % davon
+ * (niemand fährt Dauervollgas).
+ */
+export function motorCruiseFromPower(
+  engineHp: number,
+  displacementT: number,
+  lengthWaterlineM: number,
+): number {
+  if (engineHp <= 0 || displacementT <= 0 || lengthWaterlineM <= 0) {
+    return DEFAULT_BOAT.cruise_speed_motor_kn;
+  }
+  const lb = displacementT * 2204.62;
+  const slr = Math.min(1.34, 10.665 / Math.cbrt(lb / engineHp));
+  const lwlFt = lengthWaterlineM * 3.28084;
+  const vMax = slr * Math.sqrt(lwlFt);
+  return round(0.85 * vMax);
+}
+
+/**
+ * Baut ein vollständiges Boot aus (teilweisen) Bootsdaten. Fehlende Werte
+ * fallen auf das Default-Charterboot zurück; eine direkt angegebene
+ * Marschfahrt gewinnt gegen die PS-Ableitung.
+ */
+export function boatFromSpecs(specs: BoatSpecs = {}): Boat {
+  const lwl = specs.length_waterline_m;
+  const hull = lwl && lwl > 0 ? hullSpeedKn(lwl) : DEFAULT_BOAT.hull_speed_kn;
+  let cruise = DEFAULT_BOAT.cruise_speed_motor_kn;
+  if (specs.cruise_speed_motor_kn && specs.cruise_speed_motor_kn > 0) {
+    cruise = specs.cruise_speed_motor_kn;
+  } else if (specs.engine_hp && specs.displacement_t && lwl) {
+    cruise = motorCruiseFromPower(specs.engine_hp, specs.displacement_t, lwl);
+  }
+  return {
+    name: specs.name || DEFAULT_BOAT.name,
+    cruise_speed_motor_kn: round(Math.min(cruise, hull)),
+    hull_speed_kn: hull,
+    upwind_no_go_deg: DEFAULT_BOAT.upwind_no_go_deg,
+    drive_efficiency: DEFAULT_BOAT.drive_efficiency,
+  };
+}
+
 /**
  * Relative Effizienz über den Windeinfallswinkel (0..1). Modelliert das typische
  * Profil: nichts in der No-Go-Zone, Maximum am Halbwind/leicht raum (~100°),

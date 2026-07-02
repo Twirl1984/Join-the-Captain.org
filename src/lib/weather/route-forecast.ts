@@ -18,6 +18,12 @@ export interface Waypoint {
   lat: number;
   lon: number;
   name?: string;
+  /**
+   * Frühester Weiterfahr-Zeitpunkt AB diesem Wegpunkt (ISO/Date) — für geplante
+   * Zwischenstopps (Hafen-Übernachtung). Kommt das Boot früher an, wartet es
+   * (Liegezeit); kommt es später an, fährt es direkt weiter.
+   */
+  depart_at?: string | Date;
 }
 
 /** Wetter-Sample an einem Punkt zu einem Zeitpunkt (vom Sampler geliefert). */
@@ -42,8 +48,13 @@ export interface RouteLeg {
   mode: SailMode;
   speed_kn: number;
   wind_kn: number;
+  gust_kn: number;
   wind_from_deg: number;
   wave_m: number | null;
+  /** Tatsächliche Abfahrt dieses Legs (nach evtl. Liegezeit). */
+  depart: string;
+  /** Wartezeit am Start-Wegpunkt (h), falls depart_at später als die Ankunft lag. */
+  layover_h: number | null;
   eta: string;
   duration_h: number | null;
   warnings: string[];
@@ -114,6 +125,18 @@ export function planRoute({
     const dist = haversineNm(from, to);
     const course = initialBearing(from, to);
 
+    // Liegezeit: hat der Start-Wegpunkt ein "Weiterfahrt ab", warten wir bis
+    // dahin (Hafen-Übernachtung); frühere Ankunft verfällt, spätere gewinnt.
+    let layoverH: number | null = null;
+    if (from.depart_at) {
+      const dep = from.depart_at instanceof Date ? from.depart_at : new Date(from.depart_at);
+      if (!Number.isNaN(dep.getTime()) && dep.getTime() > t.getTime()) {
+        layoverH = round((dep.getTime() - t.getTime()) / 3600e3, 1);
+        t = new Date(dep);
+      }
+    }
+    const depart = new Date(t);
+
     // Wetter am Leg: erst grob mit Startzeit sampeln, dann mit der besseren
     // Ankunftsschätzung einmal nachsampeln (ein Iterationsschritt genügt im MVP).
     let wx = sampleForecast({ lat: midLat(from, to), lon: midLon(from, to), at: t });
@@ -127,16 +150,27 @@ export function planRoute({
     const eta = new Date(t.getTime() + hours * 3600e3);
     total += dist;
 
-    // Warnungen kommen aus den Flags, die der Sampler (warnings.classify mit der
-    // gewählten Sensitivität) gesetzt hat — so wirkt der Risiko-Regler durch.
+    // Warnungen über den GANZEN Leg-Verlauf prüfen (Abfahrt/Mitte/Ankunft) —
+    // eine Sturmzelle am Anfang oder Ende des Legs darf nicht durchs einzelne
+    // Mittel-Sample rutschen (Sicherheits-FN). Flags per ODER, Böe = Maximum.
+    const legSamples = Number.isFinite(hours)
+      ? [depart, new Date(t.getTime() + (hours / 2) * 3600e3), eta].map((at) =>
+          sampleForecast({ lat: midLat(from, to), lon: midLon(from, to), at }),
+        )
+      : [wx];
+    const anyGale = legSamples.some((s) => s.gale);
+    const anyThunder = legSamples.some((s) => s.thunderstorm);
+    const anyHighWave = legSamples.some((s) => s.high_wave);
+    const maxGust = Math.max(...legSamples.map((s) => s.gust_kn ?? s.wind_speed_kn ?? 0));
+
     const legWarn: string[] = [];
-    if (wx.thunderstorm) legWarn.push("Gewitter");
-    if (wx.gale) {
+    if (anyThunder) legWarn.push("Gewitter");
+    if (anyGale) {
       // Windstärke im Warntext sichtbar machen (FN-Schwere hängt daran).
-      const sev = stormSeverity(wx.gust_kn ?? wx.wind_speed_kn ?? 0);
+      const sev = stormSeverity(maxGust);
       legWarn.push(`${sev.label} (${sev.bft} Bft)${sev.severe ? " ⚠ gefährlich" : ""}`);
     }
-    if (wx.high_wave) legWarn.push("Hohe Welle");
+    if (anyHighWave) legWarn.push("Hohe Welle");
     legWarn.forEach((w) =>
       warnings.push(`${w} auf Leg ${i + 1} (→ ${to.name || waypointLabel(to)})`),
     );
@@ -150,8 +184,11 @@ export function planRoute({
       mode: usedMode,
       speed_kn: round(speed_kn, 1),
       wind_kn: round(wx.wind_speed_kn, 0),
+      gust_kn: round(maxGust, 0),
       wind_from_deg: round(wx.wind_from_deg, 0),
       wave_m: wx.wave_height_m != null ? round(wx.wave_height_m, 1) : null,
+      depart: depart.toISOString(),
+      layover_h: layoverH,
       eta: eta.toISOString(),
       duration_h: Number.isFinite(hours) ? round(hours, 1) : null,
       warnings: legWarn,

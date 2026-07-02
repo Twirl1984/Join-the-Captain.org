@@ -13,7 +13,7 @@ export interface Revier {
   center: [number, number];
   zoom: number;
   /** Bekannte Häfen als Schnellstart-Wegpunkte. */
-  haefen: Required<Waypoint>[];
+  haefen: Array<Waypoint & { name: string }>;
 }
 
 export const REVIERE: Revier[] = [

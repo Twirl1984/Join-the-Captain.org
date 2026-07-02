@@ -181,3 +181,29 @@ curl -s -X POST localhost:3311/api/weather/route -H 'content-type: application/j
 - Modell-Auswahl / das beste Modell je Revier aus der jtc.de-Validierungsstudie ziehen.
 - Nutzer-Feedback zur Vorhersagegüte (wie im jtc.de-Bot-Konzept), Marker-Drag, GPX-Export.
 ```
+
+---
+
+## Runde 2 (2026-07-02): Bootsprofil · Liegezeiten · Archiv-Modus · Abfahrts-Empfehlung
+
+- **Bootsprofil:** `polar.boatFromSpecs({length_waterline_m, displacement_t, engine_hp, cruise_speed_motor_kn?})`
+  — Rumpfgeschwindigkeit 2.43·√LWL, Marschfahrt aus der Verdränger-Formel (SLR = 10.665/(lb/PS)^⅓, Kappe 1.34, ×0.85).
+  UI: aufklappbare Karte „Boot anpassen", abgeleitete Werte live (`boat-derived`).
+- **Liegezeiten:** `Waypoint.depart_at` = „Weiterfahrt ab" an Zwischenstopps; `planRoute` wartet
+  (Leg bekommt `layover_h` + `depart`). UI: datetime-Feld pro Zwischen-Wegpunkt.
+- **Archiv-Modus:** Startzeiten in der Vergangenheit (bis ~5 Jahre) sind erlaubt → Daten kommen von
+  `historical-forecast-api` (damalige VORHERSAGEN — „hätte das Tool gewarnt?") + Marine-Archiv.
+  Antwort trägt `source: "open-meteo-archive"`, UI zeigt Badge „Archivdaten · Validierung".
+- **Sicherheits-Fix aus dem Test:** Warnungen werden jetzt über den GANZEN Leg-Verlauf geprüft
+  (Abfahrt/Mitte/Ankunft, Flags ODER, Böe max) — eine Zelle am Leg-Anfang rutschte vorher durchs
+  einzelne Mittel-Sample.
+- **`POST /api/weather/departure`** — „Wann auslaufen?": `{waypoints, windowStart, windowEnd,
+  stepH?, mode?, sensitivity?, boat?}` → `slots[]` (je Kandidat: warnings, max_gust_kn, max_wave_m,
+  motor_share, duration_h, score, avoid) + `recommended` + `all_windy`. Slots mit Warnung sind
+  „meiden" (Malus 1000); unter den freien gewinnt Komfort (Böen, Welle, Motoranteil, Dauer).
+  Fenster max. 5 Tage, ein Datenabruf pro Scan. UI: „Beste Abfahrt finden" — Klick auf Slot
+  übernimmt ihn als Abfahrt.
+- **HTTPS:** Test-Instanz läuft auf `https://join-the-captain.org:3100` (Let's Encrypt,
+  Auto-Renewal; Port 80 → 302 auf die Test-Instanz, bis Prod kommt).
+- Verifikation: Unit 42 grün (13 neue) · Typecheck 0 · Build ok · E2E 12/12 · Live-Smoke: Archiv
+  (Jan 2025) + Departure-Scan (echtes Sturmtief korrekt gemieden, Sa-Abend empfohlen).

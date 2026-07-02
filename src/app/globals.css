@@ -408,3 +408,24 @@ p { margin: 0; }
   .wetter-grid { grid-template-columns: 1fr; }
   .wetter-leaflet { height: 340px; }
 }
+
+/* Bootsprofil + Abfahrts-Empfehlung (/wetter, Runde 2) */
+.wetter-details summary { list-style: none; }
+.wetter-details summary::-webkit-details-marker { display: none; }
+.wetter-details summary::after { content: " ▸"; }
+.wetter-details[open] summary::after { content: " ▾"; }
+.wetter-specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.wetter-slot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.wetter-slot {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  min-height: 44px; padding: 8px 10px; cursor: pointer; font-family: inherit; font-size: 13px;
+  background: var(--surface-soft); border: 1px solid var(--border); color: var(--fg);
+  text-align: left;
+}
+.wetter-slot:hover { border-color: var(--accent); }
+.wetter-slot svg { color: var(--accent-2); flex-shrink: 0; }
+.wetter-slot.avoid { opacity: 0.75; }
+.wetter-slot.avoid svg { color: var(--warn-text); }
+.wetter-slot.avoid .caption { color: var(--warn-text); }
+.wetter-slot.recommended { border-color: var(--accent); background: var(--accent-softer); }
