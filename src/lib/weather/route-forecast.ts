@@ -10,6 +10,7 @@
 // effektive Fahrt (polar.ts) → Legdauer → kumulierte Ankunftszeit → nächster Leg.
 
 import { effectiveSpeed, twaFromCourse, DEFAULT_BOAT, type Boat, type SailMode } from "./polar";
+import { stormSeverity } from "./warnings";
 
 const R_NM = 3440.065; // Erdradius in Seemeilen
 
@@ -25,8 +26,9 @@ export interface ForecastSample {
   wind_from_deg: number;
   gust_kn?: number;
   wave_height_m?: number | null;
-  gale?: boolean;
-  thunderstorm?: boolean;
+  gale?: boolean; // Sturm (aus warnings.classify)
+  thunderstorm?: boolean; // Gewitter
+  high_wave?: boolean; // hohe Welle
 }
 
 export type SampleForecast = (arg: { lat: number; lon: number; at: Date }) => ForecastSample;
@@ -125,9 +127,16 @@ export function planRoute({
     const eta = new Date(t.getTime() + hours * 3600e3);
     total += dist;
 
+    // Warnungen kommen aus den Flags, die der Sampler (warnings.classify mit der
+    // gewählten Sensitivität) gesetzt hat — so wirkt der Risiko-Regler durch.
     const legWarn: string[] = [];
     if (wx.thunderstorm) legWarn.push("Gewitter");
-    if (wx.gale || (wx.gust_kn ?? wx.wind_speed_kn) >= 34) legWarn.push("Sturm (≥8 Bft)");
+    if (wx.gale) {
+      // Windstärke im Warntext sichtbar machen (FN-Schwere hängt daran).
+      const sev = stormSeverity(wx.gust_kn ?? wx.wind_speed_kn ?? 0);
+      legWarn.push(`${sev.label} (${sev.bft} Bft)${sev.severe ? " ⚠ gefährlich" : ""}`);
+    }
+    if (wx.high_wave) legWarn.push("Hohe Welle");
     legWarn.forEach((w) =>
       warnings.push(`${w} auf Leg ${i + 1} (→ ${to.name || waypointLabel(to)})`),
     );

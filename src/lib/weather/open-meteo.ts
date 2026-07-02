@@ -12,13 +12,12 @@
 // Verbrauch minimal. Bei kommerzieller Last: BASE-URLs + API-Key via env tauschen.
 
 import { haversineNm, type Waypoint, type ForecastSample, type SampleForecast } from "./route-forecast";
+import { classify, DEFAULT_SENSITIVITY, type WeatherMetrics } from "./warnings";
 
 const ATMO_BASE = process.env.OPEN_METEO_FORECAST_URL || "https://api.open-meteo.com/v1/forecast";
 const MARINE_BASE = process.env.OPEN_METEO_MARINE_URL || "https://marine-api.open-meteo.com/v1/marine";
 const API_KEY = process.env.OPEN_METEO_API_KEY || ""; // leer = Free-Tier
 
-const GALE_KN = 34.0; // 8 Bft (Böen) → Sturm-Warnung
-const CAPE_THRESH = 800.0; // grobe Gewitter-Proxy (J/kg) — wie im jtc.de-Fetcher
 const REVALIDATE_S = 3600; // 1 h Cache (Open-Meteo-Update-Takt)
 
 interface PointSeries {
@@ -37,8 +36,12 @@ interface PointSeries {
  * `points` sollten die Punkte abdecken, an denen route-forecast.ts sampelt
  * (die Leg-Mittelpunkte) — der Sampler ordnet jede Anfrage dem nächsten Punkt zu.
  */
-export async function buildSampler(points: Waypoint[]): Promise<SampleForecast> {
+export async function buildSampler(
+  points: Waypoint[],
+  opts: { sensitivity?: number } = {},
+): Promise<SampleForecast> {
   if (!points.length) throw new Error("Keine Sample-Punkte.");
+  const sensitivity = opts.sensitivity ?? DEFAULT_SENSITIVITY;
   const series = await fetchSeries(points);
 
   return ({ lat, lon, at }): ForecastSample => {
@@ -46,15 +49,22 @@ export async function buildSampler(points: Waypoint[]): Promise<SampleForecast> 
     const i = nearestTimeIndex(ps.times, at.getTime());
     const wind = ps.wind_speed_kn[i] ?? 0;
     const gust = ps.wind_gusts_kn[i] ?? wind;
-    const cape = ps.cape[i] ?? 0;
-    const wave = ps.wave_height_m[i] ?? null;
+    const metrics: WeatherMetrics = {
+      gust_kn: gust,
+      wind_speed_kn: wind,
+      cape: ps.cape[i] ?? 0,
+      wave_height_m: ps.wave_height_m[i] ?? null,
+    };
+    // Warn-Flags über die einstellbare Risiko-Klassifikation (warnings.ts).
+    const w = classify(metrics, sensitivity);
     return {
       wind_speed_kn: wind,
       wind_from_deg: ps.wind_from_deg[i] ?? 0,
       gust_kn: gust,
-      wave_height_m: wave,
-      gale: gust >= GALE_KN,
-      thunderstorm: cape >= CAPE_THRESH,
+      wave_height_m: metrics.wave_height_m,
+      gale: w.sturm,
+      thunderstorm: w.gewitter,
+      high_wave: w.welle,
     };
   };
 }
@@ -157,11 +167,15 @@ function parseUtc(t: string): number {
   return Date.parse(s);
 }
 
+// RequestInit + Next.js-Cache-Option (Next augmentiert RequestInit zur Laufzeit;
+// lokal typisiert, damit die Datei auch isoliert typecheckt).
+type NextFetchInit = RequestInit & { next?: { revalidate?: number } };
+
 async function fetchJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { "User-Agent": "JTC-Weather/1.0 (join-the-captain.org)" },
     next: { revalidate: REVALIDATE_S },
-  });
+  } as NextFetchInit);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`Open-Meteo ${res.status}: ${body.slice(0, 200)}`);

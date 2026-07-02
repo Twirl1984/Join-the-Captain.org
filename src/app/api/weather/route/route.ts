@@ -2,11 +2,13 @@ import { NextRequest } from "next/server";
 import { ok, fehler } from "@/lib/http";
 import { planRoute, type Waypoint } from "@/lib/weather/route-forecast";
 import { buildSampler } from "@/lib/weather/open-meteo";
+import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
 import { DEFAULT_BOAT, type Boat, type SailMode } from "@/lib/weather/polar";
 
 export const runtime = "nodejs";
 
 const MAX_WAYPOINTS = 25; // begrenzt Open-Meteo-URL-Länge & Free-Tier-Last
+const FORECAST_HORIZON_DAYS = 7; // freie Open-Meteo-Vorhersage reicht 7 Tage
 
 // POST /api/weather/route
 // Body: { waypoints: [{lat,lon,name?}], startTime?, mode?, boat? }
@@ -26,9 +28,24 @@ export async function POST(req: NextRequest) {
 
   const startTime = b.startTime ? new Date(String(b.startTime)) : new Date();
   if (Number.isNaN(startTime.getTime())) return fehler("startTime ist kein gültiges Datum.");
+  // Über das Vorhersagefenster hinaus würden wir sonst die letzte verfügbare
+  // Stunde extrapolieren und einen scheinbar echten Plan liefern — bei einem
+  // Sicherheits-Tool irreführend. Lieber ehrlich ablehnen.
+  const horizonMs = Date.now() + FORECAST_HORIZON_DAYS * 24 * 3600e3;
+  if (startTime.getTime() > horizonMs) {
+    return fehler(
+      `Die freie Vorhersage reicht nur ${FORECAST_HORIZON_DAYS} Tage voraus. Bitte einen früheren Start wählen.`,
+      422,
+    );
+  }
 
   const mode: SailMode = b.mode === "motor" ? "motor" : "sail";
   const boat: Boat = mergeBoat(b.boat);
+  // Risiko-Regler 0..1 (Slider). Höher = vorsichtiger (früher warnen).
+  // Default = sicherer, datengestützter Betriebspunkt (s. warnings.ts / Backtest).
+  const sensitivity = Number.isFinite(Number(b.sensitivity))
+    ? Math.min(1, Math.max(0, Number(b.sensitivity)))
+    : RECOMMENDED_SENSITIVITY;
 
   // route-forecast.ts sampelt an den Leg-Mittelpunkten → genau diese vorab holen.
   const samplePoints: Waypoint[] = [];
@@ -40,9 +57,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const sampleForecast = await buildSampler(samplePoints);
+    const sampleForecast = await buildSampler(samplePoints, { sensitivity });
     const plan = planRoute({ waypoints, startTime, boat, mode, sampleForecast });
-    return ok({ plan, source: "open-meteo" });
+    return ok({ plan, sensitivity, source: "open-meteo" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
     return fehler(`Wetterdaten konnten nicht geladen werden: ${msg}`, 502);

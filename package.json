@@ -13,7 +13,10 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "pipeline:run": "tsx scripts/run-pipeline.ts",
-    "research:run": "tsx scripts/run-research.ts"
+    "research:run": "tsx scripts/run-research.ts",
+    "test:weather": "node --import tsx --test src/lib/weather/__tests__/*.test.ts",
+    "test:e2e": "playwright test",
+    "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

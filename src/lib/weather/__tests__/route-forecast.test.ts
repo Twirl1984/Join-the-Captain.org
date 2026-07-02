@@ -65,12 +65,17 @@ test("planRoute: zwei Wegpunkte → ein Leg, plausible ETA", () => {
   assert.ok((r.legs[0].duration_h ?? 0) > 0);
 });
 
-test("planRoute: Sturm-/Gewitter-Sample erzeugt Warnung", () => {
+test("planRoute: Sturm-/Gewitter-/Wellen-Flags erzeugen Warnungen", () => {
+  // route-forecast wertet die Flags aus, die der Sampler (warnings.classify)
+  // setzt — hier direkt als Mock gesetzt.
   const stormy = (): ForecastSample => ({
     wind_speed_kn: 38,
     wind_from_deg: 240,
     gust_kn: 45,
+    wave_height_m: 3.1,
+    gale: true,
     thunderstorm: true,
+    high_wave: true,
   });
   const r = planRoute({
     waypoints: [
@@ -83,6 +88,7 @@ test("planRoute: Sturm-/Gewitter-Sample erzeugt Warnung", () => {
   });
   assert.ok(r.warnings.some((w) => w.includes("Gewitter")));
   assert.ok(r.warnings.some((w) => w.includes("Sturm")));
+  assert.ok(r.warnings.some((w) => w.includes("Hohe Welle")));
 });
 
 test("planRoute: mehrere Wegpunkte → ETA wächst monoton, mode=motor durchgängig", () => {

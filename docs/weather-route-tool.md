@@ -18,12 +18,16 @@ Python-Fetcher) wurde bewusst **weggelassen** — fürs Web-Tool nicht nötig.
 ```
 src/lib/weather/
   polar.ts             ✅ Bootsgeschwindigkeit (Segel/Motor, TWA) — Port, getestet
-  route-forecast.ts    ✅ Haversine, Kurs, Leg-ETA, Warnungen — Port, getestet
-  open-meteo.ts        ✅ buildSampler(): Open-Meteo → sampleForecast (Cache 1 h)
+  route-forecast.ts    ✅ Haversine, Kurs, Leg-ETA, Warnungen (Bft-Stärke) — getestet
+  warnings.ts          ✅ Unwetter-Klassifikation, Risiko-Regler, Beaufort, Safety-Floor
+  backtest.ts          ✅ FP/FN-Metrik, Sensitivitäts-Sweep, windstärke-gewichtete Empfehlung
+  open-meteo.ts        ✅ buildSampler(sensitivity): Open-Meteo → sampleForecast (Cache 1 h)
   reviere.ts           ✅ 3 Reviere (Ostsee/Istrien/Dalmatien) + 14 Häfen, Kartencenter
-  __tests__/route-forecast.test.ts  ✅ 11 Tests grün (node:test)
-src/app/api/weather/route/route.ts  ✅ POST: waypoints → Plan (Legs+ETA+Warnungen)
-src/app/wetter/page.tsx             ⛔ OFFEN — Leaflet-Karte + Ergebnis-UI
+  __tests__/*.test.ts  ✅ 28 Unit + 2 Live-Integration (node:test)
+src/app/api/weather/route/route.ts  ✅ POST: waypoints+sensitivity → Plan (Legs+ETA+Warnungen)
+scripts/weather-backtest-{fetch,run}.ts  ✅ historischer FP/FN-Backtest (echte Daten)
+e2e/wetter.spec.ts + playwright.config.ts ✅ E2E-Vertrag (data-testid), Lauf nach UI
+src/app/wetter/page.tsx             ⛔ OFFEN — Leaflet-Karte + Regler + Ergebnis-UI
 ```
 
 Datenfluss: `/wetter`-Seite → `POST /api/weather/route` → `buildSampler()` holt
@@ -56,8 +60,9 @@ Open-Meteo für die Leg-Mittelpunkte (ein Request je API, Multi-Location) →
 {
   "waypoints": [{ "lat": 54.679, "lon": 13.432, "name": "Kap Arkona" },
                 { "lat": 54.95,  "lon": 12.46,  "name": "Klintholm" }],
-  "startTime": "2026-07-01T08:00:00Z",   // optional, Default: jetzt
+  "startTime": "2026-07-01T08:00:00Z",   // optional, Default: jetzt; > 7 Tage → 422
   "mode": "sail",                          // "sail" | "motor"
+  "sensitivity": 0.75,                     // optional 0..1 (Risiko-Regler); Default = sicherer Wert
   "boat": { "cruise_speed_motor_kn": 6.5, "hull_speed_kn": 7.2,
             "upwind_no_go_deg": 35, "drive_efficiency": 0.62 }  // optional
 }
@@ -68,12 +73,22 @@ Open-Meteo für die Leg-Mittelpunkte (ein Request je API, Multi-Location) →
                "distance_nm": 19.2, "course_deg": 312, "mode": "sail",
                "speed_kn": 5.8, "wind_kn": 14, "wind_from_deg": 250,
                "wave_m": 0.6, "eta": "2026-07-01T11:18:00Z",
-               "duration_h": 3.3, "warnings": [] }],
+               "duration_h": 3.3, "warnings": ["Sturm (9 Bft) ⚠ gefährlich auf Leg 1 (→ Klintholm)"] }],
     "total_nm": 19.2, "eta": "2026-07-01T11:18:00Z", "warnings": []
   },
+  "sensitivity": 0.75,
   "source": "open-meteo"
 }
+// Fehler: 400 (Validierung) · 422 (Startzeit jenseits 7-Tage-Horizont) · 502 (Open-Meteo down)
 ```
+
+**Risiko-Regler (`sensitivity` 0..1) — Sicherheits-Kern.** 0 = risikofreudig (hohe
+Schwellen, wenige Fehlalarme/FP, mehr verpasste Warnungen/FN) · 1 = vorsichtig
+(niedrige Schwellen, wenige FN, mehr FP). Mittelpunkt 0.5 kalibriert auf 8 Bft/34 kn.
+Schwere Stürme (≥ 47 kn) warnen **immer** (`warnings.SEVERE_GUST_KN`, reglerunabhängig).
+FP/FN-Definitionen, Backtest-Zahlen und Default-Begründung: **[weather-test-plan.md](weather-test-plan.md)**
++ **[weather-backtest-results.md](weather-backtest-results.md)**. Ausbau zum Sicherheits-
+Assistenten (Ankerplätze, Notfall, Strömung/PS, Landleinen): **[weather-roadmap.md](weather-roadmap.md)**.
 
 ---
 
@@ -98,14 +113,19 @@ in `page.tsx` via `next/dynamic` mit `{ ssr: false }` einbinden (sonst SSR-Crash
 2. **Route bauen**: Klick auf Karte ODER auf Hafen-Marker hängt Wegpunkt an die Liste
    (Polyline verbindet sie, fortlaufend nummeriert). Wegpunkt entfernen/neu ordnen via
    Liste daneben. Drag der Marker optional (P2).
-3. **Abfahrt + Modus + Boot**: Datetime-Picker (Default jetzt+1 Tag, 08:00), Toggle
-   Segel/Motor, optional Boot-Defaults (vorbelegt aus `DEFAULT_BOAT`).
-4. **„Route berechnen"** (Teal-CTA) → `POST /api/weather/route` → Ergebnis-Panel.
+3. **Abfahrt + Modus + Boot**: Datetime-Picker (Default jetzt+1 Tag, 08:00; max 7 Tage),
+   Toggle Segel/Motor, optional Boot-Defaults (vorbelegt aus `DEFAULT_BOAT`).
+4. **Risiko-Schieberegler** (`data-testid="risk-slider"`, `input[type=range]` 0..1,
+   Default `RECOMMENDED_SENSITIVITY`): links „risikofreudig — wenige Fehlalarme",
+   rechts „vorsichtig — keine verpasste Warnung". Kurzer Erklärtext darunter (FP vs FN
+   in einem Satz). Wert geht als `sensitivity` an die API.
+5. **„Route berechnen"** (Teal-CTA) → `POST /api/weather/route` → Ergebnis-Panel.
 
 ### Ergebnis-Panel (JTC-Kartenstil)
 - Kopf: Gesamt-Distanz, Gesamt-ETA, Journey-Tag **„Planung"** (Blau BG `#E6F1FB`/Text `#185FA5`).
-- **Warnungen zuerst**, falls vorhanden: rot-getöntes Band, `ti-alert-triangle`,
-  je Warnung eine Zeile („Sturm (≥8 Bft) auf Leg 2 → Vis").
+- **Warnungen zuerst** (`data-testid="warning-item"` je Zeile), rot-getöntes Band,
+  `ti-alert-triangle`, je Warnung eine Zeile inkl. Windstärke („Sturm (9 Bft) ⚠ gefährlich
+  auf Leg 2 → Vis"). Der `warnings`-Array der API ist bereits fertig formatiert.
 - **Leg-Liste**, je Leg eine Karte (Weiß, 0.5px Border, radius 12px): „Leg n: von → nach",
   Distanz sm, Kurs°, Wind kn + Richtung (Pfeil-Icon gedreht), Welle m, Modus (Segel/Motor),
   Dauer h, ETA (lokale Zeit, `de-DE`). Leg mit Warnung → Border/Akzent rot.
