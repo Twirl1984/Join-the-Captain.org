@@ -26,7 +26,7 @@ services:
       - "127.0.0.1:3101:3000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org?sslmode=disable
-      NEXT_PUBLIC_SITE_URL: http://localhost:3100
+      NEXT_PUBLIC_SITE_URL: https://join-the-captain.org
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
