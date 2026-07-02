@@ -30,6 +30,11 @@ const MAX_RUN_BUDGET_EUR = Number(process.env.DISCOVERY_MAX_RUN_BUDGET_EUR ?? 0.
 const MAX_DAILY_BUDGET_EUR = Number(process.env.DISCOVERY_MAX_DAILY_BUDGET_EUR ?? 0.25);
 const MAX_CANDIDATES_PER_TOPIC = Number(process.env.DISCOVERY_MAX_CANDIDATES ?? 3);
 const MIN_RELEVANCE_SCORE = Number(process.env.DISCOVERY_MIN_RELEVANCE ?? 0.6);
+// Aktualität (Teil D): nur Videos der letzten N Jahre, Mindest-Views als Qualität.
+const YOUTUBE_MIN_VIEWS = Number(process.env.DISCOVERY_MIN_VIEWS ?? 1000);
+const YOUTUBE_RECENCY_JAHRE = Number(process.env.DISCOVERY_RECENCY_JAHRE ?? 3);
+// Suchbegriff-Suffix, damit generische Themen im Segel-Kontext bleiben.
+const YOUTUBE_QUERY_SUFFIX = process.env.DISCOVERY_QUERY_SUFFIX ?? " Segeln";
 
 // Token-Kosten pro 1M (ungefähr):
 // Haiku: input ~$0.80, output ~$4.00 pro 1M
@@ -111,34 +116,122 @@ async function getYouTubeOEmbed(videoUrl: string): Promise<{
   }
 }
 
-// Stub: YouTube-Suche via YouTube Data API (wenn Key vorhanden + ENABLED).
-// Real-Implementierung würde hier die Search API aufrufen.
-// Für nun: Rückgabe leeres Array (Feature-geflaggt, deaktiviert bis Key vorhanden).
-//
-// TODO (Teil D): Bei Real-Implementierung:
-// 1. Videos nach publishedAt absteigend sortieren (neueste bevorzugen)
-// 2. Top-Kommentare via commentThreads.list (modernes Feedback als Qualitätssignal)
-// 3. publishedAt in DiscoveryCandidate speichern → Haiku kann Aktualität bewerten
+// YouTube Data API v3 Antwort-Formen (nur was wir brauchen).
+interface YtSearchResp {
+  items?: Array<{ id?: { videoId?: string } }>;
+}
+interface YtVideosResp {
+  items?: Array<{
+    id: string;
+    snippet?: {
+      title?: string;
+      description?: string;
+      channelTitle?: string;
+      channelId?: string;
+      publishedAt?: string;
+    };
+    statistics?: { viewCount?: string };
+  }>;
+}
+interface YtCommentsResp {
+  items?: Array<{
+    snippet?: { topLevelComment?: { snippet?: { textDisplay?: string } } };
+  }>;
+}
+
+async function fetchJson<T>(url: string): Promise<T | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) {
+      console.warn(`[discovery] YouTube API HTTP ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    console.warn("[discovery] YouTube API Fehler:", err);
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Top-Kommentare als „modernes" Qualitätssignal (kann bei deaktivierten
+// Kommentaren leer sein — dann still weiter).
+async function topKommentare(videoId: string, n: number): Promise<string[]> {
+  const url =
+    `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet` +
+    `&videoId=${videoId}&order=relevance&maxResults=${n}&textFormat=plainText` +
+    `&key=${YOUTUBE_API_KEY}`;
+  const res = await fetchJson<YtCommentsResp>(url);
+  return (res?.items ?? [])
+    .map((it) => it?.snippet?.topLevelComment?.snippet?.textDisplay ?? "")
+    .filter((s) => s.length > 0)
+    .slice(0, n);
+}
+
+// Echte YouTube-Suche: relevante, möglichst NEUE (Teil D), einbettbare Videos
+// mit Mindest-Views. Neueste zuerst; Top-Kommentare als Qualitätssignal.
 async function searchYouTube(
-  _query: string,
-  _maxResults: number,
+  query: string,
+  maxResults: number,
 ): Promise<DiscoveryCandidate[]> {
   if (!YOUTUBE_DISCOVERY_ENABLED || !YOUTUBE_API_KEY) {
     console.warn("[discovery] YouTube-Suche deaktiviert (Key/ENV fehlt)");
     return [];
   }
 
-  // Real-Implementierung (TODO):
-  // 1. Search API mit relevanceLanguage=de, order=date (neueste zuerst)
-  // const res = await fetch(
-  //   `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&q=${_query}&type=video&part=snippet&maxResults=${_maxResults}&relevanceLanguage=de&order=date`,
-  // );
-  // 2. Pro Video: Videos API für publishedAt, viewCount
-  // 3. Pro Video: Top 1-2 Kommentare via commentThreads.list (openness=open_replies)
-  //    → published_at als Qualitätssignal: moderne Kommentare sind wertvoll
+  // Aktualität: nur Videos der letzten N Jahre berücksichtigen.
+  const publishedAfter = new Date(
+    Date.now() - YOUTUBE_RECENCY_JAHRE * 365 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const suchbegriff = `${query}${YOUTUBE_QUERY_SUFFIX}`;
 
-  console.warn("[discovery] YouTube Data API-Stub (kein Key konfiguriert) — Rückgabe []");
-  return [];
+  const searchUrl =
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video` +
+    `&videoEmbeddable=true&relevanceLanguage=de&order=relevance` +
+    `&maxResults=${Math.min(10, Math.max(1, maxResults * 3))}` +
+    `&publishedAfter=${encodeURIComponent(publishedAfter)}` +
+    `&q=${encodeURIComponent(suchbegriff)}&key=${YOUTUBE_API_KEY}`;
+  const searchRes = await fetchJson<YtSearchResp>(searchUrl);
+  const ids = (searchRes?.items ?? [])
+    .map((it) => it?.id?.videoId)
+    .filter((v): v is string => !!v);
+  if (ids.length === 0) return [];
+
+  // Statistiken + Details (viewCount, publishedAt) in einem Call.
+  const videosUrl =
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics` +
+    `&id=${ids.join(",")}&key=${YOUTUBE_API_KEY}`;
+  const videosRes = await fetchJson<YtVideosResp>(videosUrl);
+  const items = videosRes?.items ?? [];
+
+  const candidates: DiscoveryCandidate[] = [];
+  for (const v of items) {
+    const views = Number(v?.statistics?.viewCount ?? 0);
+    if (views < YOUTUBE_MIN_VIEWS) continue; // Qualitäts-/Relevanzfilter
+    const sn = v.snippet ?? {};
+    const vid = v.id;
+    candidates.push({
+      video_id: vid,
+      title: sn.title ?? "",
+      creator_handle: sn.channelTitle ?? "",
+      creator_url: sn.channelId
+        ? `https://www.youtube.com/channel/${sn.channelId}`
+        : "",
+      video_url: `https://www.youtube.com/watch?v=${vid}`,
+      embed_html: "", // wird später via oEmbed geholt
+      description: sn.description ?? "",
+      published_at: sn.publishedAt ?? new Date().toISOString(),
+      view_count: views,
+      comment_highlights: await topKommentare(vid, 3),
+    });
+  }
+
+  // Aktualität bevorzugen: neueste zuerst, dann auf maxResults kürzen.
+  candidates.sort((a, b) => (a.published_at < b.published_at ? 1 : -1));
+  return candidates.slice(0, maxResults);
 }
 
 // ── Haiku-Strukturierung ───────────────────────────────────────────────
