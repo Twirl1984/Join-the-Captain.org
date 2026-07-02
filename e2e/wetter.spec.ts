@@ -97,6 +97,45 @@ test.describe("/wetter — Abfahrts-Empfehlung & Boot", () => {
   });
 });
 
+test.describe("/wetter — Playback & Feedback", () => {
+  test("Nach der Berechnung erscheint das Playback und der Slider bewegt die Zeit", async ({ page }) => {
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    const timeline = page.waitForResponse((r) => r.url().includes("/api/weather/timeline"));
+    await calculate(page);
+    await timeline;
+    await expect(page.getByTestId("playback-panel")).toBeVisible();
+    const t0 = await page.getByTestId("playback-time").textContent();
+    const slider = page.getByTestId("playback-slider");
+    await slider.fill((await slider.getAttribute("max"))!); // letzter Zeitschritt
+    const t1 = await page.getByTestId("playback-time").textContent();
+    expect(t1).not.toBe(t0);
+    // Wetter-Symbole liegen auf der Karte
+    expect(await page.locator(".wx-marker").count()).toBeGreaterThanOrEqual(2);
+  });
+
+  test("Feedback lässt sich absenden (API gemockt) → Danke-Zustand", async ({ page }) => {
+    await page.route("**/api/weather/feedback", (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) }),
+    );
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("feedback-card")).toBeVisible();
+    await page.getByTestId("feedback-ok").click();
+    await page.getByTestId("feedback-star-4").click();
+    await page.getByTestId("feedback-text").fill("Passt — gerne noch Strömung dazu.");
+    await page.getByTestId("feedback-submit").click();
+    await expect(page.getByTestId("feedback-thanks")).toBeVisible();
+  });
+
+  test("Modell-Wahl zeigt eine Begründung", async ({ page }) => {
+    await page.goto("/wetter");
+    await page.getByTestId("model-select").selectOption("icon_seamless");
+    await expect(page.getByTestId("model-reason")).toContainText(/ICON|Ostsee/);
+  });
+});
+
 test.describe("/wetter — Robustheit", () => {
   test("API-502 zeigt freundliche Fehlermeldung statt Absturz", async ({ page }) => {
     await page.route("**/api/weather/route", (r) =>

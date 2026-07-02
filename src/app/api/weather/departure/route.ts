@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { ok, fehler } from "@/lib/http";
 import { scanDepartures } from "@/lib/weather/departure-scan";
-import { buildSampler, isArchiveWindow, type TimeWindow } from "@/lib/weather/open-meteo";
+import { buildSampler, isArchiveWindow, parseModel, type TimeWindow } from "@/lib/weather/open-meteo";
 import {
   MAX_WAYPOINTS,
   MAX_BODY_BYTES,
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
   const mode: SailMode = b.mode === "motor" ? "motor" : "sail";
   const boat = mergeBoat(b.boat);
   const sensitivity = parseSensitivity(b.sensitivity);
+  const model = parseModel(b.model);
 
   const window: TimeWindow = {
     start: windowStart,
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // EIN Datenabruf für das gesamte Fenster; der Sweep rechnet nur noch lokal.
-    const sampleForecast = await buildSampler(midpointsOf(waypoints), { sensitivity, window });
+    const sampleForecast = await buildSampler(midpointsOf(waypoints), { sensitivity, window, model });
     const scan = scanDepartures({
       waypoints,
       windowStart,
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
     return ok({
       ...scan,
       sensitivity,
+      model,
       stepH,
       source: isArchiveWindow(window) ? "open-meteo-archive" : "open-meteo",
     });

@@ -30,6 +30,41 @@ export interface TimeWindow {
   end: Date;
 }
 
+// ── Wettermodelle (transparent & wählbar) ────────────────────────────────────
+// Open-Meteo bündelt viele nationale Modelle. Wir lassen EIN Modell je Anfrage
+// zu (kein Variablen-Suffix-Problem) und erklären dem Nutzer die Wahl. Das
+// datengetriebene JTC-Ranking je Revier folgt aus der Validierungsstudie.
+export const WEATHER_MODELS = {
+  best_match: {
+    label: "Automatisch (best match)",
+    grund: "Open-Meteo wählt je Region das lokal beste Modell — guter Default.",
+  },
+  icon_seamless: {
+    label: "ICON (DWD)",
+    grund: "Deutsches ICON: hohe Auflösung über Nord-/Ostsee und Mitteleuropa.",
+  },
+  ecmwf_ifs025: {
+    label: "ECMWF IFS",
+    grund: "Führendes globales Modell, besonders stark auf 3–7 Tage.",
+  },
+  gfs_seamless: {
+    label: "GFS (NOAA)",
+    grund: "Globales US-Modell — bewährte Vergleichsbasis.",
+  },
+} as const;
+
+export type WeatherModel = keyof typeof WEATHER_MODELS;
+
+export function parseModel(raw: unknown): WeatherModel {
+  return typeof raw === "string" && raw in WEATHER_MODELS ? (raw as WeatherModel) : "best_match";
+}
+
+export interface SamplerOpts {
+  sensitivity?: number;
+  window?: TimeWindow;
+  model?: WeatherModel;
+}
+
 interface PointSeries {
   lat: number;
   lon: number;
@@ -38,6 +73,7 @@ interface PointSeries {
   wind_gusts_kn: number[];
   wind_from_deg: number[];
   cape: number[];
+  cloud_pct: (number | null)[];
   wave_height_m: (number | null)[];
 }
 
@@ -48,11 +84,11 @@ interface PointSeries {
  */
 export async function buildSampler(
   points: Waypoint[],
-  opts: { sensitivity?: number; window?: TimeWindow } = {},
+  opts: SamplerOpts = {},
 ): Promise<SampleForecast> {
   if (!points.length) throw new Error("Keine Sample-Punkte.");
   const sensitivity = opts.sensitivity ?? DEFAULT_SENSITIVITY;
-  const series = await fetchSeries(points, opts.window);
+  const series = await fetchSeries(points, opts.window, opts.model);
 
   return ({ lat, lon, at }): ForecastSample => {
     const ps = nearestSeries(series, { lat, lon });
@@ -87,10 +123,16 @@ export function isArchiveWindow(window?: TimeWindow): boolean {
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
-async function fetchSeries(points: Waypoint[], window?: TimeWindow): Promise<PointSeries[]> {
+async function fetchSeries(
+  points: Waypoint[],
+  window?: TimeWindow,
+  model: WeatherModel = "best_match",
+): Promise<PointSeries[]> {
   const lats = points.map((p) => p.lat).join(",");
   const lons = points.map((p) => p.lon).join(",");
   const key = API_KEY ? `&apikey=${encodeURIComponent(API_KEY)}` : "";
+  // best_match = Open-Meteo-Default (kein Param); sonst genau EIN Modell.
+  const modelParam = model === "best_match" ? "" : `&models=${model}`;
 
   // Zukunft: Live-Forecast (+7 Tage Rückblick — deckt lückenlos alles ab, was
   // nicht schon im Archiv-Modus landet). Vergangenheit: archivierte Vorhersagen
@@ -111,8 +153,8 @@ async function fetchSeries(points: Waypoint[], window?: TimeWindow): Promise<Poi
 
   const atmoUrl =
     `${atmoBase}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape` +
-    `&wind_speed_unit=kn&timezone=UTC${range}${key}`;
+    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape,cloud_cover` +
+    `&wind_speed_unit=kn&timezone=UTC${range}${modelParam}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
     `&hourly=wave_height&timezone=UTC${marineRange}${key}`;
@@ -148,9 +190,88 @@ async function fetchSeries(points: Waypoint[], window?: TimeWindow): Promise<Poi
       wind_gusts_kn: aH.wind_gusts_10m ?? [],
       wind_from_deg: aH.wind_direction_10m ?? [],
       cape: aH.cape ?? [],
+      cloud_pct: aH.cloud_cover ?? times.map(() => null),
       wave_height_m: alignWave(times, mH.time, mH.wave_height),
     };
   });
+}
+
+// ── Timeline fürs Playback ───────────────────────────────────────────────────
+
+/** Ein Zeitschritt an einem Punkt (fürs Karten-Overlay). */
+export interface TimelineStep {
+  t: string; // ISO
+  wind_kn: number;
+  gust_kn: number;
+  wind_from_deg: number;
+  cloud_pct: number | null;
+  wave_m: number | null;
+  gale: boolean;
+  thunderstorm: boolean;
+  high_wave: boolean;
+}
+
+export interface TimelinePoint {
+  lat: number;
+  lon: number;
+  steps: TimelineStep[];
+}
+
+/**
+ * Zeitreihen für das Playback: je Punkt die Schritte im Fenster (Raster stepH),
+ * inkl. Warn-Flags gemäß Risiko-Regler. Alle Punkte teilen dasselbe Zeitraster
+ * (das der UI-Slider abspielt).
+ */
+export async function buildTimeline(
+  points: Waypoint[],
+  opts: SamplerOpts & { stepH?: number } = {},
+): Promise<{ times: string[]; points: TimelinePoint[] }> {
+  if (!points.length) throw new Error("Keine Sample-Punkte.");
+  const sensitivity = opts.sensitivity ?? DEFAULT_SENSITIVITY;
+  const stepH = Math.max(1, opts.stepH ?? 3);
+  const window = opts.window;
+  const series = await fetchSeries(points, window, opts.model);
+
+  // Gemeinsames Zeitraster aus dem ersten Punkt, auf das Fenster beschnitten.
+  const base = series[0];
+  const startMs = window?.start.getTime() ?? base.times[0];
+  const endMs = window?.end.getTime() ?? base.times[base.times.length - 1];
+  const idxs: number[] = [];
+  for (let i = 0; i < base.times.length; i++) {
+    const t = base.times[i];
+    if (t >= startMs - 1 && t <= endMs + 1) idxs.push(i);
+  }
+  const stepped = idxs.filter((_, k) => k % stepH === 0);
+  const times = stepped.map((i) => new Date(base.times[i]).toISOString());
+
+  const outPoints: TimelinePoint[] = series.map((ps) => ({
+    lat: ps.lat,
+    lon: ps.lon,
+    steps: stepped.map((i) => {
+      const wind = ps.wind_speed_kn[i] ?? 0;
+      const gust = ps.wind_gusts_kn[i] ?? wind;
+      const metrics: WeatherMetrics = {
+        gust_kn: gust,
+        wind_speed_kn: wind,
+        cape: ps.cape[i] ?? 0,
+        wave_height_m: ps.wave_height_m[i] ?? null,
+      };
+      const w = classify(metrics, sensitivity);
+      return {
+        t: new Date(ps.times[i] ?? base.times[i]).toISOString(),
+        wind_kn: Math.round(wind),
+        gust_kn: Math.round(gust),
+        wind_from_deg: Math.round(ps.wind_from_deg[i] ?? 0),
+        cloud_pct: ps.cloud_pct[i] ?? null,
+        wave_m: ps.wave_height_m[i] != null ? Math.round(ps.wave_height_m[i]! * 10) / 10 : null,
+        gale: w.sturm,
+        thunderstorm: w.gewitter,
+        high_wave: w.welle,
+      };
+    }),
+  }));
+
+  return { times, points: outPoints };
 }
 
 /** Open-Meteo liefert bei mehreren Koordinaten ein Array, bei einer ein Objekt. */
@@ -233,6 +354,7 @@ interface OpenMeteoLocation {
     wind_gusts_10m?: number[];
     wind_direction_10m?: number[];
     cape?: number[];
+    cloud_cover?: (number | null)[];
     wave_height?: (number | null)[];
   };
 }

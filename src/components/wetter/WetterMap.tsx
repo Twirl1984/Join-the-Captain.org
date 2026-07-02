@@ -19,12 +19,22 @@ import {
 import "leaflet/dist/leaflet.css";
 import type { Revier } from "@/lib/weather/reviere";
 import type { Waypoint } from "@/lib/weather/route-forecast";
+import type { TimelineStep } from "@/lib/weather/open-meteo";
+import { windArrowRotationDeg } from "@/lib/weather/format";
+import { beaufort } from "@/lib/weather/warnings";
 import type { UiWaypoint } from "./WetterApp";
+
+/** Wetter-Overlay eines Zeitschritts: Symbol je Overlay-Punkt + Bootsposition. */
+export interface WetterOverlay {
+  points: Array<{ lat: number; lon: number; step: TimelineStep }>;
+  boat?: { lat: number; lon: number } | null;
+}
 
 interface WetterMapProps {
   revier: Revier;
   waypoints: UiWaypoint[];
   onAddWaypoint: (w: Waypoint) => void;
+  overlay?: WetterOverlay | null;
 }
 
 // Nummerierter Wegpunkt-Marker (Teal-Kreis mit Index).
@@ -66,7 +76,36 @@ function ClickToAdd({ onAdd }: { onAdd: (w: Waypoint) => void }) {
 
 const round5 = (x: number) => Math.round(x * 1e5) / 1e5;
 
-export default function WetterMap({ revier, waypoints, onAddWaypoint }: WetterMapProps) {
+// Wetter-Symbol eines Zeitschritts: Windpfeil (Flow-Richtung, Farbe nach Bft),
+// kn-Zahl, ⚡ bei Gewitter, Wolken-Andeutung nach Bedeckung.
+function weatherIcon(step: TimelineStep): L.DivIcon {
+  const bft = beaufort(step.gust_kn);
+  const cls = step.gale || step.thunderstorm ? "wx-danger" : bft >= 6 ? "wx-strong" : "wx-calm";
+  const rot = windArrowRotationDeg(step.wind_from_deg);
+  const cloud =
+    step.cloud_pct == null ? "" : `<span class="wx-cloud" style="opacity:${Math.max(0.15, step.cloud_pct / 100)}">☁</span>`;
+  const bolt = step.thunderstorm ? '<span class="wx-bolt">⚡</span>' : "";
+  return L.divIcon({
+    className: "wp-divicon",
+    html:
+      `<span class="wx-marker ${cls}" title="${step.wind_kn} kn (Böen ${step.gust_kn} kn)">` +
+      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
+      `stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${rot}deg)">` +
+      `<path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>` +
+      `<span class="wx-kn">${step.wind_kn}</span>${cloud}${bolt}</span>`,
+    iconSize: [46, 26],
+    iconAnchor: [23, 13],
+  });
+}
+
+const boatIcon = L.divIcon({
+  className: "wp-divicon",
+  html: `<span class="wx-boat">⛵</span>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
+export default function WetterMap({ revier, waypoints, onAddWaypoint, overlay }: WetterMapProps) {
   return (
     <MapContainer
       center={revier.center}
@@ -112,6 +151,19 @@ export default function WetterMap({ revier, waypoints, onAddWaypoint }: WetterMa
           positions={waypoints.map((w) => [w.lat, w.lon] as [number, number])}
           pathOptions={{ color: "#2f9ec0", weight: 3, dashArray: "6 6" }}
         />
+      )}
+
+      {/* Playback-Overlay: Wetter-Symbole des aktiven Zeitschritts + Boot. */}
+      {overlay?.points.map((p, i) => (
+        <Marker
+          key={`wx-${i}`}
+          position={[p.lat, p.lon]}
+          icon={weatherIcon(p.step)}
+          interactive={false}
+        />
+      ))}
+      {overlay?.boat && (
+        <Marker position={[overlay.boat.lat, overlay.boat.lon]} icon={boatIcon} interactive={false} />
       )}
     </MapContainer>
   );

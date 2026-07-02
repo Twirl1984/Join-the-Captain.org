@@ -429,3 +429,21 @@ p { margin: 0; }
 .wetter-slot.avoid svg { color: var(--warn-text); }
 .wetter-slot.avoid .caption { color: var(--warn-text); }
 .wetter-slot.recommended { border-color: var(--accent); background: var(--accent-softer); }
+
+/* Playback-Overlay + Feedback (/wetter, Runde 3) */
+.wx-marker {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 600;
+  background: rgba(8, 19, 30, 0.78); color: #7fd1c8; border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4); white-space: nowrap;
+}
+.wx-marker.wx-strong { color: #e7c96a; }
+.wx-marker.wx-danger { color: #ff9e6b; border-color: #ff9e6b; }
+.wx-kn { font-size: 10px; }
+.wx-cloud { font-size: 11px; }
+.wx-bolt { font-size: 11px; }
+.wx-boat {
+  display: grid; place-items: center; width: 28px; height: 28px; font-size: 20px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+}
+.wetter-star { background: none; border: none; cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; }

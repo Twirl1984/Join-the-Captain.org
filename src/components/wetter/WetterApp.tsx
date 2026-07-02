@@ -5,15 +5,23 @@
 // Risiko-Schieberegler, Abfahrts-Empfehlung im Zeitfenster → Ergebnis-Panel.
 // data-testid-Attribute sind der E2E-Vertrag (e2e/wetter.spec.ts).
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Icon } from "@/components/Icon";
 import { REVIERE } from "@/lib/weather/reviere";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
 import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import { boatFromSpecs, type BoatSpecs } from "@/lib/weather/polar";
+import { boatPositionAt } from "@/lib/weather/playback";
+import { WEATHER_MODELS, type WeatherModel, type TimelinePoint } from "@/lib/weather/open-meteo";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
 import type { DepartureScan, DepartureSlot } from "@/lib/weather/departure-scan";
+import type { WetterOverlay } from "./WetterMap";
+
+interface Timeline {
+  times: string[];
+  points: TimelinePoint[];
+}
 
 // Wegpunkt mit stabiler UI-Id — Keys dürfen nicht am Array-Index hängen,
 // sonst remountet React (und Leaflet) beim Löschen aus der Mitte alle Nachfolger.
@@ -61,10 +69,49 @@ export function WetterApp() {
   const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 72 * 3600e3)));
   const [scan, setScan] = useState<DepartureScan | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
+  // Wettermodell (transparent wählbar)
+  const [model, setModel] = useState<WeatherModel>("best_match");
+  // Playback (Zeitreise über die geplante Route)
+  const [timeline, setTimeline] = useState<Timeline | null>(null);
+  const [playIdx, setPlayIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  // Feedback
+  const [fbRating, setFbRating] = useState<number | null>(null);
+  const [fbOk, setFbOk] = useState<boolean | null>(null);
+  const [fbText, setFbText] = useState("");
+  const [fbState, setFbState] = useState<"idle" | "sending" | "done">("idle");
 
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
   const maxStart = useMemo(() => toLocalInput(new Date(Date.now() + 7 * 24 * 3600e3)), []);
   const boat = useMemo(() => boatFromSpecs(specs), [specs]);
+
+  // Playback-Ticker: alle 900 ms ein Zeitschritt, am Ende stoppen.
+  useEffect(() => {
+    if (!playing || !timeline) return;
+    const iv = setInterval(() => {
+      setPlayIdx((i) => {
+        if (i + 1 >= timeline.times.length) {
+          setPlaying(false);
+          return i;
+        }
+        return i + 1;
+      });
+    }, 900);
+    return () => clearInterval(iv);
+  }, [playing, timeline]);
+
+  // Overlay des aktiven Zeitschritts: Symbole je Punkt + Bootsposition.
+  const overlay: WetterOverlay | null = useMemo(() => {
+    if (!timeline || !timeline.times.length) return null;
+    const idx = Math.min(playIdx, timeline.times.length - 1);
+    const atMs = Date.parse(timeline.times[idx]);
+    const points = timeline.points
+      .map((p) => ({ lat: p.lat, lon: p.lon, step: p.steps[idx] }))
+      .filter((p) => p.step);
+    const boatPos =
+      plan && waypoints.length >= 2 ? boatPositionAt(waypoints, plan.legs, atMs) : null;
+    return { points, boat: boatPos };
+  }, [timeline, playIdx, plan, waypoints]);
 
   const addWaypoint = (w: Waypoint) =>
     setWaypoints((prev) => [...prev, { ...w, id: `wp-${nextId.current++}` }]);
@@ -79,6 +126,10 @@ export function WetterApp() {
     setWaypoints([]);
     setPlan(null);
     setScan(null);
+    setTimeline(null);
+    setPlaying(false);
+    setPlayIdx(0);
+    setFbState("idle");
     setError(null);
   };
 
@@ -98,6 +149,7 @@ export function WetterApp() {
           startTime: startIso ?? new Date(startTime).toISOString(),
           mode,
           sensitivity,
+          model,
           boat,
         }),
       });
@@ -116,10 +168,39 @@ export function WetterApp() {
       }
       setPlan(data.plan);
       setSource(data.source ?? null);
+      setFbState("idle");
+      // Timeline fürs Playback nachladen (Abfahrt erstes Leg → ETA + Puffer).
+      void loadTimeline(data.plan, startIso ?? new Date(startTime).toISOString());
     } catch {
       setError("Netzwerkfehler — bitte später erneut versuchen.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTimeline(p: RoutePlan, startIso: string) {
+    setTimeline(null);
+    setPlaying(false);
+    setPlayIdx(0);
+    try {
+      const res = await fetch("/api/weather/timeline", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          waypoints: apiWaypoints(),
+          startTime: startIso,
+          endTime: new Date(Date.parse(p.eta) + 3 * 3600e3).toISOString(),
+          stepH: 3,
+          sensitivity,
+          model,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as Partial<Timeline>;
+      if (res.ok && data.times?.length && data.points?.length) {
+        setTimeline(data as Timeline);
+      }
+    } catch {
+      // Playback ist ein Bonus — Fehler still lassen, der Plan steht ja.
     }
   }
 
@@ -138,6 +219,7 @@ export function WetterApp() {
           stepH: 3,
           mode,
           sensitivity,
+          model,
           boat,
         }),
       });
@@ -160,6 +242,53 @@ export function WetterApp() {
     setStartTime(toLocalInput(new Date(slot.departure)));
     void calculate(slot.departure);
   };
+
+  async function sendFeedback() {
+    setFbState("sending");
+    try {
+      const res = await fetch("/api/weather/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          zufriedenheit: fbRating ?? undefined,
+          vorhersage_ok: fbOk ?? undefined,
+          freitext: fbText || undefined,
+          kontext: plan
+            ? {
+                waypoints: apiWaypoints(),
+                startTime: new Date(startTime).toISOString(),
+                sensitivity,
+                model,
+                source,
+                eta: plan.eta,
+              }
+            : undefined,
+        }),
+      });
+      setFbState(res.ok ? "done" : "idle");
+      if (!res.ok) setError("Feedback konnte nicht gespeichert werden — bitte später erneut.");
+    } catch {
+      setFbState("idle");
+      setError("Netzwerkfehler — Feedback nicht gespeichert.");
+    }
+  }
+
+  // Alternative Häfen in der Nähe des Startpunkts — wenn im ganzen Fenster
+  // Warnungen stehen, soll der Nutzer einfach umplanen können (bewusst simpel:
+  // wir empfehlen nahe Revier-Häfen, keine automatische Neu-Route).
+  const nearbyHarbours = useMemo(() => {
+    if (!scan?.all_windy || waypoints.length < 1) return [];
+    const start = waypoints[0];
+    const ziel = waypoints[waypoints.length - 1];
+    return revier.haefen
+      .filter((h) => h.name !== start.name && h.name !== ziel.name)
+      .map((h) => ({
+        ...h,
+        d: Math.hypot(h.lat - start.lat, (h.lon - start.lon) * Math.cos((start.lat * Math.PI) / 180)),
+      }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3);
+  }, [scan, waypoints, revier]);
 
   return (
     <div className="wetter-app stack" style={{ gap: 20 }}>
@@ -186,11 +315,61 @@ export function WetterApp() {
           </label>
 
           <div data-testid="wetter-map" className="wetter-map-frame">
-            <WetterMap revier={revier} waypoints={waypoints} onAddWaypoint={addWaypoint} />
+            <WetterMap
+              revier={revier}
+              waypoints={waypoints}
+              onAddWaypoint={addWaypoint}
+              overlay={overlay}
+            />
           </div>
           <p className="caption">
             Klick auf die Karte oder einen Hafen-Punkt setzt einen Wegpunkt. Gold = bekannte Häfen.
           </p>
+
+          {/* Playback: Zeitreise über die geplante Route */}
+          {timeline && timeline.times.length > 1 && (
+            <div className="card stack" style={{ gap: 8 }} data-testid="playback-panel">
+              <div className="row-between">
+                <span className="section-label">Wetter-Zeitreise</span>
+                <span className="caption" data-testid="playback-time">
+                  {fmtEta(timeline.times[Math.min(playIdx, timeline.times.length - 1)])}
+                </span>
+              </div>
+              <div className="row" style={{ gap: 10 }}>
+                <button
+                  type="button"
+                  data-testid="playback-toggle"
+                  className="wetter-remove"
+                  aria-label={playing ? "Pause" : "Abspielen"}
+                  onClick={() => {
+                    if (!playing && playIdx >= timeline.times.length - 1) setPlayIdx(0);
+                    setPlaying((p) => !p);
+                  }}
+                >
+                  <Icon name={playing ? "x" : "play"} size={16} />
+                </button>
+                <input
+                  type="range"
+                  data-testid="playback-slider"
+                  className="wetter-slider"
+                  style={{ flex: 1 }}
+                  min={0}
+                  max={timeline.times.length - 1}
+                  step={1}
+                  value={Math.min(playIdx, timeline.times.length - 1)}
+                  onChange={(e) => {
+                    setPlaying(false);
+                    setPlayIdx(Number(e.target.value));
+                  }}
+                  aria-label="Zeitpunkt im Playback"
+                />
+              </div>
+              <p className="caption">
+                3-h-Schritte von Abfahrt bis Ankunft: Windpfeile (Farbe = Stärke), ⚡ Gewitter,
+                ☁ Bedeckung, ⛵ ungefähre Bootsposition.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="stack" style={{ gap: 16 }}>
@@ -278,6 +457,25 @@ export function WetterApp() {
                 Motor
               </button>
             </div>
+            {/* Wettermodell — transparent wählbar, mit Begründung */}
+            <label className="stack" style={{ gap: 6 }}>
+              <span className="caption">Wettermodell</span>
+              <select
+                data-testid="model-select"
+                className="wetter-select"
+                value={model}
+                onChange={(e) => setModel(e.target.value as WeatherModel)}
+              >
+                {(Object.keys(WEATHER_MODELS) as WeatherModel[]).map((m) => (
+                  <option key={m} value={m}>
+                    {WEATHER_MODELS[m].label}
+                  </option>
+                ))}
+              </select>
+              <span className="caption" data-testid="model-reason">
+                {WEATHER_MODELS[model].grund}
+              </span>
+            </label>
           </div>
 
           {/* Bootsprofil */}
@@ -437,9 +635,18 @@ export function WetterApp() {
             {scan && (
               <div className="stack" style={{ gap: 6 }} data-testid="departure-result">
                 {scan.all_windy && (
-                  <p className="wetter-warnband" style={{ fontSize: 12 }}>
-                    Im ganzen Fenster gibt es Warnungen — unten der am wenigsten kritische Slot.
-                  </p>
+                  <div className="wetter-warnband stack" style={{ fontSize: 12, gap: 6 }}>
+                    <span>
+                      Im ganzen Fenster gibt es Warnungen — unten der am wenigsten kritische
+                      Slot.
+                    </span>
+                    {nearbyHarbours.length > 0 && (
+                      <span data-testid="harbour-tips">
+                        Oder Ziel umplanen — geschützt liegen z.B.:{" "}
+                        {nearbyHarbours.map((h) => h.name).join(" · ")} (auf der Karte anklicken).
+                      </span>
+                    )}
+                  </div>
                 )}
                 <ol className="wetter-slot-list">
                   {scan.slots.map((s) => {
@@ -517,6 +724,80 @@ export function WetterApp() {
               <LegCard key={leg.leg} leg={leg} />
             ))}
           </div>
+
+          {/* Feedback-Schleife: speist die Nachkalibrierung */}
+          <div className="card stack" style={{ gap: 10 }} data-testid="feedback-card">
+            <span className="section-label">Dein Feedback</span>
+            {fbState === "done" ? (
+              <p data-testid="feedback-thanks" className="muted" style={{ fontSize: 13 }}>
+                Danke! Dein Feedback fließt in die Kalibrierung der Warnungen ein.
+              </p>
+            ) : (
+              <>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  <span className="caption" style={{ minWidth: 130 }}>
+                    Hat die Vorhersage gepasst?
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="feedback-ok"
+                    className={`pill ${fbOk === true ? "active" : ""}`}
+                    onClick={() => setFbOk(fbOk === true ? null : true)}
+                  >
+                    👍 passte
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="feedback-not-ok"
+                    className={`pill ${fbOk === false ? "active" : ""}`}
+                    onClick={() => setFbOk(fbOk === false ? null : false)}
+                  >
+                    👎 lag daneben
+                  </button>
+                </div>
+                <div className="row" style={{ gap: 4, flexWrap: "wrap" }}>
+                  <span className="caption" style={{ minWidth: 130 }}>
+                    Wie zufrieden bist du?
+                  </span>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      data-testid={`feedback-star-${n}`}
+                      className="wetter-star"
+                      aria-label={`${n} von 5 Sternen`}
+                      aria-pressed={fbRating != null && n <= fbRating}
+                      onClick={() => setFbRating(fbRating === n ? null : n)}
+                    >
+                      <Icon
+                        name="star"
+                        size={18}
+                        style={{ color: fbRating != null && n <= fbRating ? "var(--accent)" : "var(--fg-faint)" }}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  data-testid="feedback-text"
+                  className="wish-input"
+                  rows={2}
+                  maxLength={2000}
+                  placeholder="Was war falsch, was wünschst du dir noch?"
+                  value={fbText}
+                  onChange={(e) => setFbText(e.target.value)}
+                />
+                <button
+                  type="button"
+                  data-testid="feedback-submit"
+                  className="btn btn-outline-gold"
+                  disabled={fbState === "sending" || (fbRating == null && fbOk == null && !fbText.trim())}
+                  onClick={sendFeedback}
+                >
+                  {fbState === "sending" ? "Sende …" : "Feedback senden"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -529,10 +810,11 @@ export function WetterApp() {
         </div>
       )}
 
-      <p data-testid="attribution" className="caption center-note">
-        <Icon name="cloud" size={14} /> Wetterdaten: Open-Meteo (CC-BY 4.0) · Karte: ©
-        OpenStreetMap, © OpenSeaMap · Entscheidungshilfe — ersetzt keine Seemannschaft und keine
-        amtlichen Warnungen.
+      <p data-testid="attribution" className="caption center-note" style={{ flexWrap: "wrap" }}>
+        <Icon name="cloud" size={14} /> Wetterdaten: Open-Meteo (CC-BY 4.0) ·{" "}
+        {WEATHER_MODELS[model].label} · Vorhersage bis 7 Tage, stündlich aktualisiert (Server-Cache
+        1 h — jede Berechnung nutzt frische Daten) · Karte: © OpenStreetMap, © OpenSeaMap ·
+        Entscheidungshilfe — ersetzt keine Seemannschaft und keine amtlichen Warnungen.
       </p>
     </div>
   );
