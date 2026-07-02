@@ -80,8 +80,11 @@ export function WetterApp() {
   const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 72 * 3600e3)));
   const [scan, setScan] = useState<DepartureScan | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
-  // Wettermodell (transparent wählbar)
+  // Wettermodell (transparent wählbar) + gemessene Revier-Empfehlung
   const [model, setModel] = useState<WeatherModel>("best_match");
+  const [modelRec, setModelRec] = useState<{
+    model: string; label: string; mae_gust_kn: number | null; n_samples: number;
+  } | null>(null);
   // Playback (Zeitreise über die geplante Route)
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
@@ -98,6 +101,20 @@ export function WetterApp() {
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
   const maxStart = useMemo(() => toLocalInput(new Date(Date.now() + 7 * 24 * 3600e3)), []);
   const boat = useMemo(() => boatFromSpecs(specs), [specs]);
+
+  // Gemessene Modell-Empfehlung fürs Revier laden (aus dem Feedback-Loop).
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/weather/model-scores?revier=${encodeURIComponent(revierId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive) setModelRec(d?.empfehlung ?? null);
+      })
+      .catch(() => alive && setModelRec(null));
+    return () => {
+      alive = false;
+    };
+  }, [revierId]);
 
   // Playback-Ticker: alle 900 ms ein Zeitschritt, am Ende stoppen.
   useEffect(() => {
@@ -506,6 +523,20 @@ export function WetterApp() {
               <span className="caption" data-testid="model-reason">
                 {WEATHER_MODELS[model].grund}
               </span>
+              {modelRec && modelRec.model !== model && (
+                <span className="caption row" style={{ gap: 6 }} data-testid="model-recommendation">
+                  📊 Gemessen fürs Revier: <strong>{modelRec.label}</strong> trifft am besten
+                  (Böen-MAE {modelRec.mae_gust_kn} kn, n={modelRec.n_samples})
+                  <button
+                    type="button"
+                    className="pill"
+                    data-testid="model-adopt"
+                    onClick={() => setModel(modelRec.model as WeatherModel)}
+                  >
+                    übernehmen
+                  </button>
+                </span>
+              )}
             </label>
           </div>
 
@@ -984,6 +1015,11 @@ function LegCard({ leg }: { leg: RouteLeg }) {
         </span>
         {leg.wave_m != null && <span>Welle {leg.wave_m} m</span>}
         <span>{leg.speed_kn} kn Fahrt</span>
+        {leg.current_kn != null && leg.current_kn > 0.1 && (
+          <span title={`Strömung setzt nach ${leg.current_to_deg}°`}>
+            Strom {leg.current_kn} kn → {leg.sog_kn} kn über Grund
+          </span>
+        )}
         {leg.duration_h != null && <span>{leg.duration_h} h</span>}
       </div>
       <div className="row-between" style={{ paddingTop: 8, borderTop: "1px solid var(--border)" }}>

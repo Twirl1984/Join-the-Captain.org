@@ -32,6 +32,9 @@ export interface ForecastSample {
   wind_from_deg: number;
   gust_kn?: number;
   wave_height_m?: number | null;
+  /** Strömung: Fahrt (kn) und Setzrichtung (WOHIN sie setzt, ozeanographisch). */
+  current_kn?: number | null;
+  current_to_deg?: number | null;
   gale?: boolean; // Sturm (aus warnings.classify)
   thunderstorm?: boolean; // Gewitter
   high_wave?: boolean; // hohe Welle
@@ -46,7 +49,12 @@ export interface RouteLeg {
   distance_nm: number;
   course_deg: number;
   mode: SailMode;
+  /** Fahrt durchs Wasser (kn). */
   speed_kn: number;
+  /** Fahrt über Grund (kn) = speed_kn + Strömungskomponente längs Kurs. */
+  sog_kn: number;
+  current_kn: number | null;
+  current_to_deg: number | null;
   wind_kn: number;
   gust_kn: number;
   wind_from_deg: number;
@@ -145,7 +153,14 @@ export function planRoute({
     const mid = new Date(t.getTime() + (hours / 2) * 3600e3);
     wx = sampleForecast({ lat: midLat(from, to), lon: midLon(from, to), at: mid });
     ({ speed_kn, mode: usedMode } = legSpeed(wx, course, mode, boat));
-    hours = speed_kn > 0 ? dist / speed_kn : Infinity;
+    // Fahrt ÜBER GRUND: Strömungskomponente längs des Kurses addieren
+    // (Setzrichtung = wohin der Strom läuft; positiver Anteil schiebt).
+    // Mindestens 0.3 kn, sonst "steht" das Boot rechnerisch ewig.
+    const cur = wx.current_kn ?? 0;
+    const curTo = wx.current_to_deg ?? 0;
+    const along = cur > 0 ? cur * Math.cos(((curTo - course) * Math.PI) / 180) : 0;
+    const sog = Math.max(0.3, speed_kn + along);
+    hours = dist / sog;
 
     const eta = new Date(t.getTime() + hours * 3600e3);
     total += dist;
@@ -197,6 +212,9 @@ export function planRoute({
       course_deg: course,
       mode: usedMode,
       speed_kn: round(speed_kn, 1),
+      sog_kn: round(Math.max(0.3, speed_kn + along), 1),
+      current_kn: wx.current_kn != null ? round(wx.current_kn, 1) : null,
+      current_to_deg: wx.current_to_deg != null ? round(wx.current_to_deg, 0) : null,
       wind_kn: round(wx.wind_speed_kn, 0),
       gust_kn: round(maxGust, 0),
       wind_from_deg: round(wx.wind_from_deg, 0),

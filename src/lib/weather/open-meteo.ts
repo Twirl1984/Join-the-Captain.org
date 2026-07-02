@@ -75,6 +75,8 @@ interface PointSeries {
   cape: number[];
   cloud_pct: (number | null)[];
   wave_height_m: (number | null)[];
+  current_kn: (number | null)[];
+  current_to_deg: (number | null)[];
 }
 
 /**
@@ -108,6 +110,8 @@ export async function buildSampler(
       wind_from_deg: ps.wind_from_deg[i] ?? 0,
       gust_kn: gust,
       wave_height_m: metrics.wave_height_m,
+      current_kn: ps.current_kn[i] ?? null,
+      current_to_deg: ps.current_to_deg[i] ?? null,
       gale: w.sturm,
       thunderstorm: w.gewitter,
       high_wave: w.welle,
@@ -157,7 +161,7 @@ async function fetchSeries(
     `&wind_speed_unit=kn&timezone=UTC${range}${modelParam}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wave_height&timezone=UTC${marineRange}${key}`;
+    `&hourly=wave_height,ocean_current_velocity,ocean_current_direction&timezone=UTC${marineRange}${key}`;
 
   // Marine-API liefert für Binnen-/landnahe Punkte ggf. einen Fehler → tolerieren.
   const [atmo, marine] = await Promise.all([
@@ -192,6 +196,11 @@ async function fetchSeries(
       cape: aH.cape ?? [],
       cloud_pct: aH.cloud_cover ?? times.map(() => null),
       wave_height_m: alignWave(times, mH.time, mH.wave_height),
+      // Open-Meteo liefert Strömung in km/h → Knoten; Richtung = WOHIN sie setzt.
+      current_kn: alignWave(times, mH.time, mH.ocean_current_velocity).map((v) =>
+        v == null ? null : Math.round((v / 1.852) * 10) / 10,
+      ),
+      current_to_deg: alignWave(times, mH.time, mH.ocean_current_direction),
     };
   });
 }
@@ -356,5 +365,7 @@ interface OpenMeteoLocation {
     cape?: number[];
     cloud_cover?: (number | null)[];
     wave_height?: (number | null)[];
+    ocean_current_velocity?: (number | null)[];
+    ocean_current_direction?: (number | null)[];
   };
 }

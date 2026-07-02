@@ -106,3 +106,50 @@ test("planRoute: mehrere Wegpunkte → ETA wächst monoton, mode=motor durchgän
   assert.ok(Date.parse(r.legs[1].eta) > Date.parse(r.legs[0].eta));
   assert.ok(r.legs.every((l) => l.mode === "motor"));
 });
+
+// ── Strömung: Fahrt über Grund (SOG) ─────────────────────────────────────────
+
+test("Schiebestrom verkürzt, Gegenstrom verlängert die Legdauer", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0, name: "A" },
+    { lat: 55.0, lon: 13.0, name: "B" }, // Kurs ≈ 0° (Nord)
+  ];
+  const base = { wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 };
+  const mit = (cur: number, to: number): (() => ForecastSample) => () => ({
+    ...base, current_kn: cur, current_to_deg: to,
+  });
+  const ohne = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: () => base });
+  const schiebt = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: mit(2, 0) }); // setzt nach Nord = mit uns
+  const gegen = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: mit(2, 180) }); // setzt nach Süd = gegen uns
+  assert.ok(schiebt.legs[0].duration_h! < ohne.legs[0].duration_h!, "Schiebestrom schneller");
+  assert.ok(gegen.legs[0].duration_h! > ohne.legs[0].duration_h!, "Gegenstrom langsamer");
+  assert.ok(schiebt.legs[0].sog_kn > ohne.legs[0].sog_kn);
+  assert.equal(schiebt.legs[0].current_kn, 2);
+});
+
+test("Querstrom (90° zum Kurs) ändert die Dauer kaum", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0 },
+    { lat: 55.0, lon: 13.0 },
+  ];
+  const base = { wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 };
+  const ohne = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: () => base });
+  const quer = planRoute({
+    waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor",
+    sampleForecast: () => ({ ...base, current_kn: 2, current_to_deg: 90 }),
+  });
+  assert.ok(Math.abs(quer.legs[0].duration_h! - ohne.legs[0].duration_h!) < 0.15);
+});
+
+test("Extremer Gegenstrom: SOG bleibt ≥ 0.3 kn (kein Stillstand/Infinity)", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0 },
+    { lat: 54.1, lon: 13.0 },
+  ];
+  const r = planRoute({
+    waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor",
+    sampleForecast: () => ({ wind_speed_kn: 5, wind_from_deg: 0, current_kn: 12, current_to_deg: 180 }),
+  });
+  assert.ok(r.legs[0].sog_kn >= 0.3);
+  assert.ok(Number.isFinite(r.legs[0].duration_h!));
+});
