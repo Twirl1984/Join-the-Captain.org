@@ -18,6 +18,7 @@ export function SiteHeader() {
         </Link>
         <nav className="site-nav">
           <Link href="/tools">Tools</Link>
+          <Link href="/wetter">Wetter</Link>
           <Link href="/podcast">Podcast</Link>
           <Link href="/community">Community</Link>
           <Link href="/entrepreneurs">Entrepreneurs</Link>

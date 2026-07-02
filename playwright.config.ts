@@ -5,7 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
 //   npx playwright install --with-deps chromium   # einmalig
 //   npm run build && npx playwright test
 // CI-tauglich; für Prod-Smoke: PLAYWRIGHT_BASE_URL=https://join-the-captain.org npx playwright test
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+// Port konfigurierbar, damit E2E neben einer laufenden Dev-Instanz (3000) laufen kann.
+const port = process.env.PW_PORT || "3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,8 +24,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run start",
-        url: baseURL,
+        command: `npx next start -p ${port}`,
+        // Ready-Check auf /wetter: DB-frei, läuft auch ohne DATABASE_URL hoch.
+        url: `${baseURL}/wetter`,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,
       },

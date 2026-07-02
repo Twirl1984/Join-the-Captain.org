@@ -38,3 +38,7 @@ yarn-error.log*
 # bleibt als Referenz versioniert (siehe docs/design/).
 /Join the Captain*.zip
 docs/design/quellen/Join the Captain Startseite.zip
+
+# Playwright-Artefakte
+playwright-report/
+test-results/
