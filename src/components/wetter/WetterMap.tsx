@@ -19,10 +19,11 @@ import {
 import "leaflet/dist/leaflet.css";
 import type { Revier } from "@/lib/weather/reviere";
 import type { Waypoint } from "@/lib/weather/route-forecast";
+import type { UiWaypoint } from "./WetterApp";
 
 interface WetterMapProps {
   revier: Revier;
-  waypoints: Waypoint[];
+  waypoints: UiWaypoint[];
   onAddWaypoint: (w: Waypoint) => void;
 }
 
@@ -100,8 +101,10 @@ export default function WetterMap({ revier, waypoints, onAddWaypoint }: WetterMa
         </Marker>
       ))}
 
+      {/* Stabile Keys (w.id): beim Löschen aus der Mitte bleiben die übrigen
+          Leaflet-Marker erhalten; nur icon (Nummer) aktualisiert sich. */}
       {waypoints.map((w, i) => (
-        <Marker key={`${w.lat},${w.lon},${i}`} position={[w.lat, w.lon]} icon={waypointIcon(i + 1)} />
+        <Marker key={w.id} position={[w.lat, w.lon]} icon={waypointIcon(i + 1)} />
       ))}
 
       {waypoints.length >= 2 && (

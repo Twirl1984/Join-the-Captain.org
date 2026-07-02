@@ -4,12 +4,17 @@
 // Segel/Motor, Risiko-Schieberegler → POST /api/weather/route → Ergebnis-Panel.
 // data-testid-Attribute sind der E2E-Vertrag (e2e/wetter.spec.ts).
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Icon } from "@/components/Icon";
 import { REVIERE } from "@/lib/weather/reviere";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
+import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
+
+// Wegpunkt mit stabiler UI-Id — Keys dürfen nicht am Array-Index hängen,
+// sonst remountet React (und Leaflet) beim Löschen aus der Mitte alle Nachfolger.
+export type UiWaypoint = Waypoint & { id: string };
 
 // Leaflet rendert nur im Browser → ohne SSR laden.
 const WetterMap = dynamic(() => import("./WetterMap"), {
@@ -39,7 +44,8 @@ const fmtEta = (iso: string) =>
 
 export function WetterApp() {
   const [revierId, setRevierId] = useState(REVIERE[0].id);
-  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [waypoints, setWaypoints] = useState<UiWaypoint[]>([]);
+  const nextId = useRef(1);
   const [startTime, setStartTime] = useState(defaultStart);
   const [mode, setMode] = useState<"sail" | "motor">("sail");
   const [sensitivity, setSensitivity] = useState(RECOMMENDED_SENSITIVITY);
@@ -50,8 +56,9 @@ export function WetterApp() {
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
   const maxStart = useMemo(() => toLocalInput(new Date(Date.now() + 7 * 24 * 3600e3)), []);
 
-  const addWaypoint = (w: Waypoint) => setWaypoints((prev) => [...prev, w]);
-  const removeWaypoint = (i: number) => setWaypoints((prev) => prev.filter((_, idx) => idx !== i));
+  const addWaypoint = (w: Waypoint) =>
+    setWaypoints((prev) => [...prev, { ...w, id: `wp-${nextId.current++}` }]);
+  const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
   const reset = () => {
     setWaypoints([]);
     setPlan(null);
@@ -67,7 +74,7 @@ export function WetterApp() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          waypoints,
+          waypoints: waypoints.map(({ lat, lon, name }) => ({ lat, lon, name })),
           startTime: new Date(startTime).toISOString(),
           mode,
           sensitivity,
@@ -133,7 +140,7 @@ export function WetterApp() {
             ) : (
               <ol className="wetter-wp-list">
                 {waypoints.map((w, i) => (
-                  <li key={`${w.lat},${w.lon},${i}`} data-testid="waypoint-item" className="row-between">
+                  <li key={w.id} data-testid="waypoint-item" className="row-between">
                     <span className="row" style={{ gap: 8 }}>
                       <span className="wp-marker wp-marker-inline">{i + 1}</span>
                       <span style={{ fontSize: 13 }}>
@@ -144,7 +151,7 @@ export function WetterApp() {
                       type="button"
                       className="wetter-remove"
                       aria-label={`Wegpunkt ${i + 1} entfernen`}
-                      onClick={() => removeWaypoint(i)}
+                      onClick={() => removeWaypoint(w.id)}
                     >
                       <Icon name="x" size={14} />
                     </button>
@@ -302,13 +309,18 @@ function LegCard({ leg }: { leg: RouteLeg }) {
       <div className="wetter-leg-facts">
         <span>{leg.distance_nm} sm</span>
         <span>Kurs {leg.course_deg}°</span>
-        <span className="row" style={{ gap: 4 }}>
+        <span
+          className="row"
+          style={{ gap: 4 }}
+          title={`Wind aus ${compassPoint(leg.wind_from_deg)} (${leg.wind_from_deg}°) — Pfeil zeigt, wohin der Wind weht`}
+        >
+          {/* Pfeil = Flow-Richtung (wohin der Wind weht), Rotation getestet in format.test.ts */}
           <Icon
             name="send"
             size={12}
-            style={{ transform: `rotate(${leg.wind_from_deg + 135}deg)` }}
+            style={{ transform: `rotate(${windArrowRotationDeg(leg.wind_from_deg)}deg)` }}
           />
-          {leg.wind_kn} kn aus {leg.wind_from_deg}°
+          {leg.wind_kn} kn aus {compassPoint(leg.wind_from_deg)} ({leg.wind_from_deg}°)
         </span>
         {leg.wave_m != null && <span>Welle {leg.wave_m} m</span>}
         <span>{leg.speed_kn} kn Fahrt</span>

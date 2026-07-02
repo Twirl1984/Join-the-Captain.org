@@ -1,6 +1,6 @@
 # Wetter-Routen-Tool (`/wetter`) — erste eigene JTC-Implementierung
 
-Stand: 2026-06-30 · Branch: `feat/weather-route` · Status: **Backend fertig & getestet, Leaflet-UI offen**
+Stand: 2026-07-02 · Branch: `feat/weather-route` · Status: **KOMPLETT — Backend + Leaflet-UI gebaut & verifiziert (Unit 28 · E2E 8/8 · Build sauber), bereit für Test-Deploy**
 
 Das erste echte Eigenbau-Tool auf `join-the-captain.org`: Ein Segler zieht auf einer
 Karte eine Route, wählt Abfahrtszeit + Boot, und bekommt **Wind, Welle, Sturm-/
@@ -26,8 +26,8 @@ src/lib/weather/
   __tests__/*.test.ts  ✅ 28 Unit + 2 Live-Integration (node:test)
 src/app/api/weather/route/route.ts  ✅ POST: waypoints+sensitivity → Plan (Legs+ETA+Warnungen)
 scripts/weather-backtest-{fetch,run}.ts  ✅ historischer FP/FN-Backtest (echte Daten)
-e2e/wetter.spec.ts + playwright.config.ts ✅ E2E-Vertrag (data-testid), Lauf nach UI
-src/app/wetter/page.tsx             ⛔ OFFEN — Leaflet-Karte + Regler + Ergebnis-UI
+e2e/wetter.spec.ts + playwright.config.ts ✅ E2E 8/8 grün (Chromium + Mobile)
+src/app/wetter/page.tsx + src/components/wetter/* ✅ Leaflet-Karte + Regler + Ergebnis-UI
 ```
 
 Datenfluss: `/wetter`-Seite → `POST /api/weather/route` → `buildSampler()` holt
@@ -92,7 +92,7 @@ Assistenten (Ankerplätze, Notfall, Strömung/PS, Landleinen): **[weather-roadma
 
 ---
 
-## ⛔ OFFEN — `src/app/wetter/page.tsx` (Leaflet-UI)
+## ✅ GEBAUT — `src/app/wetter/page.tsx` + `src/components/wetter/*` (Leaflet-UI)
 
 Interaktive Karte zum Setzen der Route + Ergebnis-Panel. Folgt dem JTC-Design
 (`docs/design-paket.md` Teil A). **Eigene Implementierung → KEINE Affiliate-Kennzeichnung**,
@@ -146,17 +146,21 @@ oben, Eingabe/Ergebnis darunter gestapelt.
 
 ---
 
-## Verifikation vor dem Mergen
+## Verifikation (Stand 2026-07-02: ALLE Stufen grün gelaufen)
 ```bash
-npm install                 # zieht leaflet etc.
-node --import tsx --test src/lib/weather/__tests__/route-forecast.test.ts   # 11 grün
-npm run typecheck           # tsc --noEmit, muss sauber sein
-npm run build               # next build, muss durchlaufen
-npm run dev                 # /wetter manuell: Route klicken → berechnen → Legs/Warnungen
-# echter Open-Meteo-Smoke (Netz):
-curl -s -X POST localhost:3000/api/weather/route -H 'content-type: application/json' \
-  -d '{"waypoints":[{"lat":54.679,"lon":13.432,"name":"Arkona"},{"lat":54.95,"lon":12.46,"name":"Klintholm"}],"mode":"sail"}' | jq .plan.legs
+npm install                          # zieht leaflet, react-leaflet, @playwright/test
+npm run test:weather                 # ✅ 28 Unit-Tests grün (2 Live-Tests skipped ohne Netz)
+JTC_WEATHER_LIVE=1 npm run test:weather   # ✅ +2 Live-Integrationstests (echte Open-Meteo-API)
+npm run typecheck                    # ✅ 0 Fehler
+npm run build                        # ✅ /wetter statisch, 5.78 kB
+npx playwright install chromium      # einmalig
+PW_PORT=3311 npm run test:e2e        # ✅ 8/8 grün (Chromium + Mobile/Pixel 7)
+# API-System-Smoke (echte Daten, alle Fehlerpfade): ✅ verifiziert
+curl -s -X POST localhost:3311/api/weather/route -H 'content-type: application/json' \
+  -d '{"waypoints":[{"lat":54.679,"lon":13.432,"name":"Arkona"},{"lat":54.95,"lon":12.46,"name":"Klintholm"}],"mode":"sail","sensitivity":1}' | jq .plan
+# 422 bei startTime > 7 Tage · 400 bei <2 Wegpunkten / kaputtem JSON · 502-UI-Meldung per E2E gemockt
 ```
+`PW_PORT` erlaubt den E2E-Lauf neben einer laufenden Dev-Instanz auf 3000.
 
 ## Deploy (bestehender `.org`-Flow, siehe `docs/DEPLOYMENT.md`)
 1. PR `feat/weather-route` → `main`, mergen.

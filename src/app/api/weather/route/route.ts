@@ -8,12 +8,18 @@ import { DEFAULT_BOAT, type Boat, type SailMode } from "@/lib/weather/polar";
 export const runtime = "nodejs";
 
 const MAX_WAYPOINTS = 25; // begrenzt Open-Meteo-URL-Länge & Free-Tier-Last
+const MAX_BODY_BYTES = 64 * 1024; // Route-Payloads sind winzig; alles darüber ist Missbrauch
+const MAX_NAME_LEN = 80; // Wegpunkt-Namen kappen (kommen 1:1 in die Antwort zurück)
 const FORECAST_HORIZON_DAYS = 7; // freie Open-Meteo-Vorhersage reicht 7 Tage
+const PAST_TOLERANCE_H = 3; // etwas Kulanz für "Abfahrt vorhin"
 
 // POST /api/weather/route
-// Body: { waypoints: [{lat,lon,name?}], startTime?, mode?, boat? }
+// Body: { waypoints: [{lat,lon,name?}], startTime?, mode?, sensitivity?, boat? }
 // → Legs + ETA + Wetter + Warnungen entlang der Route (route-forecast.ts).
 export async function POST(req: NextRequest) {
+  const len = Number(req.headers.get("content-length") ?? 0);
+  if (len > MAX_BODY_BYTES) return fehler("Anfrage zu groß.", 413);
+
   let body: unknown;
   try {
     body = await req.json();
@@ -28,15 +34,18 @@ export async function POST(req: NextRequest) {
 
   const startTime = b.startTime ? new Date(String(b.startTime)) : new Date();
   if (Number.isNaN(startTime.getTime())) return fehler("startTime ist kein gültiges Datum.");
-  // Über das Vorhersagefenster hinaus würden wir sonst die letzte verfügbare
-  // Stunde extrapolieren und einen scheinbar echten Plan liefern — bei einem
-  // Sicherheits-Tool irreführend. Lieber ehrlich ablehnen.
-  const horizonMs = Date.now() + FORECAST_HORIZON_DAYS * 24 * 3600e3;
-  if (startTime.getTime() > horizonMs) {
+  // Außerhalb des Vorhersagefensters würden wir sonst still die nächste
+  // verfügbare Stunde nehmen und einen scheinbar echten Plan liefern — bei
+  // einem Sicherheits-Tool irreführend. Lieber ehrlich ablehnen (422).
+  const now = Date.now();
+  if (startTime.getTime() > now + FORECAST_HORIZON_DAYS * 24 * 3600e3) {
     return fehler(
       `Die freie Vorhersage reicht nur ${FORECAST_HORIZON_DAYS} Tage voraus. Bitte einen früheren Start wählen.`,
       422,
     );
+  }
+  if (startTime.getTime() < now - PAST_TOLERANCE_H * 3600e3) {
+    return fehler("Die Abfahrt liegt in der Vergangenheit — bitte eine kommende Startzeit wählen.", 422);
   }
 
   const mode: SailMode = b.mode === "motor" ? "motor" : "sail";
@@ -61,8 +70,9 @@ export async function POST(req: NextRequest) {
     const plan = planRoute({ waypoints, startTime, boat, mode, sampleForecast });
     return ok({ plan, sensitivity, source: "open-meteo" });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
-    return fehler(`Wetterdaten konnten nicht geladen werden: ${msg}`, 502);
+    // Details (Upstream-Bodies, URLs) nur ins Server-Log — nie an den Client.
+    console.error("weather/route:", e);
+    return fehler("Wetterdaten konnten nicht geladen werden — bitte später erneut versuchen.", 502);
   }
 }
 
@@ -76,20 +86,30 @@ function parseWaypoints(raw: unknown): Waypoint[] | null {
     const lon = Number(w.lon);
     if (!Number.isFinite(lat) || lat < -90 || lat > 90) return null;
     if (!Number.isFinite(lon) || lon < -180 || lon > 180) return null;
-    out.push({ lat, lon, name: typeof w.name === "string" ? w.name : undefined });
+    out.push({
+      lat,
+      lon,
+      // Namen kappen — sie wandern in Warntexte/Antwort zurück.
+      name: typeof w.name === "string" ? w.name.slice(0, MAX_NAME_LEN) : undefined,
+    });
   }
   return out;
 }
 
+// Boot-Parameter nur übernehmen, wenn sie physikalisch plausibel sind —
+// z.B. verhindert das cruise_speed_motor_kn=0 (→ Infinity-Legdauer).
 function mergeBoat(raw: unknown): Boat {
   if (!raw || typeof raw !== "object") return DEFAULT_BOAT;
   const r = raw as Record<string, unknown>;
-  const num = (v: unknown, fallback: number) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
+  const pos = (v: unknown, fallback: number, max: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 && n <= max ? n : fallback;
+  };
   return {
-    name: typeof r.name === "string" ? r.name : DEFAULT_BOAT.name,
-    cruise_speed_motor_kn: num(r.cruise_speed_motor_kn, DEFAULT_BOAT.cruise_speed_motor_kn),
-    hull_speed_kn: num(r.hull_speed_kn, DEFAULT_BOAT.hull_speed_kn),
-    upwind_no_go_deg: num(r.upwind_no_go_deg, DEFAULT_BOAT.upwind_no_go_deg),
-    drive_efficiency: num(r.drive_efficiency, DEFAULT_BOAT.drive_efficiency),
+    name: typeof r.name === "string" ? r.name.slice(0, MAX_NAME_LEN) : DEFAULT_BOAT.name,
+    cruise_speed_motor_kn: pos(r.cruise_speed_motor_kn, DEFAULT_BOAT.cruise_speed_motor_kn, 30),
+    hull_speed_kn: pos(r.hull_speed_kn, DEFAULT_BOAT.hull_speed_kn, 40),
+    upwind_no_go_deg: pos(r.upwind_no_go_deg, DEFAULT_BOAT.upwind_no_go_deg, 90),
+    drive_efficiency: pos(r.drive_efficiency, DEFAULT_BOAT.drive_efficiency, 1),
   };
 }

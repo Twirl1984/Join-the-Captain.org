@@ -56,9 +56,9 @@ Default = datengestützter, konservativer Betriebspunkt.
 |---|---|---|---|---|
 | **Komponenten/Unit** | polar, route-forecast, warnings, backtest (reine Logik) | `node:test` + tsx | lokal/CI, offline | ✅ 28 grün |
 | **Integration** | open-meteo-Adapter ↔ echte API ↔ Klassifikation | `node:test`, `JTC_WEATHER_LIVE=1` | Netz nötig | ✅ 2 grün |
-| **API/System** | `POST /api/weather/route` (Validierung, 422-Horizont, 502-Resilienz, sensitivity) | curl-Smoke + Playwright-Route-Mock | dev/Test-Instanz | ⏳ Smoke dok. |
-| **System/E2E** | `/wetter`-Seite im Browser (Karte, Regler, Ergebnis) | Playwright (Chromium + Mobile) | benötigt laufende App | ⛔ UI offen, Specs bereit |
-| **Abnahme** | Nutzer-Szenarien Ostsee/Kroatien, Mobile, A11y | manuell + explorativ | Test-Instanz `:3100` | ⛔ nach UI |
+| **API/System** | `POST /api/weather/route` (Validierung, 422-Horizont, 502-Resilienz, sensitivity) | curl-Smoke + Playwright-Route-Mock | dev/Test-Instanz | ✅ 200/400/422 + 502-Mock grün |
+| **System/E2E** | `/wetter`-Seite im Browser (Karte, Regler, Ergebnis) | Playwright (Chromium + Mobile) | benötigt laufende App | ✅ 8/8 grün (2026-07-02) |
+| **Abnahme** | Nutzer-Szenarien Ostsee/Kroatien, Mobile, A11y | manuell + explorativ | Test-Instanz `:3100` | ⏳ bereit — User-Abnahme |
 
 ---
 
@@ -129,6 +129,27 @@ Charters — je Session zeitboxen (~60 min), Befunde notieren:
   BEHOBEN:** API lehnt Startzeit > 7 Tage jetzt mit 422 ab (`FORECAST_HORIZON_DAYS`).
 
 ---
+
+## 6b. Multi-Agent-Review mit adversarialer Verifikation (2026-07-02)
+
+4 parallele Review-Dimensionen (React/Leaflet, Backend-Logik, Security/Robustheit,
+UX/Design) über den Branch-Diff; jedes Finding von 2 unabhängigen Skeptikern gegen
+den echten Code geprüft (nur ≥2 Bestätigungen zählen). **18 geprüft → 8 bestätigt → alle gefixt:**
+
+| Finding | Fix |
+|---|---|
+| Instabile React-Keys (Wegpunkt-Liste + Leaflet-Marker, Index im Key) | stabile `UiWaypoint.id`, Löschen per id |
+| Windpfeil-Rotation mehrdeutig/fehleranfällig | getesteter Helper `format.ts` (Pfeil = Flow-Richtung, Text = „aus NW (315°)", title erklärt Konvention) |
+| Marine-API-Fallback nutzt Punkt 0 bei Index-Mismatch | Atmo-Mismatch → harter Fehler; Marine-Mismatch → Welle `null`, nie falscher Punkt |
+| Startzeit in der Vergangenheit still akzeptiert | 422 bei > 3 h Vergangenheit |
+| Wegpunkt-Name ohne Längenlimit (DoS/Aufblähen) | Kappung auf 80 Zeichen + 64-KiB-Body-Limit (413) |
+| Upstream-Fehlertexte leaken an den Client (502) | Details nur ins Server-Log, Client generisch |
+| Entfernen-Button 32 px < 44 px Touch-Target (A.6) | 44×44 px |
+| — freiwillig: Slider-Höhe 44 px, kontrastfestes Warn-Rot je Theme, positiver Boot-Parameter-Guard (verhindert `cruise_speed=0` → Infinity) | umgesetzt |
+
+10 Findings wurden von den Skeptikern **widerlegt** (u. a. Infinity-Propagation, identische
+Wegpunkte, ember-Kontrast auf hellen Cards) — dokumentiert im Workflow-Log.
+Nach den Fixes: Unit 31 grün · Typecheck 0 · Build ok · E2E 8/8 · Guard-Smokes (422/413/Kappung) grün.
 
 ## 7. E2E-Vertrag (Playwright)
 

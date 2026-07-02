@@ -91,11 +91,19 @@ async function fetchSeries(points: Waypoint[]): Promise<PointSeries[]> {
   const atmoLocs = asLocations(atmo);
   const marineLocs = marine ? asLocations(marine) : [];
 
+  // Antworten müssen 1:1 zu den angefragten Punkten passen. Atmo-Mismatch ist
+  // ein harter Fehler (sonst rechnen wir mit dem Wetter des falschen Punktes);
+  // Marine-Mismatch heißt nur: keine Wellendaten — nie Punkt 0 wiederverwenden.
+  if (atmoLocs.length !== points.length) {
+    throw new Error(`Open-Meteo: ${atmoLocs.length} statt ${points.length} Punkte erhalten.`);
+  }
+  const marineOk = marineLocs.length === points.length;
+
   return points.map((p, idx) => {
-    const a = atmoLocs[idx] ?? atmoLocs[0] ?? {};
-    const m = marineLocs[idx] ?? marineLocs[0] ?? {};
+    const a = atmoLocs[idx];
+    const m = marineOk ? marineLocs[idx] : undefined;
     const aH = a.hourly ?? {};
-    const mH = m.hourly ?? {};
+    const mH = m?.hourly ?? {};
     const times = (aH.time ?? []).map(parseUtc);
     return {
       lat: p.lat,
