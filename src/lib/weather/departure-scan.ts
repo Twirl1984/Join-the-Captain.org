@@ -83,7 +83,7 @@ export function scanDepartures({
   boat = DEFAULT_BOAT,
   mode = "sail",
   sampleForecast,
-  maxCandidates = 96,
+  maxCandidates = 121, // 5-Tage-Fenster im 1-h-Raster (Rechnung ist rein lokal)
 }: {
   waypoints: Waypoint[];
   windowStart: Date;

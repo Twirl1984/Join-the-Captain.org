@@ -98,7 +98,7 @@ export function WetterApp() {
         }
         return i + 1;
       });
-    }, 900);
+    }, 600);
     return () => clearInterval(iv);
   }, [playing, timeline]);
 
@@ -192,7 +192,7 @@ export function WetterApp() {
           waypoints: apiWaypoints(),
           startTime: startIso,
           endTime: new Date(Date.parse(p.eta) + 3 * 3600e3).toISOString(),
-          stepH: 3,
+          stepH: 1,
           sensitivity,
           model,
         }),
@@ -218,7 +218,7 @@ export function WetterApp() {
           waypoints: apiWaypoints(),
           windowStart: new Date(startTime).toISOString(),
           windowEnd: new Date(scanTo).toISOString(),
-          stepH: 3,
+          stepH: 1,
           mode,
           sensitivity,
           model,
@@ -369,7 +369,7 @@ export function WetterApp() {
                 />
               </div>
               <p className="caption">
-                3-h-Schritte von Abfahrt bis Ankunft: Windpfeile (Farbe = Stärke), ⚡ Gewitter,
+                Stunden-Schritte von Abfahrt bis Ankunft: Windpfeile (Farbe = Stärke), ⚡ Gewitter,
                 ☁ Bedeckung, ⛵ ungefähre Bootsposition.
               </p>
             </div>
@@ -664,7 +664,7 @@ export function WetterApp() {
           <div className="card stack" style={{ gap: 10 }}>
             <span className="section-label">Beste Abfahrt finden</span>
             <p className="caption">
-              Charter-Fenster angeben — wir rechnen alle Abfahrten (3-h-Raster) von der Abfahrtszeit
+              Charter-Fenster angeben — wir rechnen alle Abfahrten (stündlich) von der Abfahrtszeit
               oben bis zum spätesten Start durch und empfehlen den Slot, der Unwetter umgeht.
             </p>
             <label className="stack" style={{ gap: 4 }}>
