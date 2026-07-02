@@ -60,3 +60,13 @@ rm -rf /srv/jtc-org-test
 rm -f /etc/nginx/sites-enabled/jtc-org-test /etc/nginx/sites-available/jtc-org-test
 systemctl reload nginx
 ```
+
+## Nachtrag (2026-07-02): HTTPS + Hauptdomain
+
+- Let's-Encrypt-Zertifikat für `join-the-captain.org` (+www), Auto-Renewal via certbot-Timer.
+- **`https://join-the-captain.org`** (Port 443, `sites-available/jtc-org-main`) zeigt mit
+  demselben Basic-Auth-Gate auf die Test-Instanz — schönerer Link zum Teilen.
+- `https://join-the-captain.org:3100` funktioniert parallel weiter (`jtc-org-test`, jetzt `listen 3100 ssl`).
+- Port 80 (`jtc-org-http80`): ACME-Challenge + 302 auf die portlose HTTPS-URL.
+- Beim späteren **Prod-Deploy** ersetzt der echte `.org`-Block (DEPLOYMENT.md B6/B7) einfach
+  `jtc-org-main` — Zertifikat existiert dann schon.
