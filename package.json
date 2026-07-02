@@ -16,7 +16,8 @@
     "research:run": "tsx scripts/run-research.ts",
     "test:weather": "node --import tsx --test src/lib/weather/__tests__/*.test.ts",
     "test:e2e": "playwright test",
-    "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts"
+    "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts",
+    "weather:verify": "tsx scripts/weather-feedback-verify.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

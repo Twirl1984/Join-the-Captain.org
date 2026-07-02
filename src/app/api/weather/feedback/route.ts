@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   let kontext: string | null = null;
   if (body.kontext && typeof body.kontext === "object") {
     const s = JSON.stringify(body.kontext);
-    if (s.length <= 8000) kontext = s;
+    if (s.length <= 24000) kontext = s; // Plan-Legs inklusive (Loop-Verifikation)
   }
 
   const user = await getOrCreateUser().catch(() => null);

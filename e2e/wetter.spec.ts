@@ -133,7 +133,12 @@ test.describe("/wetter — Playback & Feedback", () => {
     await addTwoWaypoints(page);
     await calculate(page);
     await expect(page.getByTestId("feedback-card")).toBeVisible();
-    await page.getByTestId("feedback-ok").click();
+    // 👎 öffnet strukturierte Abweichungs-Chips
+    await page.getByTestId("feedback-not-ok").click();
+    await expect(page.getByTestId("feedback-issues")).toBeVisible();
+    await page.getByTestId("feedback-issues").getByText("Wind stärker als vorhergesagt").click();
+    await page.getByTestId("feedback-ok").click(); // zurück auf 👍 (Chips verschwinden)
+    await expect(page.getByTestId("feedback-issues")).toHaveCount(0);
     await page.getByTestId("feedback-star-4").click();
     await page.getByTestId("feedback-text").fill("Passt — gerne noch Strömung dazu.");
     await page.getByTestId("feedback-name").fill("Kai Testskipper");

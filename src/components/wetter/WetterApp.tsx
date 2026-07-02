@@ -44,6 +44,17 @@ function toLocalInput(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// Strukturierte Abweichungen bei "lag daneben" — machen Feedback maschinell
+// auswertbar (Verifikations-Lauf prüft genau diese Dimensionen gegen ERA5).
+const FEEDBACK_ISSUES = [
+  "Wind stärker als vorhergesagt",
+  "Wind schwächer als vorhergesagt",
+  "Gewitter kam nicht (Fehlalarm)",
+  "Gewitter/Sturm kam ungewarnt",
+  "Welle falsch",
+  "Ankunftszeit lag daneben",
+] as const;
+
 const fmtEta = (iso: string) =>
   new Date(iso).toLocaleString("de-DE", {
     weekday: "short",
@@ -81,6 +92,7 @@ export function WetterApp() {
   const [fbText, setFbText] = useState("");
   const [fbName, setFbName] = useState("");
   const [fbEmail, setFbEmail] = useState("");
+  const [fbIssues, setFbIssues] = useState<string[]>([]);
   const [fbState, setFbState] = useState<"idle" | "sending" | "done">("idle");
 
   const revier = useMemo(() => REVIERE.find((r) => r.id === revierId) ?? REVIERE[0], [revierId]);
@@ -257,14 +269,29 @@ export function WetterApp() {
           freitext: fbText || undefined,
           name: fbName.trim() || undefined,
           email: fbEmail.trim() || undefined,
+          // Vollständiger Abfrage-Kontext: damit lässt sich "lag daneben" später
+          // gegen ERA5 + andere Modelle verifizieren (Feedback-Loop).
           kontext: plan
             ? {
+                revier: revierId,
                 waypoints: apiWaypoints(),
                 startTime: new Date(startTime).toISOString(),
+                mode,
                 sensitivity,
                 model,
                 source,
-                eta: plan.eta,
+                boat,
+                abweichungen: fbIssues,
+                plan: {
+                  eta: plan.eta,
+                  total_nm: plan.total_nm,
+                  warnings: plan.warnings,
+                  legs: plan.legs.map((l) => ({
+                    from: l.from, to: l.to, wind_kn: l.wind_kn, gust_kn: l.gust_kn,
+                    wind_from_deg: l.wind_from_deg, wave_m: l.wave_m,
+                    depart: l.depart, eta: l.eta, warnings: l.warnings,
+                  })),
+                },
               }
             : undefined,
         }),
@@ -810,6 +837,24 @@ export function WetterApp() {
                     👎 lag daneben
                   </button>
                 </div>
+                {fbOk === false && (
+                  <div className="pills" data-testid="feedback-issues">
+                    {FEEDBACK_ISSUES.map((issue) => (
+                      <button
+                        key={issue}
+                        type="button"
+                        className={`pill ${fbIssues.includes(issue) ? "active" : ""}`}
+                        onClick={() =>
+                          setFbIssues((prev) =>
+                            prev.includes(issue) ? prev.filter((i) => i !== issue) : [...prev, issue],
+                          )
+                        }
+                      >
+                        {issue}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="row" style={{ gap: 4, flexWrap: "wrap" }}>
                   <span className="caption" style={{ minWidth: 130 }}>
                     Wie zufrieden bist du?
