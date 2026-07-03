@@ -1,0 +1,33 @@
+# Agentic-Engineering-Gate: PRs auf main sind erst mergefähig, wenn verify
+# (Lint + Typecheck + Unit) UND Build UND die gemockten Navigation-E2E grün sind.
+# (e2e/wetter.spec.ts braucht echtes Open-Meteo und läuft bewusst NICHT im Gate —
+# es ist der Live-Smoke auf der Test-Instanz, siehe docs/weather-route-tool.md.)
+name: agentic-gate
+on:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: verify (Lint + Typecheck + Unit)
+        run: npm run verify
+      - name: Build
+        run: npm run build
+      - name: Playwright-Browser (Chromium)
+        run: npx playwright install --with-deps chromium
+      - name: E2E Navigation (gemockt, offline-stabil)
+        run: npx playwright test e2e/navigation.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

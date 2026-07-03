@@ -11,7 +11,7 @@
 
 import type { Waypoint } from "../weather/route-forecast";
 import type { WaterMask } from "./watermask";
-import { findSeaRoute } from "./searoute";
+import { findSeaRoute, segmentInWater, type LatLon } from "./searoute";
 
 export type SegmentRouting = "wasserweg" | "luftlinie";
 
@@ -58,8 +58,13 @@ export function expandWaypointsOverWater(
       if (sea.status === "ok") {
         routing = "wasserweg";
         // Nur die ZWISCHENpunkte übernehmen — Endpunkte bleiben die Originale
-        // (inkl. Name/Liegezeit); ausdünnen, wenn der Weg sehr gewunden ist.
-        inner = thin(sea.points.slice(1, -1), maxPer - 2).map((p) => ({ lat: p.lat, lon: p.lon }));
+        // (inkl. Name/Liegezeit). Ausdünnen ist WASSER-SICHER: ein Punkt fällt
+        // nur weg, wenn das entstehende Segment komplett im Wasser bleibt —
+        // der Deckel ist weich, die Wasser-Garantie hart (Review-Finding #1).
+        inner = thinWaterSafe(mask, sea.points, maxPer - 2).map((p) => ({
+          lat: p.lat,
+          lon: p.lon,
+        }));
       } else if (sea.status === "unreachable") {
         return { status: "unreachable", points: [], segments: [], failedSegment: i };
       }
@@ -73,8 +78,34 @@ export function expandWaypointsOverWater(
   return { status: "ok", points, segments };
 }
 
+/**
+ * Wasser-sicheres Ausdünnen der ZWISCHENpunkte einer Wasserroute.
+ * `full` ist der komplette Pfad inkl. Endpunkten (deren Segmente zu den
+ * Nachbarn müssen bei Entnahme mitgeprüft werden); zurück kommen nur die
+ * inneren Punkte. Greedy: entferne wiederholt einen Punkt, dessen Wegfall das
+ * verbindende Segment im Wasser lässt — bis der Deckel erreicht ist oder kein
+ * Punkt mehr sicher entfernbar ist (dann gewinnt die Sicherheit, nicht der
+ * Deckel).
+ */
+function thinWaterSafe(mask: WaterMask, full: LatLon[], maxInner: number): LatLon[] {
+  const cap = Math.max(0, maxInner);
+  const pts = full.slice();
+  let removable = true;
+  while (pts.length - 2 > cap && removable) {
+    removable = false;
+    for (let i = 1; i < pts.length - 1; i++) {
+      if (segmentInWater(mask, pts[i - 1], pts[i + 1])) {
+        pts.splice(i, 1);
+        removable = true;
+        if (pts.length - 2 <= cap) break;
+      }
+    }
+  }
+  return pts.slice(1, -1);
+}
+
 /** Gleichmäßiges Ausdünnen auf höchstens `max` Punkte (Reihenfolge bleibt). */
-function thin<T>(arr: T[], max: number): T[] {
+export function thin<T>(arr: T[], max: number): T[] {
   if (max <= 0) return [];
   if (arr.length <= max) return arr;
   const out: T[] = [];

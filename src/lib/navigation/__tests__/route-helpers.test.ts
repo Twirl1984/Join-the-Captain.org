@@ -8,6 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMask, type Bbox } from "../watermask";
+import { segmentInWater } from "../searoute";
 import { expandWaypointsOverWater } from "../route-helpers";
 
 const BBOX: Bbox = [54, 10, 55, 12];
@@ -98,8 +99,12 @@ test("unerreichbares Ziel: status unreachable mit Segment-Index", () => {
   assert.equal(r.failedSegment, 0);
 });
 
-test("Punkte-Deckel: sehr gewundene Route wird ausgedünnt, Endpunkte bleiben", () => {
-  // Kamm-Labyrinth erzwingt viele Zwischenpunkte.
+test("Punkte-Deckel ist WASSER-SICHER: Ausdünnen erzeugt nie Landquerungen", () => {
+  // KRITISCHER Regressionsfall (Adversarial-Review): das frühere gleichmäßige
+  // Ausdünnen warf wassergeprüfte Punkte weg, ohne die NEUEN, längeren
+  // Segmente zu prüfen — 4 von 11 Segmenten kreuzten Land, als "wasserweg"
+  // markiert. Der Deckel ist jetzt weich: reduziert wird nur, solange jedes
+  // entstehende Segment komplett im Wasser bleibt.
   const comb = createMask(BBOX, N, 2 * N, (lat, lon) => {
     const k = Math.round((lon - 10) / 0.2);
     if (k < 1 || k > 9 || Math.abs(lon - (10 + k * 0.2)) > 0.03) return true;
@@ -111,7 +116,17 @@ test("Punkte-Deckel: sehr gewundene Route wird ausgedünnt, Endpunkte bleiben", 
   ];
   const r = expandWaypointsOverWater(comb, wps, { maxPointsPerSegment: 6 });
   assert.equal(r.status, "ok");
-  assert.ok(r.points.length <= 8, `zu viele Punkte: ${r.points.length}`);
   assert.equal(r.points[0].name, "A");
   assert.equal(r.points[r.points.length - 1].name, "B");
+  // Sicherheits-Invariante schlägt Deckel: JEDES Segment liegt im Wasser …
+  for (let i = 0; i < r.points.length - 1; i++) {
+    assert.ok(
+      segmentInWater(comb, r.points[i], r.points[i + 1]),
+      `Segment ${i} kreuzt Land — Ausdünnen hat die Wasser-Garantie gebrochen`,
+    );
+  }
+  // … und im offenen Wasser greift der Deckel weiterhin voll.
+  const open = createMask(BBOX, N, 2 * N, () => true);
+  const rOpen = expandWaypointsOverWater(open, wps, { maxPointsPerSegment: 6 });
+  assert.ok(rOpen.points.length <= 6, `offenes Wasser: ${rOpen.points.length} Punkte`);
 });

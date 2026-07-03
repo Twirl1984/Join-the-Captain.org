@@ -10,26 +10,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AVAILABLE_MASKS, getMaskForRevier } from "../masks";
-import { getNavRevier } from "../reviere";
+import { alleReviere, getNavRevier } from "../reviere";
 import { nearestWaterCell, isWaterAt } from "../watermask";
 import { findSeaRoute, segmentInWater } from "../searoute";
 
-test("Masken existieren für alle Küsten-Reviere (Binnenseen ausgenommen)", () => {
-  // Binnenreviere (Brombachsee, IJsselmeer) sind in OSM-Küstenlinien kein
-  // "Meer" — sie brauchen später OSM-Wasserflächen als Quelle.
-  const expected = [
-    "deutsche-bucht",
-    "nordfriesland",
-    "ruegen",
-    "daenische-suedsee",
-    "kieler-bucht",
-    "kroatien-istrien",
-    "kroatien-dalmatien",
-    "balearen",
-    "saronischer-golf",
-  ];
-  for (const id of expected) {
-    assert.ok(AVAILABLE_MASKS.includes(id), `Maske für ${id} fehlt`);
+test("Masken existieren für ALLE Reviere (Küste aus Küstenlinien, Seen aus Seen-Daten)", () => {
+  for (const r of alleReviere()) {
+    assert.ok(AVAILABLE_MASKS.includes(r.id), `Maske für ${r.id} fehlt`);
   }
 });
 
@@ -94,5 +81,14 @@ test("Routing-Smoke Dalmatien: Split -> Hvar muss um Brač/Šolta herum", () => 
 
 test("unbekanntes Revier -> null statt Fehler", () => {
   assert.equal(getMaskForRevier("gibt-es-nicht"), null);
-  assert.equal(getMaskForRevier("brombachsee"), null, "Binnensee hat (noch) keine Maske");
+});
+
+test("Binnensee-Smoke: Ramsberg -> Enderndorf bleibt im Brombachsee-Wasser", () => {
+  const mask = getMaskForRevier("brombachsee");
+  assert.ok(mask, "brombachsee-Maske fehlt");
+  const r = findSeaRoute(mask!, { lat: 49.147, lon: 10.945 }, { lat: 49.128, lon: 10.895 });
+  assert.equal(r.status, "ok");
+  for (let i = 1; i < r.points.length - 2; i++) {
+    assert.ok(segmentInWater(mask!, r.points[i], r.points[i + 1]), `Segment ${i} schneidet Ufer`);
+  }
 });

@@ -33,8 +33,19 @@ export interface SeaRouteResult {
   distance_nm?: number;
 }
 
-/** Snap-Radius in Zellen für Start/Ziel an der Wasserkante. */
-const SNAP_RINGE = 3;
+// Snap-Toleranz für Start/Ziel an der Wasserkante: PHYSISCH ~1.5 km, nicht in
+// Zellen — bei feinen Binnensee-Gittern (Zelle ~200 m) wären 3 Zellen nur 600 m
+// und reale Häfen neben dem groben 1-km-Seepolygon fielen durch (Fund: Ramsberg).
+const SNAP_METER = 1500;
+
+/** Ringzahl, die SNAP_METER bei dieser Maske entspricht (min 3, max 12). */
+function snapRinge(mask: WaterMask): number {
+  const [s, w, n, e] = mask.bbox;
+  const latM = ((n - s) / mask.rows) * 111_320;
+  const lonM = ((e - w) / mask.cols) * 111_320 * Math.cos((((s + n) / 2) * Math.PI) / 180);
+  const cellM = Math.min(latM, lonM);
+  return Math.max(3, Math.min(12, Math.ceil(SNAP_METER / Math.max(1, cellM))));
+}
 
 /**
  * Kürzester Wasserweg von `from` nach `to` über der Maske.
@@ -50,8 +61,9 @@ export function findSeaRoute(mask: WaterMask, from: LatLon, to: LatLon): SeaRout
     return { status: "ok", points: [from], distance_nm: 0 };
   }
 
-  const start = nearestWaterCell(mask, from.lat, from.lon, SNAP_RINGE);
-  const goal = nearestWaterCell(mask, to.lat, to.lon, SNAP_RINGE);
+  const ringe = snapRinge(mask);
+  const start = nearestWaterCell(mask, from.lat, from.lon, ringe);
+  const goal = nearestWaterCell(mask, to.lat, to.lon, ringe);
   if (!start || !goal) return { status: "unreachable", points: [] };
 
   const cellPath = aStar(mask, start, goal);
@@ -74,23 +86,71 @@ export function findSeaRoute(mask: WaterMask, from: LatLon, to: LatLon): SeaRout
 }
 
 /**
- * true, wenn die Strecke a->b durchgehend über Wasser führt. Abtastung in
- * halber Zellweite; Endpunkte müssen selbst Wasser sein.
+ * true, wenn die Strecke a->b durchgehend über Wasser führt.
+ *
+ * Exakter Gitter-Traversal (Amanatides-Woo-Supercover) statt punktweiser
+ * Abtastung: JEDE vom Segment berührte Zelle wird geprüft. Punktweises
+ * Sampling hatte Landecken mit kurzer Sehne übersehen (Adversarial-Review-
+ * Repro, Regressionstests in searoute.test.ts). Exakte Eck-Durchgänge werden
+ * konservativ behandelt: beide angrenzenden Zellen müssen Wasser sein
+ * (gleiche Regel wie der Diagonalschutz im A*).
  */
 export function segmentInWater(mask: WaterMask, a: LatLon, b: LatLon): boolean {
   if (!isWaterAt(mask, a.lat, a.lon) || !isWaterAt(mask, b.lat, b.lon)) return false;
+
+  // Kontinuierliche Gitterkoordinaten: x über Spalten (Lon), y über Zeilen (Lat).
   const [s, w, n, e] = mask.bbox;
-  const stepLat = (n - s) / mask.rows / 2;
-  const stepLon = (e - w) / mask.cols / 2;
-  const steps = Math.max(
-    1,
-    Math.ceil(Math.max(Math.abs(b.lat - a.lat) / stepLat, Math.abs(b.lon - a.lon) / stepLon)),
-  );
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps;
-    if (!isWaterAt(mask, a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t)) return false;
+  const gx = (lon: number) => ((lon - w) / (e - w)) * mask.cols;
+  const gy = (lat: number) => ((lat - s) / (n - s)) * mask.rows;
+  const x0 = gx(a.lon);
+  const y0 = gy(a.lat);
+  const x1 = gx(b.lon);
+  const y1 = gy(b.lat);
+
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const stepX = dx > 0 ? 1 : -1;
+  const stepY = dy > 0 ? 1 : -1;
+
+  // Startzelle (Punkte exakt auf der bbox-Kante in die Maske clampen).
+  let cx = Math.min(mask.cols - 1, Math.max(0, Math.floor(x0)));
+  let cy = Math.min(mask.rows - 1, Math.max(0, Math.floor(y0)));
+  const endX = Math.min(mask.cols - 1, Math.max(0, Math.floor(x1)));
+  const endY = Math.min(mask.rows - 1, Math.max(0, Math.floor(y1)));
+
+  // t bis zur nächsten vertikalen/horizontalen Gitterlinie (Parameter 0..1).
+  const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity;
+  const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity;
+  let tMaxX =
+    dx !== 0 ? (dx > 0 ? (cx + 1 - x0) / dx : (cx - x0) / dx) : Infinity;
+  let tMaxY =
+    dy !== 0 ? (dy > 0 ? (cy + 1 - y0) / dy : (cy - y0) / dy) : Infinity;
+
+  if (!cellIsWater(mask, cy, cx)) return false;
+
+  // Schleife strikt begrenzt — mehr Schritte als Zellen im Umriss gibt es nicht.
+  const maxSteps = mask.cols + mask.rows + 4;
+  for (let i = 0; i < maxSteps; i++) {
+    if (cx === endX && cy === endY) return true;
+    if (Math.abs(tMaxX - tMaxY) < 1e-12 && tMaxX <= 1 + 1e-12) {
+      // Exakter Eck-Durchgang: konservativ beide Nachbarzellen fordern.
+      if (!cellIsWater(mask, cy, cx + stepX) || !cellIsWater(mask, cy + stepY, cx)) return false;
+      cx += stepX;
+      cy += stepY;
+      tMaxX += tDeltaX;
+      tMaxY += tDeltaY;
+    } else if (tMaxX < tMaxY) {
+      if (tMaxX > 1 + 1e-12) return true; // Segmentende vor der nächsten Linie
+      cx += stepX;
+      tMaxX += tDeltaX;
+    } else {
+      if (tMaxY > 1 + 1e-12) return true;
+      cy += stepY;
+      tMaxY += tDeltaY;
+    }
+    if (!cellIsWater(mask, cy, cx)) return false;
   }
-  return true;
+  return cx === endX && cy === endY;
 }
 
 // ── A* auf dem Gitter ────────────────────────────────────────────────────────

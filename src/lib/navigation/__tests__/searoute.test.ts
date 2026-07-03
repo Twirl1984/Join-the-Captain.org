@@ -95,6 +95,21 @@ test("Wegpunkt knapp an Land (Hafen!): wird auf nächste Wasserzelle gesnappt", 
   assertAllWater(mask, r.points.slice(1));
 });
 
+test("Snap-Radius ist physisch (~1.5 km), nicht zellenzahl-abhängig", () => {
+  // Feines Gitter (Zelle ~250 m): ein Hafen 1 km neben dem groben See-Polygon
+  // muss trotzdem anschnappen — bei zellenbasiertem Radius (3 Zellen = 750 m)
+  // wäre er fälschlich "unreachable" (realer Fund: Ramsberg/Brombachsee).
+  const bboxKlein: Bbox = [49.1, 10.85, 49.19, 10.99]; // ~10 km hoch
+  const fein = createMask(bboxKlein, 40, 40, (lat, lon) => lat < 49.14 && lon < 10.93);
+  const hafen = { lat: 49.149, lon: 10.92 }; // ~1 km nördlich der Wasserkante
+  const ziel = { lat: 49.12, lon: 10.88 };
+  const r = findSeaRoute(fein, hafen, ziel);
+  assert.equal(r.status, "ok", "1 km Hafen-Versatz muss anschnappen");
+  // Aber: >2 km Abstand bleibt unreachable (kein wildes Snappen).
+  const weitWeg = { lat: 49.185, lon: 10.98 };
+  assert.equal(findSeaRoute(fein, weitWeg, ziel).status, "unreachable");
+});
+
 test("Start tief im Landesinneren: unreachable (kein wildes Snappen)", () => {
   const mask = createMask(BBOX, N, 2 * N, (_lat, lon) => lon > 11.5);
   const r = findSeaRoute(mask, { lat: 54.5, lon: 10.3 }, { lat: 54.5, lon: 11.8 });
@@ -108,6 +123,44 @@ test("Start == Ziel: triviale Route ohne Absturz", () => {
   assert.equal(r.status, "ok");
   assert.ok(r.points.length >= 1);
   assert.equal(r.distance_nm, 0);
+});
+
+test("segmentInWater: Ecken-Schnitt einer einzelnen Landzelle wird erkannt (Supercover)", () => {
+  // Adversarial-Review-Repro: Ein Segment quert die ECKE einer Landzelle mit
+  // einer Sehne kürzer als der Abtastschritt — punktweises Sampling übersah
+  // das (3 False-Positives im Repro). Der Traversal muss JEDE berührte Zelle
+  // prüfen, nicht nur Interpolationspunkte.
+  const bbox10: Bbox = [0, 0, 10, 10];
+  // Genau eine Landzelle: lat [4,5) x lon [4,5) (row 4, col 4 im 10x10-Gitter).
+  const single = createMask(bbox10, 10, 10, (lat, lon) => !(lat >= 4 && lat < 5 && lon >= 4 && lon < 5));
+  assert.ok(!isWaterAt(single, 4.5, 4.5), "Sanity: Landzelle");
+  // Diagonale, die nur die Ecke (5,5) der Landzelle knapp schneidet
+  // (Sehne ~0.28 Zellbreiten): von (5.5, 4.3) nach (4.3, 5.5).
+  assert.ok(
+    !segmentInWater(single, { lat: 5.5, lon: 4.3 }, { lat: 4.3, lon: 5.5 }),
+    "Ecken-Schnitt muss als Landquerung erkannt werden",
+  );
+  // Gegensicherung: knapp AUSSERHALB der Ecke vorbei ist weiter erlaubt.
+  assert.ok(
+    segmentInWater(single, { lat: 6.2, lon: 4.3 }, { lat: 4.3, lon: 6.2 }),
+    "Vorbeifahrt außerhalb der Zelle bleibt Wasser",
+  );
+});
+
+test("segmentInWater: exakter Eck-Durchgang zwischen zwei diagonalen Landzellen ist gesperrt", () => {
+  // Zwei Landzellen, die sich nur an einer Ecke berühren — dazwischen darf
+  // keine Route \"hindurchschlüpfen\" (gleiche Regel wie der A*-Diagonalschutz).
+  const bbox10: Bbox = [0, 0, 10, 10];
+  const twoCells = createMask(
+    bbox10,
+    10,
+    10,
+    (lat, lon) => !((lat >= 4 && lat < 5 && lon >= 4 && lon < 5) || (lat >= 5 && lat < 6 && lon >= 5 && lon < 6)),
+  );
+  assert.ok(
+    !segmentInWater(twoCells, { lat: 5.5, lon: 4.5 }, { lat: 4.5, lon: 5.5 }),
+    "Diagonale exakt durch die gemeinsame Ecke muss gesperrt sein",
+  );
 });
 
 test("segmentInWater: erkennt Landquerung auch zwischen Zellzentren", () => {

@@ -83,6 +83,9 @@ export function cellCenter(mask: WaterMask, row: number, col: number): { lat: nu
 /**
  * Nächste Wasserzelle um (lat, lon) in wachsenden Ringen bis maxRinge.
  * Für Häfen/Wegpunkte, die knapp "an Land" liegen (Mole, Kaimauer).
+ * Innerhalb eines Rings gewinnt die Zelle mit der KLEINSTEN echten Distanz —
+ * die erste Zelle in Scan-Reihenfolge konnte sonst auf die falsche Seite
+ * einer Landzunge springen (Review-Finding #11).
  */
 export function nearestWaterCell(
   mask: WaterMask,
@@ -93,15 +96,25 @@ export function nearestWaterCell(
   const start = cellOf(mask, lat, lon);
   if (!start) return null;
   if (cellIsWater(mask, start.row, start.col)) return start;
+  const cosLat = Math.cos((lat * Math.PI) / 180);
   for (let ring = 1; ring <= maxRinge; ring++) {
+    let best: { row: number; col: number } | null = null;
+    let bestD = Infinity;
     for (let dr = -ring; dr <= ring; dr++) {
       for (let dc = -ring; dc <= ring; dc++) {
         if (Math.max(Math.abs(dr), Math.abs(dc)) !== ring) continue; // nur Ringrand
         const r = start.row + dr;
         const c = start.col + dc;
-        if (cellIsWater(mask, r, c)) return { row: r, col: c };
+        if (!cellIsWater(mask, r, c)) continue;
+        const ctr = cellCenter(mask, r, c);
+        const d = Math.hypot(ctr.lat - lat, (ctr.lon - lon) * cosLat);
+        if (d < bestD) {
+          bestD = d;
+          best = { row: r, col: c };
+        }
       }
     }
+    if (best) return best;
   }
   return null;
 }

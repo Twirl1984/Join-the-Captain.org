@@ -181,6 +181,14 @@ test.describe("/navigation — Grundgerüst", () => {
     await expect(page.getByTestId("nav-attribution")).toContainText(/keine amtlichen Seekarten/i);
   });
 
+  test("Tidenrevier zeigt Gezeiten-Warnband, Ostsee-Revier nicht", async ({ page }) => {
+    await openWithMap(page);
+    await page.getByTestId("nav-revier-select").selectOption("deutsche-bucht");
+    await expect(page.getByTestId("nav-revier-warnhinweis")).toContainText(/Tide/i);
+    await page.getByTestId("nav-revier-select").selectOption("ruegen");
+    await expect(page.getByTestId("nav-revier-warnhinweis")).toHaveCount(0);
+  });
+
   test("Revier-Suche: 'palma' findet die Balearen und wechselt das Revier", async ({ page }) => {
     await openWithMap(page);
     await page.getByTestId("nav-revier-search").fill("palma");
@@ -242,16 +250,21 @@ test.describe("/navigation — Route & Landvermeidung", () => {
 });
 
 test.describe("/navigation — Tiefen & Wolken-Playback", () => {
-  test("Flachwasser-Check markiert die kritische Stelle", async ({ page }) => {
+  test("Flachwasser-Check läuft AUTOMATISCH nach der Berechnung und markiert die kritische Stelle", async ({
+    page,
+  }) => {
     await mockApis(page);
     await openWithMap(page);
     await addTwoWaypoints(page);
     await calculate(page);
+    // Kein Klick nötig — Sicherheits-Default: Check startet mit der Route.
+    await expect(page.getByTestId("nav-depth-result")).toBeVisible();
+    await expect(page.getByTestId("nav-depth-warning").first()).toContainText(/GEFAHR/);
+    // Manueller Re-Check (z. B. nach Tiefgang-Änderung) funktioniert weiter.
     const resp = page.waitForResponse((r) => r.url().includes("/api/navigation/depth"));
     await page.getByTestId("nav-depth-check").click();
     await resp;
     await expect(page.getByTestId("nav-depth-result")).toBeVisible();
-    await expect(page.getByTestId("nav-depth-warning").first()).toContainText(/GEFAHR/);
   });
 
   test("Playback: Zeit-Slider bewegt die Zeit, Wolkenfelder liegen auf der Karte", async ({ page }) => {

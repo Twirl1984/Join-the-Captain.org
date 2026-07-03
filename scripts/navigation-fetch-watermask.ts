@@ -7,8 +7,8 @@
 // eine Kantenliste pro Zeilen-Breitengrad, dann Spalten füllen — schnell genug
 // für alle Reviere in einem Lauf.
 //
-// GRENZEN: Binnenseen (Brombachsee, IJsselmeer) sind in Küstenlinien-Daten Land
-// und werden übersprungen — sie brauchen später OSM-Wasserflächen als Quelle.
+// Binnenseen (Brombachsee, IJsselmeer) sind in Küstenlinien-Daten Land und
+// kommen stattdessen aus @geo-maps/earth-lakes-1km (Wasser = IM See-Polygon).
 // 1-km-Auflösung ist PLANUNGSqualität: enge Sunde können zulaufen, winzige
 // Schären fehlen. Deshalb bleibt jede Route als "Planungshilfe" gekennzeichnet.
 //
@@ -16,46 +16,48 @@
 //        npm run nav:watermask -- ruegen  (einzelne Reviere)
 // Output: src/lib/navigation/masks/<id>.json + masks/index.ts (Registry).
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { alleReviere } from "../src/lib/navigation/reviere";
 import { encodeMask, type WaterMask } from "../src/lib/navigation/watermask";
-import { buildMaskFromLand, type Ring } from "../src/lib/navigation/maskgen";
+import { buildMaskFromLand, buildMaskFromWater, type Ring } from "../src/lib/navigation/maskgen";
 
 const require = createRequire(import.meta.url);
 
-/** Binnenreviere: Küstenlinien-Daten kennen dort kein Wasser -> überspringen. */
-const BINNEN_OHNE_MASKE = new Set(["brombachsee", "ijsselmeer"]);
+// Binnenreviere: Küstenlinien kennen dort kein Wasser -> SEE-Polygone
+// (@geo-maps/earth-lakes-1km) mit invertierter Logik (Wasser = im Polygon).
+const BINNEN_AUS_SEEN = new Set(["brombachsee", "ijsselmeer"]);
 
 function main(): void {
   const args = process.argv.slice(2).filter((a) => !a.startsWith("-"));
-  const wanted = alleReviere().filter((r) =>
-    args.length ? args.includes(r.id) : !BINNEN_OHNE_MASKE.has(r.id),
-  );
+  const wanted = alleReviere().filter((r) => (args.length ? args.includes(r.id) : true));
   if (!wanted.length) {
     console.error(`Kein Revier gefunden. Bekannt: ${alleReviere().map((r) => r.id).join(", ")}`);
     process.exit(1);
   }
 
-  console.log("Lade OSM-Küstenlinien (1 km) …");
-  const geo = require("@geo-maps/earth-coastlines-1km")() as {
-    type: string;
-    geometries: Array<{ type: string; coordinates: Ring[][] }>;
+  console.log("Lade OSM-Küstenlinien + Seen (1 km) …");
+  const loadPolys = (pkg: string): Ring[][] => {
+    const geo = require(pkg)() as {
+      type: string;
+      geometries: Array<{ type: string; coordinates: Ring[][] }>;
+    };
+    return geo.geometries.flatMap((g) => (g.type === "MultiPolygon" ? g.coordinates : []));
   };
-  const polygons = geo.geometries.flatMap((g) => (g.type === "MultiPolygon" ? g.coordinates : []));
-  console.log(`${polygons.length} Landpolygone geladen.`);
+  const polygons = loadPolys("@geo-maps/earth-coastlines-1km");
+  const seen = loadPolys("@geo-maps/earth-lakes-1km");
+  console.log(`${polygons.length} Landpolygone, ${seen.length} Seepolygone geladen.`);
 
   const outDir = path.join(process.cwd(), "src/lib/navigation/masks");
   mkdirSync(outDir, { recursive: true });
 
   const generated: string[] = [];
   for (const revier of wanted) {
-    if (BINNEN_OHNE_MASKE.has(revier.id)) {
-      console.log(`- ${revier.id}: Binnensee, übersprungen (braucht OSM-Wasserflächen).`);
-      continue;
-    }
-    const mask = buildMaskFromLand(revier.bbox, polygons.flat());
+    const binnen = BINNEN_AUS_SEEN.has(revier.id);
+    const mask = binnen
+      ? buildMaskFromWater(revier.bbox, seen.flat())
+      : buildMaskFromLand(revier.bbox, polygons.flat());
     const water = countWater(mask);
     const frac = water / (mask.rows * mask.cols);
     const enc = encodeMask(mask);
@@ -67,7 +69,9 @@ function main(): void {
           ...enc,
           meta: {
             revier: revier.id,
-            source: "@geo-maps/earth-coastlines-1km (OSM, ODbL)",
+            source: binnen
+              ? "@geo-maps/earth-lakes-1km (OSM, ODbL)"
+              : "@geo-maps/earth-coastlines-1km (OSM, ODbL)",
             cell_deg: [
               (revier.bbox[2] - revier.bbox[0]) / mask.rows,
               (revier.bbox[3] - revier.bbox[1]) / mask.cols,
@@ -85,8 +89,16 @@ function main(): void {
     );
   }
 
-  writeRegistry(outDir, generated);
-  console.log(`Registry masks/index.ts mit ${generated.length} Masken geschrieben.`);
+  // Registry IMMER aus dem Verzeichnisinhalt bauen, nie nur aus diesem Lauf:
+  // `npm run nav:watermask -- ruegen` hätte sonst alle anderen Masken still
+  // aus der Registry geworfen -> Landvermeidung überall aus (Review-Finding #6).
+  const alleJson = readdirSync(outDir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => f.replace(/\.json$/, ""));
+  writeRegistry(outDir, alleJson);
+  console.log(
+    `Registry masks/index.ts mit ${alleJson.length} Masken geschrieben (davon ${generated.length} neu erzeugt).`,
+  );
 }
 
 function countWater(mask: WaterMask): number {

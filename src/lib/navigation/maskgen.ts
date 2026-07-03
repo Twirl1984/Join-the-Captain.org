@@ -40,6 +40,24 @@ export function gridSize(bbox: Bbox): { rows: number; cols: number } {
 
 /** Maske über bbox: Wasser = außerhalb aller Landringe (even-odd). */
 export function buildMaskFromLand(bbox: Bbox, landRings: Ring[], size?: { rows: number; cols: number }): WaterMask {
+  return scanlineMask(bbox, landRings, "land", size);
+}
+
+/**
+ * Maske über bbox aus SEE-Polygonen (earth-lakes): Wasser = IM Polygon.
+ * Für Binnenreviere (Brombachsee, IJsselmeer), die in Küstenlinien-Daten
+ * schlicht Land sind. Inseln im See (innere Ringe) werden per even-odd Land.
+ */
+export function buildMaskFromWater(bbox: Bbox, waterRings: Ring[], size?: { rows: number; cols: number }): WaterMask {
+  return scanlineMask(bbox, waterRings, "wasser", size);
+}
+
+function scanlineMask(
+  bbox: Bbox,
+  polyRings: Ring[],
+  mode: "land" | "wasser",
+  size?: { rows: number; cols: number },
+): WaterMask {
   const [s, w, n, e] = bbox;
   const { rows, cols } = size ?? gridSize(bbox);
 
@@ -49,7 +67,7 @@ export function buildMaskFromLand(bbox: Bbox, landRings: Ring[], size?: { rows: 
   const padLat = (n - s) / rows;
   const padLon = (e - w) / cols;
   const rings: Ring[] = [];
-  for (const ring of landRings) {
+  for (const ring of polyRings) {
     let minLat = Infinity;
     let maxLat = -Infinity;
     let minLon = Infinity;
@@ -98,8 +116,10 @@ export function buildMaskFromLand(bbox: Bbox, landRings: Ring[], size?: { rows: 
         if (xs[mid] < lon) lo = mid + 1;
         else hi = mid;
       }
-      const isLand = (lo & 1) === 1;
-      if (!isLand) {
+      const inside = (lo & 1) === 1;
+      // Land-Modus: Wasser = außerhalb der Polygone; Seen-Modus: Wasser = innen.
+      const isWater = mode === "land" ? !inside : inside;
+      if (isWater) {
         const i = r * cols + c;
         bits[i >> 3] |= 1 << (i & 7);
       }

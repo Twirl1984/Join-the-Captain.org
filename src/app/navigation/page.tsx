@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { NavApp } from "@/components/navigation/NavApp";
+import { navigationEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Navigation — Seekarte, Tiefen & GPS",
@@ -13,6 +15,8 @@ export const metadata: Metadata = {
 // Navigations-App (Ausbau des /wetter-Tools): eigenes Sub-Modul, /wetter bleibt
 // als stabiler Test-Tab bestehen. Konzept: docs/navigation-app-plan.md
 export default function NavigationPage() {
+  // Kill-Switch (Reversibilität): NEXT_PUBLIC_FEATURE_NAVIGATION=off → 404.
+  if (!navigationEnabled()) notFound();
   return (
     <div className="container section">
       <div className="stack" style={{ gap: 6, marginBottom: 20 }}>

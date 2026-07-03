@@ -76,7 +76,10 @@ const hafenIcon = L.divIcon({
 
 /** Eigene Position: Pfeil in Kursrichtung (falls Kurs bekannt), sonst Punkt. */
 function gpsIcon(headingDeg: number | null): L.DivIcon {
-  const rot = headingDeg != null ? `style="transform:rotate(${Math.round(headingDeg)}deg)"` : "";
+  // Glyph ➤ zeigt in Grundstellung nach OSTEN → -90°, damit Kurs 0° = Nord
+  // (Review-Finding #8: ohne Offset war die Kursanzeige um 90° verdreht).
+  const rot =
+    headingDeg != null ? `style="transform:rotate(${Math.round(headingDeg) - 90}deg)"` : "";
   const glyph = headingDeg != null ? "➤" : "●";
   return L.divIcon({
     className: "wp-divicon",

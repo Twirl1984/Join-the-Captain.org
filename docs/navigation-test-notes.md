@@ -40,15 +40,10 @@ gut geeignet, um alle Offline-/Fehlerpfade real zu erleben.
 
 ### Offen / Merkposten
 
-- **Live-Smoke mit echtem Netz** (Open-Meteo, EMODnet, WMS-Tiles) auf der
-  Test-Instanz nachholen: `JTC_WEATHER_LIVE=1 npm run test:weather` + manuelle
-  /navigation-Session (Tiefen-Layer sichtbar? EMODnet-REST-Antwortzeiten?).
-- e2e/wetter.spec.ts braucht echtes Netz (bewusst ungemockt als Live-Vertrag);
-  e2e/navigation.spec.ts ist vollständig gemockt und läuft überall.
-- Wolkenfeld-Radius (2,5 km) ist eine Design-Entscheidung — auf See mit echten
-  Daten gegenprüfen (wirkt es „dunstig" genug, ohne die Karte zuzukleistern?).
-- IJsselmeer: liegt hinter dem Abschlussdeich — prüfen, wie die OSM-Küstenlinie
-  es führt, sonst wie Brombachsee behandeln (P2, OSM-Wasserflächen).
+Alle verbliebenen Merkposten sind Tickets in [backlog-navigation.md](backlog-navigation.md)
+(NAV-2 Wolkenoptik, NAV-9 Förden, NAV-14 IJsselmeer, …); NAV-1 (Live-Smoke) ist
+durch Session 2 erledigt. e2e/wetter.spec.ts braucht echtes Netz (bewusst
+ungemockt als Live-Vertrag); e2e/navigation.spec.ts ist vollständig gemockt.
 
 ## Session 2 — 2026-07-03 (Live-Verifikation mit echtem Netz, lokal)
 
@@ -79,3 +74,48 @@ offenen Live-Punkte nach.
 Marker-Icon-Updates — react-leaflet setzt Icons bei Prop-Wechsel korrekt).
 
 Nach den Fixes: Unit 50+54 grün · Typecheck 0 · Build ok · E2E 44/44.
+
+## Session 3 — 2026-07-03 (Challenge-Loop: adversariales Review + Architektur-Challenge)
+
+**Setup:** Zwei Reasoning-Agenten haben den Branch gegen das Agentic-Playbook
+challengt (Code adversarial mit ausgeführten Repros; Produkt/Architektur gegen
+Navionics/PredictWind + Store-Guidelines). 14 Code-Findings, alle geprüft —
+Überschneidungen mit Session 2 (reqSeq, Timeouts, ARIA) wurden zusammengeführt,
+die Live-validierten Werte (8 s Depth-Timeout) haben gewonnen.
+
+### Kritische Funde (behoben, mit Regressionstests)
+
+1. **Ausdünnen brach die Wasser-Garantie (KRITISCH).** `thin()` warf Punkte der
+   geprüften Wasserroute weg, ohne die NEUEN Segmente zu prüfen — Repro: 4 von
+   11 Segmenten kreuzten Land, als „wasserweg" markiert. → wassersicheres
+   Ausdünnen (Punkt fällt nur, wenn das entstehende Segment im Wasser bleibt);
+   Deckel ist jetzt weich, die Garantie hart.
+2. **Segment-Abtastung übersah Landecken (HOCH).** Punktweises Sampling in
+   halber Zellweite akzeptierte Eck-Schnitte mit kurzer Sehne (~0,5 km Land).
+   → exakter Gitter-Traversal (Amanatides-Woo-Supercover), Eck-Durchgänge
+   konservativ wie der A*-Diagonalschutz.
+3. **Stale-Closure in der Live-ETA (HOCH).** Das 60-s-Interval fror GPS-Position/
+   Wegpunkte vom Einschalt-Zeitpunkt ein. → calcRef-Muster.
+4. **Expansion sprengte das Sampling-Limit (HOCH).** 25 Wegpunkte × 11 Punkte
+   → ~264 Open-Meteo-Locations. → Sampling auf 25 Stützpunkte gedeckelt,
+   Routen-Geometrie bleibt voll aufgelöst.
+5. **Einzel-Revier-Lauf zerstörte die Masken-Registry (HOCH).** → Registry wird
+   aus dem Verzeichnisinhalt generiert.
+6. Weitere behobene Funde: Geolocation-Watch-Leak + Zombie-Status, GPS-Pfeil um
+   90° verdreht, „Tiefe unbekannt" zählte als ✓ (jetzt Warnkategorie inkl.
+   Trockenfall-Hinweis, Abtastdichte ~alle 2 sm, Check läuft automatisch),
+   Body-Limit vertraute dem content-length-Header (jetzt echte Länge +
+   Rate-Limits 30/min Route, 120/min Depth), nearestWaterCell nahm die erste
+   statt der nächsten Zelle, Tiefgang-Eingabe fraß „0.5", Tiefgang > 20 wurde
+   still ignoriert (jetzt geklemmt).
+7. **Snap-Radius physisch statt in Zellen** (~1,5 km): Fund über den neuen
+   Brombachsee-Smoke — Ramsberg lag 1,2 km neben dem groben 1-km-Seepolygon.
+
+### Architektur-/Produkt-Challenge (Kernaussagen → Backlog)
+
+- Offline ist das K.-o.-Kriterium auf See (NAV-4); Gezeiten fehlen für Watt-
+  Reviere (NAV-5, bis dahin Warnhinweis je Revier — umgesetzt); Remote-Wrapper
+  riskiert Apple-4.2-Ablehnung (NAV-11); Open-Meteo-Kosten ungerechnet (NAV-3).
+- DoD-Lücken geschlossen: SPEC.md, CI-Gate (agentic-gate.yml), Feature-Flag
+  (NEXT_PUBLIC_FEATURE_NAVIGATION), strukturierte Logs ohne Positionsdaten,
+  ESLint als Guardrail, Merkposten → Tickets.

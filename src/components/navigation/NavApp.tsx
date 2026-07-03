@@ -69,7 +69,13 @@ export function NavApp() {
   const [showDepth, setShowDepth] = useState(true);
   const [mode, setMode] = useState<"sail" | "motor">("sail");
   const [startTime, setStartTime] = useState(() => toLocalInput(new Date(Date.now() + 3600e3)));
-  const [tiefgang, setTiefgang] = useState(1.8);
+  // Tiefgang als Roh-String: "0.5" darf beim Tippen nicht zu 1.8 springen
+  // (Review-Finding: `Number(v) || 1.8` fraß die führende 0).
+  const [tiefgangStr, setTiefgangStr] = useState("1.8");
+  const tiefgang = useMemo(() => {
+    const n = Number.parseFloat(tiefgangStr.replace(",", "."));
+    return Number.isFinite(n) && n > 0 ? Math.min(20, n) : 1.8;
+  }, [tiefgangStr]);
   // GPS
   const gps = useGeolocation();
   const [followGps, setFollowGps] = useState(false);
@@ -82,10 +88,15 @@ export function NavApp() {
   const [routing, setRouting] = useState<RoutingInfo | null>(null);
   const [depths, setDepths] = useState<DepthPoint[] | null>(null);
   const [depthLoading, setDepthLoading] = useState(false);
+  const [depthError, setDepthError] = useState<string | null>(null);
   // Playback (Wolken/Wind über die Zeit)
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
+  // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
+  // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
+  const reqSeq = useRef(0);
 
   const revier = useMemo(
     () => alleReviere().find((r) => r.id === revierId) ?? REVIER_GRUPPEN[0].reviere[0],
@@ -108,12 +119,8 @@ export function NavApp() {
   const addWaypoint = (w: Waypoint) =>
     setWaypoints((prev) => [...prev, { ...w, id: `nwp-${nextId.current++}` }]);
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
-  // Stale-Fetch-Schutz: jede neue Berechnung/Reset invalidiert laufende
-  // Timeline-/Tiefen-Antworten (Review-Finding react-ui: alte Route-Daten
-  // dürfen nach Revierwechsel/Neuberechnung nicht mehr rendern).
-  const reqSeq = useRef(0);
   const reset = () => {
-    reqSeq.current++;
+    reqSeq.current++; // laufende Antworten verwerfen
     setWaypoints([]);
     setPlan(null);
     setRouting(null);
@@ -126,7 +133,13 @@ export function NavApp() {
 
   async function calculate(opts: { silent?: boolean } = {}) {
     if (!canCalc) return;
-    reqSeq.current++;
+    // Ab eigener Position gilt: Abfahrt JETZT (echte Ankunftszeiten).
+    const startDate = startAtGps && gps.fix ? new Date() : new Date(startTime);
+    if (Number.isNaN(startDate.getTime())) {
+      setError("Bitte eine gültige Abfahrtszeit wählen.");
+      return;
+    }
+    const myId = ++reqSeq.current;
     if (!opts.silent) {
       setLoading(true);
       setPlan(null);
@@ -134,9 +147,7 @@ export function NavApp() {
     }
     setError(null);
     try {
-      // Ab eigener Position gilt: Abfahrt JETZT (echte Ankunftszeiten).
-      const startIso =
-        startAtGps && gps.fix ? new Date().toISOString() : new Date(startTime).toISOString();
+      const startIso = startDate.toISOString();
       const res = await fetch("/api/navigation/route", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -153,6 +164,7 @@ export function NavApp() {
         routing?: RoutingInfo;
         error?: string;
       };
+      if (myId !== reqSeq.current) return; // veraltete Antwort verwerfen
       if (!res.ok || !data.plan || !data.routing) {
         setError(
           res.status === 502
@@ -164,18 +176,26 @@ export function NavApp() {
       setPlan(data.plan);
       setRouting(data.routing);
       setDepths(null);
-      void loadTimeline(data.routing, startIso, data.plan);
+      void loadTimeline(data.routing, startIso, data.plan, myId);
+      // Sicherheits-Default (Challenge-Review): Tiefen NICHT hinter einem Button
+      // verstecken — der Check läuft nach jeder Berechnung automatisch mit.
+      void checkDepths(data.routing, data.plan, myId);
     } catch {
-      setError("Netzwerkfehler — bitte später erneut versuchen.");
+      if (myId === reqSeq.current) setError("Netzwerkfehler — bitte später erneut versuchen.");
     } finally {
-      if (!opts.silent) setLoading(false);
+      if (!opts.silent && myId === reqSeq.current) setLoading(false);
     }
   }
 
+  // Immer die FRISCHE calculate-Instanz fürs Auto-Update-Interval bereithalten:
+  // ein Interval über die Closure hätte GPS-Position/Wegpunkte vom Einschalt-
+  // Zeitpunkt eingefroren — die "Live-ETA" wäre funktional tot (Finding #3).
+  const calcRef = useRef(calculate);
+  calcRef.current = calculate;
+
   // Zeitreise-Overlay: Wolken + Wind an den GEROUTETEN Punkten (max 20,
   // sonst wird die Open-Meteo-Multi-Location-Anfrage unnötig groß).
-  async function loadTimeline(r: RoutingInfo, startIso: string, p: RoutePlan) {
-    const token = reqSeq.current;
+  async function loadTimeline(r: RoutingInfo, startIso: string, p: RoutePlan, myId: number) {
     setTimeline(null);
     setPlaying(false);
     setPlayIdx(0);
@@ -193,7 +213,7 @@ export function NavApp() {
         }),
       });
       const data = (await res.json().catch(() => ({}))) as Partial<Timeline>;
-      if (token !== reqSeq.current) return; // Route/Revier hat inzwischen gewechselt
+      if (myId !== reqSeq.current) return;
       if (res.ok && data.times?.length && data.points?.length) setTimeline(data as Timeline);
     } catch {
       // Overlay ist Bonus — der Plan steht auch ohne.
@@ -201,13 +221,22 @@ export function NavApp() {
   }
 
   // Flachwasser-Check: Tiefe an den gerouteten Punkten gegen den Tiefgang.
-  async function checkDepths() {
-    if (!routing) return;
-    const token = reqSeq.current;
+  // Läuft automatisch nach jeder Berechnung; der Button wiederholt ihn manuell
+  // (z. B. nach geändertem Tiefgang). Fehler bleiben in der Tiefen-Karte —
+  // die Route selbst ist davon unabhängig gültig.
+  async function checkDepths(routingArg?: RoutingInfo, planArg?: RoutePlan, seqId?: number) {
+    const r = routingArg ?? routing;
+    const p = planArg ?? plan;
+    if (!r) return;
+    const myId = seqId ?? reqSeq.current;
     setDepthLoading(true);
     setDepths(null);
+    setDepthError(null);
     try {
-      const pts = thin(routing.points, 12);
+      // Abtastdichte an der Routenlänge festmachen (~alle 2 sm, 8–24 Punkte) —
+      // 12 fixe Punkte ließen auf langen Routen mehrere Meilen ungeprüft.
+      const maxPts = Math.min(24, Math.max(8, Math.ceil((p?.total_nm ?? 20) / 2)));
+      const pts = thin(r.points, maxPts);
       const results = await Promise.all(
         pts.map(async (p) => {
           const res = await fetch(
@@ -225,24 +254,27 @@ export function NavApp() {
           };
         }),
       );
-      if (token !== reqSeq.current) return; // Ergebnis gehört zu einer alten Route
+      if (myId !== reqSeq.current) return;
       setDepths(results);
-    } catch {
-      if (token === reqSeq.current) {
-        setError("Tiefendaten gerade nicht verfügbar — bitte später erneut versuchen.");
+      if (results.every((d) => d.check == null)) {
+        setDepthError("Tiefendaten gerade nicht verfügbar — später erneut prüfen.");
       }
+    } catch {
+      if (myId === reqSeq.current)
+        setDepthError("Tiefendaten gerade nicht verfügbar — später erneut prüfen.");
     } finally {
-      setDepthLoading(false);
+      if (myId === reqSeq.current) setDepthLoading(false);
     }
   }
 
   // Auto-Update: mit GPS-Start alle 60 s still neu rechnen → echte Live-ETA.
+  // Über calcRef, damit jeder Tick die AKTUELLE Position/Route nutzt.
+  const planVorhanden = plan != null;
   useEffect(() => {
-    if (!autoUpdate || !startAtGps || !plan) return;
-    const iv = setInterval(() => void calculate({ silent: true }), 60_000);
+    if (!autoUpdate || !startAtGps || !planVorhanden) return;
+    const iv = setInterval(() => void calcRef.current({ silent: true }), 60_000);
     return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoUpdate, startAtGps, plan != null]);
+  }, [autoUpdate, startAtGps, planVorhanden]);
 
   // Playback-Ticker.
   useEffect(() => {
@@ -283,7 +315,12 @@ export function NavApp() {
   );
 
   const luftlinienSegmente = routing?.segments.filter((s) => s.routing === "luftlinie").length ?? 0;
-  const kritischeTiefen = depths?.filter((d) => d.check === "gefahr" || d.check === "knapp") ?? [];
+  // "unbekannt" zählt zu den kritischen Punkten: depth_m == null bei
+  // erfolgreicher Quelle heißt oft Land-/Trockenfall-Pixel (Wattenmeer!) —
+  // ein grünes Häkchen wäre dort gefährlich falsch (Review-Finding #9).
+  const kritischeTiefen =
+    depths?.filter((d) => d.check === "gefahr" || d.check === "knapp" || d.check === "unbekannt") ??
+    [];
 
   return (
     <div className="wetter-app stack" style={{ gap: 20 }}>
@@ -343,6 +380,13 @@ export function NavApp() {
               </select>
             </label>
           </div>
+
+          {/* Revier-Sicherheitshinweis (z. B. Gezeiten im Wattenmeer) */}
+          {revier.warnhinweis && (
+            <div className="wetter-warnband" role="note" data-testid="nav-revier-warnhinweis">
+              <Icon name="shield" size={16} /> {revier.warnhinweis}
+            </div>
+          )}
 
           <div data-testid="nav-map" className="wetter-map-frame">
             <NavMap
@@ -548,8 +592,8 @@ export function NavApp() {
             <div className="row" style={{ gap: 8 }} role="radiogroup" aria-label="Fahrmodus">
               <button
                 type="button"
-                className={`pill ${mode === "sail" ? "active" : ""}`}
                 role="radio"
+                className={`pill ${mode === "sail" ? "active" : ""}`}
                 aria-checked={mode === "sail"}
                 onClick={() => setMode("sail")}
               >
@@ -557,8 +601,8 @@ export function NavApp() {
               </button>
               <button
                 type="button"
-                className={`pill ${mode === "motor" ? "active" : ""}`}
                 role="radio"
+                className={`pill ${mode === "motor" ? "active" : ""}`}
                 aria-checked={mode === "motor"}
                 onClick={() => setMode("motor")}
               >
@@ -574,8 +618,8 @@ export function NavApp() {
                 max={20}
                 step={0.1}
                 className="wetter-select"
-                value={tiefgang}
-                onChange={(e) => setTiefgang(Number(e.target.value) || 1.8)}
+                value={tiefgangStr}
+                onChange={(e) => setTiefgangStr(e.target.value)}
               />
             </label>
           </div>
@@ -650,26 +694,36 @@ export function NavApp() {
                 disabled={depthLoading}
                 onClick={() => void checkDepths()}
               >
-                {depthLoading ? "Prüfe …" : `Gegen ${tiefgang} m Tiefgang prüfen`}
+                {depthLoading ? "Prüfe …" : `Erneut gegen ${tiefgang} m Tiefgang prüfen`}
               </button>
             </div>
+            {depthLoading && !depths && (
+              <p className="caption" data-testid="nav-depth-loading">
+                Tiefen entlang der Route werden automatisch geprüft …
+              </p>
+            )}
+            {depthError && (
+              <p className="caption" role="status" data-testid="nav-depth-error">
+                {depthError}
+              </p>
+            )}
             {depths && (
               <div className="stack" style={{ gap: 6 }} data-testid="nav-depth-result">
                 {kritischeTiefen.length > 0 ? (
                   <div className="wetter-warnband stack" style={{ gap: 4 }}>
                     {kritischeTiefen.map((d, i) => (
                       <span key={i} data-testid="nav-depth-warning">
-                        {d.check === "gefahr" ? "⚠ GEFAHR" : "△ knapp"}:{" "}
-                        {d.depth_m != null ? `${d.depth_m} m Tiefe` : "Tiefe unbekannt"} bei{" "}
-                        {d.lat.toFixed(3)}, {d.lon.toFixed(3)}
+                        {d.check === "gefahr" && `⚠ GEFAHR: ${d.depth_m} m Tiefe`}
+                        {d.check === "knapp" && `△ knapp: ${d.depth_m} m Tiefe`}
+                        {d.check === "unbekannt" &&
+                          "△ keine Tiefe (evtl. Land/trockenfallend — amtliche Karte prüfen)"}{" "}
+                        bei {d.lat.toFixed(3)}, {d.lon.toFixed(3)}
                       </span>
                     ))}
                   </div>
                 ) : (
                   <p className="caption">
-                    ✓ Keine kritischen Stellen an den geprüften Punkten (
-                    {depths.filter((d) => d.depth_m != null).length} von {depths.length} mit
-                    Tiefendaten).
+                    ✓ Keine kritischen Stellen an den {depths.length} geprüften Punkten.
                   </p>
                 )}
                 <p className="caption">

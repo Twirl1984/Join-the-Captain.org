@@ -24,6 +24,11 @@ export interface NavRevier {
   zoom: number;
   bbox: Bbox;
   haefen: NavHafen[];
+  /**
+   * Prominenter Sicherheitshinweis fürs Revier (z. B. Gezeiten im Wattenmeer —
+   * die Wassermasken kennen kein Trockenfallen). Die UI zeigt ihn als Warnband.
+   */
+  warnhinweis?: string;
 }
 
 export interface RevierGruppe {
@@ -43,6 +48,10 @@ export const REVIER_GRUPPEN: RevierGruppe[] = [
         center: [54.0, 8.1],
         zoom: 9,
         bbox: [53.3, 6.6, 54.6, 9.2],
+        warnhinweis:
+          "Tidenrevier: Die Karte kennt weder Tidenhub noch trockenfallende " +
+          "Watten — Routen und Tiefen gelten nur mit aktuellem Gezeitenkalender " +
+          "und amtlicher Seekarte.",
         haefen: [
           { name: "Cuxhaven", lat: 53.867, lon: 8.717 },
           { name: "Helgoland", lat: 54.179, lon: 7.889 },
@@ -57,6 +66,10 @@ export const REVIER_GRUPPEN: RevierGruppe[] = [
         center: [54.6, 8.5],
         zoom: 9,
         bbox: [54.2, 8.0, 55.1, 9.2],
+        warnhinweis:
+          "Wattenmeer: Große Flächen fallen bei Ebbe trocken — die Wassermaske " +
+          "und die Tiefen kennen die Tide NICHT. Nur mit Gezeitenkalender und " +
+          "amtlicher Seekarte fahren.",
         haefen: [
           { name: "Hörnum (Sylt)", lat: 54.758, lon: 8.295 },
           { name: "Wyk auf Föhr", lat: 54.692, lon: 8.573 },

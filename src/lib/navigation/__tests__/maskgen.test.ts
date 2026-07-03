@@ -9,7 +9,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildMaskFromLand, gridSize, type Ring } from "../maskgen";
+import { buildMaskFromLand, buildMaskFromWater, gridSize, type Ring } from "../maskgen";
 import { isWaterAt } from "../watermask";
 import type { Bbox } from "../reviere";
 
@@ -59,6 +59,21 @@ test("Regressions-Fall Kachelgrenze: Scanline exakt auf horizontaler Kante", () 
   assert.ok(!isWaterAt(mask, 43.1, 17.0), "untere Kachel");
   assert.ok(!isWaterAt(mask, 43.3, 17.0), "obere Kachel");
   assert.ok(!isWaterAt(mask, 43.2001, 17.0), "Naht der Kacheln bleibt Land");
+});
+
+test("buildMaskFromWater (Seen-Modus): Wasser = IM Polygon, Rest Land", () => {
+  // Binnenseen kommen aus SEE-Polygonen (earth-lakes): dort ist die Logik
+  // invertiert — Wasser ist, was IM Polygon liegt.
+  const bbox: Bbox = [49.1, 10.85, 49.17, 11.0];
+  const see = rect(49.12, 10.88, 49.16, 10.97);
+  const mask = buildMaskFromWater(bbox, [see], { rows: 40, cols: 60 });
+  assert.ok(isWaterAt(mask, 49.14, 10.92), "Seemitte muss Wasser sein");
+  assert.ok(!isWaterAt(mask, 49.11, 10.86), "außerhalb des Sees ist Land");
+  // Insel im See (zweiter Ring, even-odd) wird wieder Land.
+  const insel = rect(49.135, 10.91, 49.145, 10.93);
+  const mitInsel = buildMaskFromWater(bbox, [see, insel], { rows: 40, cols: 60 });
+  assert.ok(!isWaterAt(mitInsel, 49.14, 10.92), "Insel im See ist Land");
+  assert.ok(isWaterAt(mitInsel, 49.125, 10.95), "See um die Insel bleibt Wasser");
 });
 
 test("gridSize: quadratische Zellen (~0.7 km) und Deckel gegen Riesenmasken", () => {

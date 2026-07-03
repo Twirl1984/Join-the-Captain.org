@@ -108,6 +108,19 @@ test("sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv", ()
   assert.deepEqual(sucheReviere("  "), []);
 });
 
+test("Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis", () => {
+  // Die Wassermasken kennen kein Trockenfallen — im Watt ist Navigation ohne
+  // Tidenkenntnis fahrlässig. Challenge-Review-Auflage: Warnhinweis pro Revier.
+  const nordsee = REVIER_GRUPPEN.find((g) => g.id === "nordsee")!;
+  for (const r of nordsee.reviere) {
+    assert.ok(r.warnhinweis, `${r.id}: Warnhinweis fehlt`);
+    assert.match(r.warnhinweis!, /Tide|Gezeit|Watt/i, `${r.id}: Hinweis nennt die Tide nicht`);
+  }
+  // Tidenarme Reviere (Ostsee/Mittelmeer/Binnen) brauchen keinen.
+  const ruegen = getNavRevier("ruegen")!;
+  assert.equal(ruegen.warnhinweis, undefined);
+});
+
 test("inBbox: Ränder zählen als innen, außerhalb nicht", () => {
   const bbox: [number, number, number, number] = [50, 5, 55, 10];
   assert.ok(inBbox(50, 5, bbox));

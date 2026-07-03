@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { query, queryOne } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 import { getBoard } from "@/lib/data";
 import { getOrCreateUser, getUser } from "@/lib/session";
 import { moderateText, logModeration } from "@/lib/moderation";
