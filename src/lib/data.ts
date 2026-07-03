@@ -168,3 +168,58 @@ export async function getEpisodeBySlug(slug: string): Promise<PodcastEpisode | n
 export async function getPartner(): Promise<Partner[]> {
   return query<Partner>("SELECT * FROM partner ORDER BY sortierung, name");
 }
+
+// ── Segel-Wissen (freigegebene Discovery-Videos) ────────────────────
+export interface WissenVideo {
+  id: string;
+  video_id: string | null;
+  video_title: string;
+  creator_handle: string | null;
+  creator_url: string | null;
+  video_url: string;
+  ai_summary: string | null;
+  view_count: number | null;
+  published_at: string | null;
+  topic_title: string;
+}
+
+export interface WissenGruppe {
+  topic: string;
+  videos: WissenVideo[];
+}
+
+const WISSEN_SELECT = `
+  SELECT cs.id, cs.video_id, cs.video_title, cs.creator_handle, cs.creator_url,
+         cs.video_url, cs.ai_summary, cs.view_count, cs.published_at,
+         COALESCE(t.title, 'Weitere') AS topic_title
+  FROM creator_submissions cs
+  LEFT JOIN topics t ON t.id = cs.topic_id
+  WHERE cs.status = 'published'`;
+
+// Alle freigegebenen Videos, nach Thema gruppiert (für /wissen).
+export async function getWissenVideos(): Promise<WissenGruppe[]> {
+  const rows = await query<WissenVideo>(
+    `${WISSEN_SELECT}
+     ORDER BY COALESCE(t.priority, 0) DESC, cs.view_count DESC NULLS LAST`,
+  );
+  const gruppen: WissenGruppe[] = [];
+  const index = new Map<string, WissenGruppe>();
+  for (const r of rows) {
+    let g = index.get(r.topic_title);
+    if (!g) {
+      g = { topic: r.topic_title, videos: [] };
+      index.set(r.topic_title, g);
+      gruppen.push(g);
+    }
+    g.videos.push(r);
+  }
+  return gruppen;
+}
+
+// Teaser für die Startseite: meistgesehene freigegebene Videos.
+export async function getWissenTeaser(limit = 3): Promise<WissenVideo[]> {
+  return query<WissenVideo>(
+    `${WISSEN_SELECT} ORDER BY cs.view_count DESC NULLS LAST LIMIT $1`,
+    [limit],
+  );
+}
