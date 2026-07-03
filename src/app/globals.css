@@ -447,3 +447,14 @@ p { margin: 0; }
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
 }
 .wetter-star { background: none; border: none; cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; }
+
+/* Navigations-App (/navigation) */
+.nav-gps-marker {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  color: #2f9ec0; font-size: 18px; line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.55));
+  transform-origin: 50% 50%;
+}
+.nav-cloud-patch { filter: blur(6px); }
+.nav-legend-wasser { color: #2f9ec0; font-weight: 600; }
+.nav-legend-luft { color: #e08a3c; font-weight: 600; }
