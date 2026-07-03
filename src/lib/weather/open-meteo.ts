@@ -347,6 +347,9 @@ type NextFetchInit = RequestInit & { next?: { revalidate?: number } };
 async function fetchJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { "User-Agent": "JTC-Weather/1.0 (join-the-captain.org)" },
+    // Harter Timeout: ein hängendes Open-Meteo darf keine Worker binden
+    // (gilt zentral für route/departure/timeline/navigation).
+    signal: AbortSignal.timeout(15_000),
     next: { revalidate: REVALIDATE_S },
   } as NextFetchInit);
   if (!res.ok) {

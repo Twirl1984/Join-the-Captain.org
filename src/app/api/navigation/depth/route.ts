@@ -24,9 +24,11 @@ export async function GET(req: NextRequest) {
   try {
     const d = await fetchDepth(lat, lon, {
       fetchImpl: (url) =>
-        fetch(url, { next: { revalidate: REVALIDATE_S } } as RequestInit & {
-          next?: { revalidate?: number };
-        }),
+        fetch(url, {
+          // 8 s je Quelle — hängende Upstreams sollen den Worker nicht binden.
+          signal: AbortSignal.timeout(8_000),
+          next: { revalidate: REVALIDATE_S },
+        } as RequestInit & { next?: { revalidate?: number } }),
     });
     return ok({
       ...d,

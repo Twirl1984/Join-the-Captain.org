@@ -30,7 +30,10 @@ export async function fetchDepth(lat: number, lon: number, opts: DepthOpts = {})
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
     throw new Error(`Ungültige Koordinaten (${lat}, ${lon}).`);
   }
-  const fetchImpl = opts.fetchImpl ?? ((url: string) => fetch(url));
+  // Timeout pro Quelle: ein hängender Upstream darf den Worker nicht binden
+  // (EMODnet→GEBCO wären sonst 2× unbegrenzt; Review-Finding api-robust).
+  const fetchImpl =
+    opts.fetchImpl ?? ((url: string) => fetch(url, { signal: AbortSignal.timeout(8_000) }));
 
   // 1) EMODnet: WKT ist POINT(lon lat) — Achtung Reihenfolge!
   try {

@@ -49,3 +49,33 @@ gut geeignet, um alle Offline-/Fehlerpfade real zu erleben.
   Daten gegenprüfen (wirkt es „dunstig" genug, ohne die Karte zuzukleistern?).
 - IJsselmeer: liegt hinter dem Abschlussdeich — prüfen, wie die OSM-Küstenlinie
   es führt, sonst wie Brombachsee behandeln (P2, OSM-Wasserflächen).
+
+## Session 2 — 2026-07-03 (Live-Verifikation mit echtem Netz, lokal)
+
+**Setup:** Lokaler `next start` mit vollem Internet — holt die in Session 1
+offenen Live-Punkte nach.
+
+### Live bestätigt
+
+- **EMODnet-REST antwortet in ~0,2 s** (Adria 84,4 m, Schleimündung 6,2 m — plausibel).
+- **Landvermeidung real:** Split → Hvar routet sichtbar durch die Splitska vrata
+  (2 Zwischenpunkte, 22 sm); Hafen-Snap „Split (ACI Marina)" greift.
+- **A*-Performance:** 63-sm-Route quer durch Dalmatien (9 Punkte) in < 0,1 s.
+- **Flachwasser-Check im Watt (Nordfriesland):** „△ knapp: 2 m Tiefe bei 54.612, 8.355"
+  an 3 Routenpunkten, inkl. Haftungshinweis — genau das erwartete Verhalten.
+- **Playback-Overlay** mit echten Winddaten (8–12 kn Symbole entlang der Route).
+- `JTC_WEATHER_LIVE=1`-Suite: 56/56 grün (echte Open-Meteo-Calls).
+
+### Multi-Agent-Review (adversarial, 48 Agenten): 22 Findings → 6 bestätigt → gefixt
+
+| Finding | Fix |
+|---|---|
+| Fetch ohne Timeout: depth-API, depth.ts-Default, GEBCO-Fallback (DoS-Vektor) | `AbortSignal.timeout(8 s)` je Quelle |
+| Wetter-Fetches ohne Timeout (route/departure/timeline/navigation) | zentral in `open-meteo.fetchJson`: 15 s |
+| Stale-Fetch-Races: Tiefen-/Timeline-Antworten alter Routen rendern nach Wechsel | `reqSeq`-Token in NavApp; reset()/calculate() invalidieren |
+| `radiogroup` mit `aria-pressed`-Kindern (Screenreader-Semantik) | `role="radio"` + `aria-checked` (NavApp + WetterApp) |
+
+16 Findings adversarial widerlegt (u. a. A*-Endpunkt-Dedup, thin()-Randfälle,
+Marker-Icon-Updates — react-leaflet setzt Icons bei Prop-Wechsel korrekt).
+
+Nach den Fixes: Unit 50+54 grün · Typecheck 0 · Build ok · E2E 44/44.

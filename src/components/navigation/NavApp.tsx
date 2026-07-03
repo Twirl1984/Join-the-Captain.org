@@ -108,7 +108,12 @@ export function NavApp() {
   const addWaypoint = (w: Waypoint) =>
     setWaypoints((prev) => [...prev, { ...w, id: `nwp-${nextId.current++}` }]);
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
+  // Stale-Fetch-Schutz: jede neue Berechnung/Reset invalidiert laufende
+  // Timeline-/Tiefen-Antworten (Review-Finding react-ui: alte Route-Daten
+  // dürfen nach Revierwechsel/Neuberechnung nicht mehr rendern).
+  const reqSeq = useRef(0);
   const reset = () => {
+    reqSeq.current++;
     setWaypoints([]);
     setPlan(null);
     setRouting(null);
@@ -121,6 +126,7 @@ export function NavApp() {
 
   async function calculate(opts: { silent?: boolean } = {}) {
     if (!canCalc) return;
+    reqSeq.current++;
     if (!opts.silent) {
       setLoading(true);
       setPlan(null);
@@ -169,6 +175,7 @@ export function NavApp() {
   // Zeitreise-Overlay: Wolken + Wind an den GEROUTETEN Punkten (max 20,
   // sonst wird die Open-Meteo-Multi-Location-Anfrage unnötig groß).
   async function loadTimeline(r: RoutingInfo, startIso: string, p: RoutePlan) {
+    const token = reqSeq.current;
     setTimeline(null);
     setPlaying(false);
     setPlayIdx(0);
@@ -186,6 +193,7 @@ export function NavApp() {
         }),
       });
       const data = (await res.json().catch(() => ({}))) as Partial<Timeline>;
+      if (token !== reqSeq.current) return; // Route/Revier hat inzwischen gewechselt
       if (res.ok && data.times?.length && data.points?.length) setTimeline(data as Timeline);
     } catch {
       // Overlay ist Bonus — der Plan steht auch ohne.
@@ -195,6 +203,7 @@ export function NavApp() {
   // Flachwasser-Check: Tiefe an den gerouteten Punkten gegen den Tiefgang.
   async function checkDepths() {
     if (!routing) return;
+    const token = reqSeq.current;
     setDepthLoading(true);
     setDepths(null);
     try {
@@ -216,9 +225,12 @@ export function NavApp() {
           };
         }),
       );
+      if (token !== reqSeq.current) return; // Ergebnis gehört zu einer alten Route
       setDepths(results);
     } catch {
-      setError("Tiefendaten gerade nicht verfügbar — bitte später erneut versuchen.");
+      if (token === reqSeq.current) {
+        setError("Tiefendaten gerade nicht verfügbar — bitte später erneut versuchen.");
+      }
     } finally {
       setDepthLoading(false);
     }
@@ -537,7 +549,8 @@ export function NavApp() {
               <button
                 type="button"
                 className={`pill ${mode === "sail" ? "active" : ""}`}
-                aria-pressed={mode === "sail"}
+                role="radio"
+                aria-checked={mode === "sail"}
                 onClick={() => setMode("sail")}
               >
                 Segeln
@@ -545,7 +558,8 @@ export function NavApp() {
               <button
                 type="button"
                 className={`pill ${mode === "motor" ? "active" : ""}`}
-                aria-pressed={mode === "motor"}
+                role="radio"
+                aria-checked={mode === "motor"}
                 onClick={() => setMode("motor")}
               >
                 Motor

@@ -491,7 +491,8 @@ export function WetterApp() {
               <button
                 type="button"
                 className={`pill ${mode === "sail" ? "active" : ""}`}
-                aria-pressed={mode === "sail"}
+                role="radio"
+                aria-checked={mode === "sail"}
                 onClick={() => setMode("sail")}
               >
                 Segeln
@@ -499,7 +500,8 @@ export function WetterApp() {
               <button
                 type="button"
                 className={`pill ${mode === "motor" ? "active" : ""}`}
-                aria-pressed={mode === "motor"}
+                role="radio"
+                aria-checked={mode === "motor"}
                 onClick={() => setMode("motor")}
               >
                 Motor
