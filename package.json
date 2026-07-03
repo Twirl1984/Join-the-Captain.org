@@ -15,6 +15,8 @@
     "pipeline:run": "tsx scripts/run-pipeline.ts",
     "research:run": "tsx scripts/run-research.ts",
     "test:weather": "node --import tsx --test src/lib/weather/__tests__/*.test.ts",
+    "test:navigation": "node --import tsx --test src/lib/navigation/__tests__/*.test.ts",
+    "nav:watermask": "tsx scripts/navigation-fetch-watermask.ts",
     "test:e2e": "playwright test",
     "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts",
     "weather:verify": "tsx scripts/weather-feedback-verify.ts"
@@ -30,6 +32,7 @@
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@geo-maps/earth-coastlines-1km": "^0.6.0",
     "@playwright/test": "^1.61.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.10.7",
