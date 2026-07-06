@@ -4,8 +4,9 @@
 # es ist der Live-Smoke auf der Test-Instanz, siehe docs/weather-route-tool.md.)
 name: agentic-gate
 on:
+  # ALLE PRs, nicht nur gegen main: auch gestapelte Feature-PRs (z. B. auf
+  # feat/wetter-v2) müssen durchs Gate — sonst läuft verify nur auf Zuruf.
   pull_request:
-    branches: [main, master]
 
 jobs:
   verify:
