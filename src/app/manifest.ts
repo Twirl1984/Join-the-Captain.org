@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "JTC Navigation",
     description:
       "Seekarte mit Tiefen, Land-vermeidende Routenplanung, GPS-Position, echte " +
-      "Ankunftszeiten, Strömung, Wind und Wolkenfelder — Planungshilfe für Segler.",
+      "Ankunftszeiten, Strömung, Wind und Wolkenfelder. Planungshilfe für Segler — " +
+      "ersetzt keine amtlichen Seekarten und keine Seemannschaft.",
     start_url: "/navigation",
     scope: "/",
     display: "standalone",
@@ -20,10 +21,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "de",
     categories: ["navigation", "weather", "sports"],
     icons: [
-      // SVG skaliert verlustfrei; echte PNG-Größen (192/512/1024) kommen mit
-      // dem Store-Release (mobile/README.md, Icon-Checkliste).
+      // PNG in 192/512 (any + maskable mit Safe-Zone) — Pflicht für zuverlässige
+      // Installs (Android/Chrome nutzt maskable, iOS nimmt 512er). SVG als Bonus.
+      { src: "/assets/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/assets/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/assets/icons/icon-192-maskable.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/assets/icons/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       { src: "/assets/app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-      { src: "/assets/app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
     ],
   };
 }

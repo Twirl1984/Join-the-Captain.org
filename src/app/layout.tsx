@@ -37,6 +37,11 @@ export const metadata: Metadata = {
     locale: "de_DE",
   },
   robots: { index: true, follow: true },
+  // PWA/Home-Screen: iOS liest apple-touch-icon, nicht die Manifest-Icons.
+  icons: {
+    icon: "/assets/icons/icon-192.png",
+    apple: "/assets/icons/icon-192.png",
+  },
 };
 
 // Setzt data-theme vor dem ersten Paint (kein Flackern beim Laden).
