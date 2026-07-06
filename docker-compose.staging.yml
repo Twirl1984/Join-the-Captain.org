@@ -1,0 +1,40 @@
+# STAGING-Instanz für Feature-Branches (z. B. Navigation-App) — parallel zur
+# öffentlichen main-Instanz (jtc-org-test, :3101) und ohne sie zu berühren.
+# Start:  docker compose -p jtc-org-staging -f docker-compose.staging.yml up -d --build
+# Web intern an 127.0.0.1:3102; nginx hört öffentlich auf :3200 (SSL + Basic-Auth).
+# Eigene DB + eigenes Volume — Migrationen separat einspielen.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jtc_org
+    volumes:
+      - jtc_org_staging_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:3102:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/jtc_org?sslmode=disable
+      NEXT_PUBLIC_SITE_URL: https://join-the-captain.org:3200
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${NEXT_PUBLIC_PLAUSIBLE_DOMAIN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  jtc_org_staging_pgdata:

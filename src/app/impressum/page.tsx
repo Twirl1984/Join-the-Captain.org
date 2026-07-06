@@ -38,8 +38,10 @@ export default function ImpressumPage() {
       <h3>Hinweis zu Navigations- und Wetterdaten</h3>
       <p>
         Die auf dieser Website bereitgestellten Wetter-, Tiefen- und Routendaten
-        (u.&nbsp;a. Open-Meteo, EMODnet Bathymetry, OpenStreetMap) sind eine
-        <strong> Planungs- und Entscheidungshilfe</strong>. Sie ersetzen keine
+        (u.&nbsp;a. Open-Meteo, EMODnet Bathymetry, OpenStreetMap — frei verfügbare
+        Open-Source-Quellen) sind eine <strong>Planungs- und Entscheidungshilfe</strong>.
+        Die Anwendung ist <strong>nicht als Navigationsmittel zugelassen</strong> und
+        darf nur unterstützend verwendet werden. Sie ersetzen keine
         amtlichen Seekarten, keine amtlichen Warnungen und keine Seemannschaft.
         Die Nutzung erfolgt auf eigene Verantwortung; für die Richtigkeit,
         Vollständigkeit und Aktualität der Daten wird keine Gewähr übernommen.

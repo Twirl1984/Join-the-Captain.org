@@ -458,3 +458,11 @@ p { margin: 0; }
 .nav-cloud-patch { filter: blur(6px); }
 .nav-legend-wasser { color: #2f9ec0; font-weight: 600; }
 .nav-legend-luft { color: #e08a3c; font-weight: 600; }
+
+/* Erstnutzungs-Disclaimer der Navigations-App (Pflicht-Bestätigung) */
+.nav-disclaimer-backdrop {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(8, 19, 30, 0.82);
+  display: grid; place-items: center; padding: 20px;
+}
+.nav-disclaimer { max-width: 520px; }

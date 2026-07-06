@@ -147,9 +147,27 @@ async function mockApis(page: Page, opts: MockOpts & { routeStatus?: number; rou
 
 async function openWithMap(page: Page) {
   await blockTiles(page);
+  // Erstnutzungs-Disclaimer vorab bestätigen — ein eigener Test prüft ihn.
+  await page.addInitScript(() => localStorage.setItem("jtc-nav-disclaimer-v1", "1"));
   await page.goto("/navigation");
   await expect(page.getByTestId("nav-map").locator(".leaflet-container")).toBeVisible();
 }
+
+test.describe("/navigation — Erstnutzungs-Disclaimer", () => {
+  test("erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg", async ({ page }) => {
+    await blockTiles(page);
+    await page.goto("/navigation");
+    const modal = page.getByTestId("nav-disclaimer");
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(/nicht als Navigationsmittel zugelassen/i);
+    await expect(modal).toContainText(/amtliche Seekarten/i);
+    await page.getByTestId("nav-disclaimer-ok").click();
+    await expect(modal).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByTestId("nav-map").locator(".leaflet-container")).toBeVisible();
+    await expect(page.getByTestId("nav-disclaimer")).toHaveCount(0);
+  });
+});
 
 async function addTwoWaypoints(page: Page) {
   const map = page.getByTestId("nav-map");
@@ -178,7 +196,7 @@ test.describe("/navigation — Grundgerüst", () => {
     await expect(page.getByTestId("nav-revier-search")).toBeVisible();
     await expect(page.getByTestId("nav-depth-toggle")).toBeChecked();
     await expect(page.getByTestId("nav-attribution")).toContainText(/EMODnet/i);
-    await expect(page.getByTestId("nav-attribution")).toContainText(/keine amtlichen Seekarten/i);
+    await expect(page.getByTestId("nav-attribution")).toContainText(/nicht als Navigationsmittel zugelassen/i);
   });
 
   test("Tidenrevier zeigt Gezeiten-Warnband, Ostsee-Revier nicht", async ({ page }) => {

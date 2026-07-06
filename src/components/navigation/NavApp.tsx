@@ -61,8 +61,29 @@ function toLocalInput(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+const DISCLAIMER_KEY = "jtc-nav-disclaimer-v1";
+
 export function NavApp() {
   const [revierId, setRevierId] = useState(REVIER_GRUPPEN[0].reviere[0].id);
+  // Pflicht-Hinweis bei Erstnutzung: App ist NICHT als Navigationsmittel
+  // zugelassen (Open-Source-Daten) — Nutzer muss das aktiv bestätigen.
+  // null = noch nicht geprüft (SSR-sicher), true = anzeigen.
+  const [showDisclaimer, setShowDisclaimer] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      setShowDisclaimer(localStorage.getItem(DISCLAIMER_KEY) !== "1");
+    } catch {
+      setShowDisclaimer(true);
+    }
+  }, []);
+  const acceptDisclaimer = () => {
+    try {
+      localStorage.setItem(DISCLAIMER_KEY, "1");
+    } catch {
+      /* Privat-Modus: dann eben je Sitzung */
+    }
+    setShowDisclaimer(false);
+  };
   const [suche, setSuche] = useState("");
   const [waypoints, setWaypoints] = useState<NavUiWaypoint[]>([]);
   const nextId = useRef(1);
@@ -324,6 +345,34 @@ export function NavApp() {
 
   return (
     <div className="wetter-app stack" style={{ gap: 20 }}>
+      {showDisclaimer === true && (
+        <div className="nav-disclaimer-backdrop" role="dialog" aria-modal="true" aria-labelledby="nav-disclaimer-titel">
+          <div className="card stack nav-disclaimer" style={{ gap: 12 }} data-testid="nav-disclaimer">
+            <span className="section-label" id="nav-disclaimer-titel">
+              Wichtiger Hinweis zur Nutzung
+            </span>
+            <p style={{ fontSize: 14, lineHeight: 1.7 }}>
+              Diese App basiert auf frei verfügbaren Open-Source-Daten
+              (OpenStreetMap, OpenSeaMap, EMODnet, GEBCO, Open-Meteo). Sie ist{" "}
+              <strong>nicht als Navigationsmittel zugelassen</strong> und darf nur
+              unterstützend zur Törn-<em>Planung</em> verwendet werden.
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.7 }}>
+              Als Skipper bist du verpflichtet, amtliche Seekarten, amtliche
+              Warnungen und offizielle Navigationsmittel zu nutzen. Die Nutzung
+              erfolgt auf eigene Verantwortung.
+            </p>
+            <button
+              type="button"
+              className="btn btn-teal btn-block"
+              data-testid="nav-disclaimer-ok"
+              onClick={acceptDisclaimer}
+            >
+              Verstanden — nur zur Planung nutzen
+            </button>
+          </div>
+        </div>
+      )}
       <div className="wetter-grid">
         {/* ── linke Spalte: Revier + Karte ── */}
         <div className="stack" style={{ gap: 12 }}>
@@ -755,8 +804,9 @@ export function NavApp() {
       <p data-testid="nav-attribution" className="caption center-note" style={{ flexWrap: "wrap" }}>
         <Icon name="cloud" size={14} /> Wetter: Open-Meteo (CC-BY 4.0) · Tiefen: EMODnet
         Bathymetry (CC-BY 4.0) & GEBCO · Karte: © OpenStreetMap, © OpenSeaMap ·
-        Küstenlinien-Routing: OSM (~1 km, Planungsqualität) · Entscheidungshilfe — ersetzt
-        keine amtlichen Seekarten, keine Seemannschaft und keine amtlichen Warnungen.
+        Küstenlinien-Routing: OSM (~1 km, Planungsqualität) · Open-Source-Daten — nicht als
+        Navigationsmittel zugelassen, nur unterstützend zur Planung; amtliche Seekarten,
+        amtliche Warnungen und Seemannschaft bleiben Pflicht.
       </p>
     </div>
   );
