@@ -315,8 +315,11 @@ export function NavApp() {
     if (!tl?.points.length) return null;
     let best = tl.points[0];
     let bestD = Infinity;
+    // Breitengrad-korrigiert: 1° Lon ist bei 55° N nur ~0,57° Lat wert —
+    // sonst gewinnt ein ferner Ost-West-Punkt (Review-Finding kern-mathe).
+    const cosLat = Math.cos((lat * Math.PI) / 180);
     for (const tp of tl.points) {
-      const d = (tp.lat - lat) ** 2 + (tp.lon - lon) ** 2;
+      const d = (tp.lat - lat) ** 2 + ((tp.lon - lon) * cosLat) ** 2;
       if (d < bestD) {
         bestD = d;
         best = tp;
@@ -339,6 +342,10 @@ export function NavApp() {
     const r = routingArg ?? routing;
     const p = planArg ?? plan;
     const tl = tlArg !== undefined ? tlArg : timeline;
+    // Snapshot gegen Closure-Race: ändert der Nutzer den Tiefgang WÄHREND die
+    // Tiefen-Fetches laufen, muss der Check konsistent mit dem Wert rechnen,
+    // mit dem die Anfragen gestartet wurden (Review-Finding ui-races).
+    const tiefgangSnapshot = tiefgang;
     if (!r) return;
     const myId = seqId ?? reqSeq.current;
     setDepthLoading(true);
@@ -352,7 +359,7 @@ export function NavApp() {
       const results = await Promise.all(
         pts.map(async (p) => {
           const res = await fetch(
-            `/api/navigation/depth?lat=${p.lat}&lon=${p.lon}&tiefgang=${tiefgang}`,
+            `/api/navigation/depth?lat=${p.lat}&lon=${p.lon}&tiefgang=${tiefgangSnapshot}`,
           );
           const d = (await res.json().catch(() => ({}))) as {
             depth_m?: number | null;
@@ -369,7 +376,7 @@ export function NavApp() {
             depth_m: depthM,
             tide_min_m: tideMin,
             depth_eff_m: depthEff,
-            check: depthEff != null ? flachwasserCheck(depthEff, tiefgang) : res.ok ? d.check : undefined,
+            check: depthEff != null ? flachwasserCheck(depthEff, tiefgangSnapshot) : res.ok ? d.check : undefined,
           };
         }),
       );
