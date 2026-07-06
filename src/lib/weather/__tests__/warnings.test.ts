@@ -31,7 +31,7 @@ test("Endpunkte: s=0 hohe Schwellen (risikofreudig), s=1 niedrige (vorsichtig)",
   near(hi.cape, 100);
 });
 
-test("höhere Sensitivität senkt jede Schwelle monoton", () => {
+test("[REQ-WET-002] höhere Sensitivität senkt jede Schwelle monoton", () => {
   let prevG = Infinity;
   let prevC = Infinity;
   for (let s = 0; s <= 1.0001; s += 0.1) {
@@ -80,7 +80,7 @@ test("stormSeverity: Label & severe-Flag", () => {
   assert.equal(stormSeverity(SEVERE_GUST_KN - 1).severe, false);
 });
 
-test("Sicherheits-Floor: schwerer Sturm warnt auch bei risikofreudigstem Regler", () => {
+test("[REQ-WET-003] Sicherheits-Floor: schwerer Sturm warnt auch bei risikofreudigstem Regler", () => {
   // s=0 (Schwelle 40 kn): eine 48-kn-Bö muss trotzdem als Sturm warnen.
   assert.equal(classify({ gust_kn: SEVERE_GUST_KN + 1 }, 0).sturm, true);
 });

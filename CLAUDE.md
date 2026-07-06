@@ -26,3 +26,7 @@
   tabu; Haftungshinweis bleibt in UI-Footern (in-the-loop: Änderungen daran
   vorher freigeben lassen).
 - Affiliate-Compliance, Pledge-Sprache und weitere Regeln: README.md.
+
+## Prozess (verbindlich)
+- Vorgehen nach ASPICE/ISTQB: `.claude/skills/aspice-istqb-workflow/SKILL.md` — Requirements-IDs Pflicht (`docs/REQUIREMENTS.md`), Tests tragen `[REQ-…]`-Tags, `npm run trace` ist Teil von `verify`.
+- Bei widersprüchlichen/unklaren Anforderungen: stoppen und den User konkret fragen (REQ-PROC-002).

@@ -29,3 +29,18 @@ test("Multi-Location: mehrere Punkte in einem Request", { skip: !LIVE }, async (
   assert.ok(Number.isFinite(ostsee.wind_speed_kn));
   assert.ok(Number.isFinite(split.wind_speed_kn));
 });
+
+// Reine Fensterlogik (kein Netz): Vergangenheits-Fenster → Archiv-Modus.
+test("[REQ-WET-009] isArchiveWindow: Vergangenheit → Archiv, Zukunft → Forecast", async () => {
+  const { isArchiveWindow } = await import("../open-meteo");
+  const h = 3600e3;
+  assert.equal(
+    isArchiveWindow({ start: new Date(Date.now() - 400 * h), end: new Date(Date.now() - 300 * h) }),
+    true,
+  );
+  assert.equal(
+    isArchiveWindow({ start: new Date(), end: new Date(Date.now() + 48 * h) }),
+    false,
+  );
+  assert.equal(isArchiveWindow(undefined), false);
+});

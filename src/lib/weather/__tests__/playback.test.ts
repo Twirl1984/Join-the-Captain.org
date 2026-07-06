@@ -26,7 +26,7 @@ test("vor Abfahrt: Boot am Startpunkt", () => {
   assert.deepEqual([p.lat, p.lon, p.legIndex], [54.0, 13.0, -1]);
 });
 
-test("Mitte von Leg 1: halber Weg zwischen A und B", () => {
+test("[REQ-WET-010] Mitte von Leg 1: halber Weg zwischen A und B", () => {
   const p = boatPositionAt(wps, legs, Date.parse("2026-07-04T10:00:00Z"));
   assert.ok(Math.abs(p.lat - 54.5) < 1e-9);
   assert.equal(p.legIndex, 0);

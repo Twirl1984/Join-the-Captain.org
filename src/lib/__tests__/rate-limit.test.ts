@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createLimiter } from "../rate-limit";
 
-test("erlaubt bis zum Limit, blockt danach, Fenster läuft ab", () => {
+test("[REQ-SAFE-004] erlaubt bis zum Limit, blockt danach, Fenster läuft ab", () => {
   let now = 1_000_000;
   const lim = createLimiter({ limit: 3, windowMs: 60_000, clock: () => now });
   assert.equal(lim.allow("ip-a"), true);

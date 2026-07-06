@@ -49,7 +49,7 @@ test("geometrie: bearing Nord ≈ 0°, Ost ≈ 90°", () => {
 
 const calm = (): ForecastSample => ({ wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 });
 
-test("planRoute: zwei Wegpunkte → ein Leg, plausible ETA", () => {
+test("[REQ-WET-001] planRoute: zwei Wegpunkte → ein Leg, plausible ETA", () => {
   const r = planRoute({
     waypoints: [
       { lat: 54.679, lon: 13.432, name: "Arkona" },
@@ -109,7 +109,7 @@ test("planRoute: mehrere Wegpunkte → ETA wächst monoton, mode=motor durchgän
 
 // ── Strömung: Fahrt über Grund (SOG) ─────────────────────────────────────────
 
-test("Schiebestrom verkürzt, Gegenstrom verlängert die Legdauer", () => {
+test("[REQ-WET-008] Schiebestrom verkürzt, Gegenstrom verlängert die Legdauer", () => {
   const wps = [
     { lat: 54.0, lon: 13.0, name: "A" },
     { lat: 55.0, lon: 13.0, name: "B" }, // Kurs ≈ 0° (Nord)

@@ -154,7 +154,7 @@ async function openWithMap(page: Page) {
 }
 
 test.describe("/navigation — Erstnutzungs-Disclaimer", () => {
-  test("erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg", async ({ page }) => {
+  test("[REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg", async ({ page }) => {
     await blockTiles(page);
     await page.goto("/navigation");
     const modal = page.getByTestId("nav-disclaimer");
@@ -187,7 +187,7 @@ async function calculate(page: Page) {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 test.describe("/navigation — Grundgerüst", () => {
-  test("Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution", async ({ page }) => {
+  test("[REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution", async ({ page }) => {
     await openWithMap(page);
     // Reviere als GRUPPEN (optgroup Nordsee/Ostsee/Mittelmeer/Binnen).
     const groups = page.getByTestId("nav-revier-select").locator("optgroup");
@@ -207,7 +207,7 @@ test.describe("/navigation — Grundgerüst", () => {
     await expect(page.getByTestId("nav-revier-warnhinweis")).toHaveCount(0);
   });
 
-  test("Revier-Suche: 'palma' findet die Balearen und wechselt das Revier", async ({ page }) => {
+  test("[REQ-NAV-004] Revier-Suche: 'palma' findet die Balearen und wechselt das Revier", async ({ page }) => {
     await openWithMap(page);
     await page.getByTestId("nav-revier-search").fill("palma");
     const hit = page.getByTestId("nav-search-hits").getByRole("button", { name: /Balearen/ });
@@ -218,7 +218,7 @@ test.describe("/navigation — Grundgerüst", () => {
 });
 
 test.describe("/navigation — Route & Landvermeidung", () => {
-  test("zwei Wegpunkte → Wasserweg-Route mit Umweg-Punkt, ETA und Legs", async ({ page }) => {
+  test("[REQ-NAV-001] zwei Wegpunkte → Wasserweg-Route mit Umweg-Punkt, ETA und Legs", async ({ page }) => {
     await mockApis(page);
     await openWithMap(page);
     await addTwoWaypoints(page);
@@ -231,7 +231,7 @@ test.describe("/navigation — Route & Landvermeidung", () => {
     await expect(page.getByTestId("nav-leg").first()).toContainText(/Strom 0.4 kn/);
   });
 
-  test("Luftlinien-Segment wird ehrlich ausgewiesen", async ({ page }) => {
+  test("[REQ-NAV-006] Luftlinien-Segment wird ehrlich ausgewiesen", async ({ page }) => {
     await mockApis(page, { luftlinie: true });
     await openWithMap(page);
     await addTwoWaypoints(page);
@@ -250,7 +250,7 @@ test.describe("/navigation — Route & Landvermeidung", () => {
     await expect(page.getByTestId("nav-error")).toContainText(/Kein Wasserweg/);
   });
 
-  test("Wetterdienst down (502) → freundliche Meldung statt Absturz", async ({ page }) => {
+  test("[REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz", async ({ page }) => {
     await mockApis(page, { routeStatus: 502 });
     await openWithMap(page);
     await addTwoWaypoints(page);
@@ -268,7 +268,7 @@ test.describe("/navigation — Route & Landvermeidung", () => {
 });
 
 test.describe("/navigation — Tiefen & Wolken-Playback", () => {
-  test("Flachwasser-Check läuft AUTOMATISCH nach der Berechnung und markiert die kritische Stelle", async ({
+  test("[REQ-NAV-003] Flachwasser-Check läuft AUTOMATISCH nach der Berechnung und markiert die kritische Stelle", async ({
     page,
   }) => {
     await mockApis(page);
@@ -285,7 +285,7 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await expect(page.getByTestId("nav-depth-result")).toBeVisible();
   });
 
-  test("Playback: Zeit-Slider bewegt die Zeit, Wolkenfelder liegen auf der Karte", async ({ page }) => {
+  test("[REQ-NAV-007] Playback: Zeit-Slider bewegt die Zeit, Wolkenfelder liegen auf der Karte", async ({ page }) => {
     await mockApis(page);
     await openWithMap(page);
     await addTwoWaypoints(page);
@@ -306,7 +306,7 @@ test.describe("/navigation — GPS", () => {
     geolocation: { latitude: 54.42, longitude: 13.39, accuracy: 12 },
   });
 
-  test("GPS aktivieren → Position sichtbar, Route ab Position mit Live-Badge", async ({ page }) => {
+  test("[REQ-NAV-005] GPS aktivieren → Position sichtbar, Route ab Position mit Live-Badge", async ({ page }) => {
     await mockApis(page);
     await openWithMap(page);
     await page.getByTestId("nav-gps-start").click();

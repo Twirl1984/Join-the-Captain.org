@@ -45,7 +45,7 @@ test("Confusion bei s=1 (Schwelle 28 kn): B (30) wird Fehlalarm → 1 FP", () =>
   assert.equal(r.fpr, 0.5);
 });
 
-test("Sweep: FNR fällt monoton, FPR steigt monoton mit der Sensitivität", () => {
+test("[REQ-WET-013] Sweep: FNR fällt monoton, FPR steigt monoton mit der Sensitivität", () => {
   const rows = sweep(FIX);
   for (let i = 1; i < rows.length; i++) {
     const prev = rows[i - 1].combined.rates;

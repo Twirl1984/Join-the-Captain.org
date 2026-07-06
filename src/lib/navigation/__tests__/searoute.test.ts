@@ -57,7 +57,7 @@ test("Nord-Süd-Wand mit Lücke: Route weicht durch die Lücke aus, nie über La
   assert.ok(r.distance_nm! > 48, `Distanz ${r.distance_nm} sm unplausibel klein`);
 });
 
-test("Insel im Weg: Route führt außen herum", () => {
+test("[REQ-NAV-001] Insel im Weg: Route führt außen herum", () => {
   const island = (lat: number, lon: number) =>
     !(Math.abs(lat - 54.5) < 0.15 && Math.abs(lon - 11.0) < 0.3);
   const mask = createMask(BBOX, N, 2 * N, island);
@@ -82,7 +82,7 @@ test("Start/Ziel außerhalb der bbox -> outside", () => {
   assert.equal(findSeaRoute(mask, { lat: 54.5, lon: 11 }, { lat: 56, lon: 11 }).status, "outside");
 });
 
-test("Wegpunkt knapp an Land (Hafen!): wird auf nächste Wasserzelle gesnappt", () => {
+test("[REQ-NAV-002] Wegpunkt knapp an Land (Hafen!): wird auf nächste Wasserzelle gesnappt", () => {
   // Landstreifen am Westrand; Start liegt IM Landstreifen (wie ein Hafen an der Mole).
   const mask = createMask(BBOX, N, 2 * N, (_lat, lon) => lon > 10.2);
   const from = { lat: 54.5, lon: 10.19 }; // Land, aber direkt an der Wasserkante
@@ -110,7 +110,7 @@ test("Snap-Radius ist physisch (~1.5 km), nicht zellenzahl-abhängig", () => {
   assert.equal(findSeaRoute(fein, weitWeg, ziel).status, "unreachable");
 });
 
-test("Start tief im Landesinneren: unreachable (kein wildes Snappen)", () => {
+test("[REQ-NAV-002] Start tief im Landesinneren: unreachable (kein wildes Snappen)", () => {
   const mask = createMask(BBOX, N, 2 * N, (_lat, lon) => lon > 11.5);
   const r = findSeaRoute(mask, { lat: 54.5, lon: 10.3 }, { lat: 54.5, lon: 11.8 });
   assert.equal(r.status, "unreachable");

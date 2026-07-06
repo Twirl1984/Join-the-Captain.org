@@ -20,9 +20,10 @@
     "test:e2e": "playwright test",
     "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts",
     "weather:verify": "tsx scripts/weather-feedback-verify.ts",
-    "verify": "npm run lint && npm run typecheck && npm run test:lib && npm run test:weather && npm run test:navigation",
+    "verify": "npm run lint && npm run typecheck && npm run test:lib && npm run test:weather && npm run test:navigation && npm run trace",
     "test:lib": "node --import tsx --test src/lib/__tests__/*.test.ts",
-    "nav:icons": "tsx scripts/generate-app-icons.ts"
+    "nav:icons": "tsx scripts/generate-app-icons.ts",
+    "trace": "tsx scripts/trace-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

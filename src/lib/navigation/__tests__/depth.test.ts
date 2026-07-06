@@ -89,7 +89,7 @@ test("fetchRouteDepths: eine Abfrage je Punkt, Reihenfolge bleibt erhalten", asy
   );
 });
 
-test("flachwasserCheck: gefahr / knapp / ok / unbekannt", () => {
+test("[REQ-NAV-003] flachwasserCheck: gefahr / knapp / ok / unbekannt", () => {
   // Tiefgang 1.8 m, Sicherheitsmarge default 0.5 m.
   assert.equal(flachwasserCheck(1.7, 1.8), "gefahr"); // flacher als Tiefgang
   assert.equal(flachwasserCheck(1.8, 1.8), "gefahr"); // exakt = aufsetzen
