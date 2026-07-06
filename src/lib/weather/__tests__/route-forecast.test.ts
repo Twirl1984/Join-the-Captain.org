@@ -153,3 +153,43 @@ test("Extremer Gegenstrom: SOG bleibt ≥ 0.3 kn (kein Stillstand/Infinity)", ()
   assert.ok(r.legs[0].sog_kn >= 0.3);
   assert.ok(Number.isFinite(r.legs[0].duration_h!));
 });
+
+// ── Kreuzen (REQ-NAV-011): Am-Wind-Kurs, beide Varianten ─────────────────────
+
+import { beatVmgSpeed, boatFromSpecs, BOAT_PRESETS } from "../polar";
+
+const gegenan = (): ForecastSample => ({ wind_speed_kn: 14, wind_from_deg: 0 }); // Kurs 0° = genau gegenan
+const NORD = [
+  { lat: 54.0, lon: 13.0, name: "A" },
+  { lat: 54.5, lon: 13.0, name: "B" },
+];
+
+test("[REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt", () => {
+  const vmg = beatVmgSpeed(14);
+  assert.ok(vmg > 0.5, `${vmg}`);
+  assert.ok(vmg < sailSpeed(14, 100), "VMG < Halbwindfahrt");
+});
+
+test("[REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer", () => {
+  const jolle = boatFromSpecs(BOAT_PRESETS.find((p) => p.id === "jolle")!.specs);
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", boat: jolle, mode: "sail", sampleForecast: gegenan });
+  assert.equal(r.legs[0].mode, "kreuzen");
+  assert.ok(Number.isFinite(r.legs[0].duration_h!) && r.legs[0].duration_h! > 0);
+  assert.equal(r.legs[0].alternative, undefined); // kein Motor an Bord
+});
+
+test("[REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternative gesetzt", () => {
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", mode: "sail", sampleForecast: gegenan });
+  assert.equal(r.legs[0].mode, "motor");
+  assert.equal(r.legs[0].alternative?.mode, "kreuzen");
+  assert.ok(r.legs[0].alternative!.duration_h > r.legs[0].duration_h!, "Kreuzen dauert länger als Motor");
+  assert.ok(r.eta_alternative && Date.parse(r.eta_alternative) > Date.parse(r.eta));
+});
+
+test("[REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative", () => {
+  const halbwind = (): ForecastSample => ({ wind_speed_kn: 14, wind_from_deg: 90 });
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", mode: "sail", sampleForecast: halbwind });
+  assert.equal(r.legs[0].mode, "sail");
+  assert.equal(r.legs[0].alternative, undefined);
+  assert.equal(r.eta_alternative, undefined);
+});

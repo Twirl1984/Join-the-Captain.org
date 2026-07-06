@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 32 · getaggte Zuordnungen 28.
+Stand: Requirements 32 · getaggte Zuordnungen 39.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -25,11 +25,11 @@ Stand: Requirements 32 · getaggte Zuordnungen 28.
 | REQ-NAV-005 — GPS | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-005] GPS aktivieren → Position sichtbar, Route ab Position mit Live-Badge |
 | REQ-NAV-006 — Luftlinien-Ehrlichkeit | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-006] Luftlinien-Segment wird ehrlich ausgewiesen |
 | REQ-NAV-007 — Nav-Playback | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-007] Playback: Zeit-Slider bewegt die Zeit, Wolkenfelder liegen auf der Karte |
-| REQ-NAV-008 — Boots-Presets in Navigation | in-arbeit | — |
-| REQ-NAV-009 — Abfahrts-Scan über Wasserweg | in-arbeit | — |
-| REQ-NAV-010 — Sichtbares Land-Snapping | in-arbeit | — |
-| REQ-NAV-011 — Kreuz-ETA | in-arbeit | — |
-| REQ-NAV-012 — Tide im Tiefen-Check | in-arbeit | — |
+| REQ-NAV-008 — Boots-Presets in Navigation | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-008] Boots-Preset Jolle übernimmt Parameter und setzt den Tiefgang |
+| REQ-NAV-009 — Abfahrts-Scan über Wasserweg | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-009] Abfahrts-Scan über den Wasserweg liefert Slots mit Empfehlung |
+| REQ-NAV-010 — Sichtbares Land-Snapping | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-010] Land-Klick snappt den Marker sichtbar an die Küste<br>`e2e/navigation.spec.ts`: [REQ-NAV-010] Klick zu weit im Land wird abgelehnt (Punkt verschwindet) |
+| REQ-NAV-011 — Kreuz-ETA | umgesetzt | `src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternati<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative<br>`e2e/navigation.spec.ts`: [REQ-NAV-011] Am-Wind-Leg zeigt Kreuz-Alternative und Gesamt-Alternative |
+| REQ-NAV-012 — Tide im Tiefen-Check | umgesetzt | `src/lib/navigation/__tests__/depth.test.ts`: [REQ-NAV-012] Tide-Verrechnung: Niedrigwasser kippt den Flachwasser-Status<br>`e2e/navigation.spec.ts`: [REQ-NAV-012] Flachwasser-Check rechnet die Tide ein und weist sie aus |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |

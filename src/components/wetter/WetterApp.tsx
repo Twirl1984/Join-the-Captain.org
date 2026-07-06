@@ -992,10 +992,20 @@ function LegCard({ leg }: { leg: RouteLeg }) {
         <h3 style={{ fontSize: 14, fontFamily: "var(--font-sans)", fontWeight: 500 }}>
           Leg {leg.leg}: {leg.from} → {leg.to}
         </h3>
-        <span className={`tag ${leg.mode === "sail" ? "phase-auf_dem_toern" : "phase-vor_buchung"}`}>
-          {leg.mode === "sail" ? "Segel" : "Motor"}
+        <span
+          className={`tag ${leg.mode === "sail" ? "phase-auf_dem_toern" : leg.mode === "kreuzen" ? "phase-planung" : "phase-vor_buchung"}`}
+          data-testid="leg-mode"
+        >
+          {leg.mode === "sail" ? "Segel" : leg.mode === "kreuzen" ? "Kreuzen" : "Motor"}
         </span>
       </div>
+      {leg.alternative && (
+        <p className="caption" data-testid="leg-alternative">
+          Alternativ {leg.alternative.mode === "kreuzen" ? "⛵ kreuzen" : "⚙ Motor"}:{" "}
+          {leg.alternative.speed_kn} kn · {leg.alternative.duration_h} h · ETA{" "}
+          {fmtEta(leg.alternative.eta)}
+        </p>
+      )}
       {leg.layover_h != null && (
         <p className="caption">⚓ Liegezeit {leg.layover_h} h · Weiterfahrt {fmtEta(leg.depart)}</p>
       )}

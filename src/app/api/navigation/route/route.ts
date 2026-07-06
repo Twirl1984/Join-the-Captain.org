@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { ok, fehler } from "@/lib/http";
 import { planRoute } from "@/lib/weather/route-forecast";
+import { scanDepartures, type DepartureScan } from "@/lib/weather/departure-scan";
 import { buildSampler, isArchiveWindow, parseModel, type TimeWindow } from "@/lib/weather/open-meteo";
 import {
   MAX_WAYPOINTS,
@@ -34,7 +35,9 @@ function logRoute(fields: Record<string, unknown>): void {
 
 // POST /api/navigation/route
 // Body: { revier, waypoints: [{lat,lon,name?,depart_at?}], startTime?, mode?,
-//         sensitivity?, boat?, model? }
+//         sensitivity?, boat?, model?, scanWindowEnd?, scanStepH? }
+// scanWindowEnd (REQ-NAV-009): zusätzlich Abfahrts-Scan über die GERoutete
+// Punktfolge — ein Routing, ein Wetter-Fetch, Slots in der Antwort.
 // Wie /api/weather/route, aber: jede Teilstrecke wird VORHER über die
 // Wassermaske des Reviers geroutet (Landvermeidung). Antwort enthält die
 // expandierte Punktfolge + Routing-Art je Segment ("wasserweg"/"luftlinie").
@@ -68,6 +71,21 @@ export async function POST(req: NextRequest) {
   const timeErr = startTimeError(startTime);
   if (timeErr) return fehler(timeErr, 422);
 
+  // Optionaler Abfahrts-Scan übers Charter-Fenster (REQ-NAV-009).
+  let scanEnd: Date | null = null;
+  if (b.scanWindowEnd != null) {
+    scanEnd = new Date(String(b.scanWindowEnd));
+    if (Number.isNaN(scanEnd.getTime()) || scanEnd.getTime() <= startTime.getTime()) {
+      return fehler("scanWindowEnd muss nach startTime liegen.");
+    }
+    if (scanEnd.getTime() - startTime.getTime() > 5 * 24 * 3600e3) {
+      return fehler("Das Abfahrts-Fenster darf maximal 5 Tage umfassen.", 422);
+    }
+    const scanErr = startTimeError(scanEnd);
+    if (scanErr) return fehler(scanErr, 422);
+  }
+  const scanStepH = Math.min(12, Math.max(1, Number(b.scanStepH) || 1));
+
   const mode: SailMode = b.mode === "motor" ? "motor" : "sail";
   const boat = mergeBoat(b.boat);
   const sensitivity = parseSensitivity(b.sensitivity);
@@ -92,7 +110,8 @@ export async function POST(req: NextRequest) {
     .reduce((a, c) => Math.max(a, c), startTime.getTime());
   const window: TimeWindow = {
     start: startTime,
-    end: new Date(lastDepart + ROUTE_WINDOW_DAYS * 24 * 3600e3),
+    // Sampler muss auch das Scan-Fenster + Routendauer abdecken.
+    end: new Date(Math.max(lastDepart, scanEnd?.getTime() ?? 0) + ROUTE_WINDOW_DAYS * 24 * 3600e3),
   };
 
   try {
@@ -107,6 +126,20 @@ export async function POST(req: NextRequest) {
       model,
     });
     const plan = planRoute({ waypoints: expanded.points, startTime, boat, mode, sampleForecast });
+    // Abfahrts-Scan über den bereits gerouteten Wasserweg (kein zweites A*,
+    // kein zweiter Wetter-Fetch) — Slots wie /api/weather/departure.
+    let scan: DepartureScan | null = null;
+    if (scanEnd) {
+      scan = scanDepartures({
+        waypoints: expanded.points,
+        windowStart: startTime,
+        windowEnd: scanEnd,
+        stepH: scanStepH,
+        boat,
+        mode,
+        sampleForecast,
+      });
+    }
     // Kennzahlen fürs Monitoring: Luftlinien-Quote zeigt Maskenlücken,
     // dauer_ms Upstream-/Routing-Latenz, warnungen die Warnlage.
     logRoute({
@@ -129,6 +162,7 @@ export async function POST(req: NextRequest) {
           ? "Wasserweg aus OSM-Küstenlinien (~1 km) — Planungshilfe, keine amtliche Seekarte."
           : "Für dieses Revier gibt es noch keine Wassermaske — Route ist die Luftlinie.",
       },
+      scan,
       sensitivity,
       model,
       source: isArchiveWindow(window) ? "open-meteo-archive" : "open-meteo",

@@ -100,3 +100,12 @@ test("[REQ-NAV-003] flachwasserCheck: gefahr / knapp / ok / unbekannt", () => {
   assert.equal(flachwasserCheck(2.7, 1.8, 1.0), "knapp");
   assert.equal(flachwasserCheck(2.9, 1.8, 1.0), "ok");
 });
+
+test("[REQ-NAV-012] Tide-Verrechnung: Niedrigwasser kippt den Flachwasser-Status", () => {
+  // Karte 2.6 m, Niedrigstwasser −0.9 m → effektiv 1.7 m bei 1.8 m Tiefgang = GEFAHR.
+  assert.equal(flachwasserCheck(2.6 + -0.9, 1.8), "gefahr");
+  // Ohne Tide wäre es ok (2.6 > 1.8 + 0.5).
+  assert.equal(flachwasserCheck(2.6, 1.8), "ok");
+  // Hochwasser (+0.8) entspannt eine knappe Stelle.
+  assert.equal(flachwasserCheck(2.2 + 0.8, 1.8), "ok");
+});

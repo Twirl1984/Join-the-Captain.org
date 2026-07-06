@@ -14,7 +14,9 @@ import dynamic from "next/dynamic";
 import { Icon } from "@/components/Icon";
 import { REVIER_GRUPPEN, alleReviere, sucheReviere } from "@/lib/navigation/reviere";
 import type { RouteSegmentInfo } from "@/lib/navigation/route-helpers";
-import type { FlachwasserStatus } from "@/lib/navigation/depth";
+import { flachwasserCheck, type FlachwasserStatus } from "@/lib/navigation/depth";
+import { boatFromSpecs, BOAT_PRESETS, type BoatSpecs } from "@/lib/weather/polar";
+import type { DepartureScan } from "@/lib/weather/departure-scan";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
 import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import { boatPositionAt } from "@/lib/weather/playback";
@@ -44,6 +46,10 @@ interface DepthPoint {
   lat: number;
   lon: number;
   depth_m: number | null;
+  /** Niedrigstwasser des Törns (m rel. MSL) am Punkt, falls Tide-Daten da. */
+  tide_min_m?: number | null;
+  /** Effektive Tiefe = Kartentiefe + Niedrigstwasser (REQ-NAV-012). */
+  depth_eff_m?: number | null;
   check?: FlachwasserStatus;
 }
 
@@ -97,6 +103,17 @@ export function NavApp() {
     const n = Number.parseFloat(tiefgangStr.replace(",", "."));
     return Number.isFinite(n) && n > 0 ? Math.min(20, n) : 1.8;
   }, [tiefgangStr]);
+  // Boot (REQ-NAV-008): Presets + abgeleitete Werte, fließt in die ETA ein.
+  const [specs, setSpecs] = useState<BoatSpecs>({});
+  const boat = useMemo(() => boatFromSpecs(specs), [specs]);
+  const applyPreset = (ps: BoatSpecs) => {
+    setSpecs({ ...ps });
+    if (ps.tiefgang_m) setTiefgangStr(String(ps.tiefgang_m));
+  };
+  // Abfahrts-Scan (REQ-NAV-009): Fenster-Ende + Ergebnis.
+  const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 48 * 3600e3)));
+  const [scan, setScan] = useState<DepartureScan | null>(null);
+  const [snapHinweis, setSnapHinweis] = useState<string | null>(null);
   // GPS
   const gps = useGeolocation();
   const [followGps, setFollowGps] = useState(false);
@@ -137,11 +154,44 @@ export function NavApp() {
 
   const canCalc = effectiveWaypoints.length >= 2;
 
-  const addWaypoint = (w: Waypoint) =>
-    setWaypoints((prev) => [...prev, { ...w, id: `nwp-${nextId.current++}` }]);
+  const addWaypoint = (w: Waypoint) => {
+    const id = `nwp-${nextId.current++}`;
+    // Optimistisch setzen — Hafen-Klicks (mit Name) bleiben unangetastet;
+    // freie Karten-Klicks werden sichtbar an die Küste gesnappt (REQ-NAV-010).
+    setWaypoints((prev) => [...prev, { ...w, id }]);
+    if (w.name) return;
+    const myId = reqSeq.current;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/navigation/snap?revier=${encodeURIComponent(revier.id)}&lat=${w.lat}&lon=${w.lon}`,
+        );
+        const d = (await res.json().catch(() => ({}))) as {
+          lat?: number; lon?: number; snapped?: boolean; error?: string;
+        };
+        if (myId !== reqSeq.current) return;
+        if (res.status === 422) {
+          // zu weit im Land: Punkt wieder entfernen + Hinweis
+          setWaypoints((prev) => prev.filter((x) => x.id !== id));
+          setSnapHinweis(d.error ?? "Der Punkt liegt zu weit im Land.");
+          return;
+        }
+        if (res.ok && d.snapped && d.lat != null && d.lon != null) {
+          setWaypoints((prev) =>
+            prev.map((x) => (x.id === id ? { ...x, lat: d.lat!, lon: d.lon! } : x)),
+          );
+          setSnapHinweis("Wegpunkt an die nächste Wasserstelle gesetzt.");
+        }
+      } catch {
+        /* Snap ist Komfort — Route-API snappt serverseitig ohnehin. */
+      }
+    })();
+  };
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
   const reset = () => {
-    reqSeq.current++; // laufende Antworten verwerfen
+    reqSeq.current++;
+    setScan(null);
+    setSnapHinweis(null); // laufende Antworten verwerfen
     setWaypoints([]);
     setPlan(null);
     setRouting(null);
@@ -152,7 +202,7 @@ export function NavApp() {
     setError(null);
   };
 
-  async function calculate(opts: { silent?: boolean } = {}) {
+  async function calculate(opts: { silent?: boolean; scanWindowEnd?: string } = {}) {
     if (!canCalc) return;
     // Ab eigener Position gilt: Abfahrt JETZT (echte Ankunftszeiten).
     const startDate = startAtGps && gps.fix ? new Date() : new Date(startTime);
@@ -178,11 +228,16 @@ export function NavApp() {
           startTime: startIso,
           mode,
           sensitivity: RECOMMENDED_SENSITIVITY,
+          boat,
+          ...(opts.scanWindowEnd
+            ? { scanWindowEnd: opts.scanWindowEnd, scanStepH: 1 }
+            : {}),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         plan?: RoutePlan;
         routing?: RoutingInfo;
+        scan?: DepartureScan | null;
         error?: string;
       };
       if (myId !== reqSeq.current) return; // veraltete Antwort verwerfen
@@ -196,11 +251,14 @@ export function NavApp() {
       }
       setPlan(data.plan);
       setRouting(data.routing);
+      setScan(data.scan ?? null);
       setDepths(null);
-      void loadTimeline(data.routing, startIso, data.plan, myId);
-      // Sicherheits-Default (Challenge-Review): Tiefen NICHT hinter einem Button
-      // verstecken — der Check läuft nach jeder Berechnung automatisch mit.
-      void checkDepths(data.routing, data.plan, myId);
+      // Timeline zuerst (liefert die Tide fürs Flachwasser, REQ-NAV-012),
+      // dann automatischer Tiefen-Check mit Tide-Verrechnung.
+      void (async () => {
+        const tl = await loadTimeline(data.routing!, startIso, data.plan!, myId);
+        await checkDepths(data.routing, data.plan, myId, tl);
+      })();
     } catch {
       if (myId === reqSeq.current) setError("Netzwerkfehler — bitte später erneut versuchen.");
     } finally {
@@ -216,7 +274,12 @@ export function NavApp() {
 
   // Zeitreise-Overlay: Wolken + Wind an den GEROUTETEN Punkten (max 20,
   // sonst wird die Open-Meteo-Multi-Location-Anfrage unnötig groß).
-  async function loadTimeline(r: RoutingInfo, startIso: string, p: RoutePlan, myId: number) {
+  async function loadTimeline(
+    r: RoutingInfo,
+    startIso: string,
+    p: RoutePlan,
+    myId: number,
+  ): Promise<Timeline | null> {
     setTimeline(null);
     setPlaying(false);
     setPlayIdx(0);
@@ -234,20 +297,48 @@ export function NavApp() {
         }),
       });
       const data = (await res.json().catch(() => ({}))) as Partial<Timeline>;
-      if (myId !== reqSeq.current) return;
-      if (res.ok && data.times?.length && data.points?.length) setTimeline(data as Timeline);
+      if (myId !== reqSeq.current) return null;
+      if (res.ok && data.times?.length && data.points?.length) {
+        setTimeline(data as Timeline);
+        return data as Timeline;
+      }
     } catch {
       // Overlay ist Bonus — der Plan steht auch ohne.
     }
+    return null;
+  }
+
+  /** Niedrigstwasser (m rel. MSL) am nächstgelegenen Timeline-Punkt über das
+      gesamte Törnfenster — bewusst konservativ (REQ-NAV-012): geprüft wird
+      gegen das tiefste Wasser der Fahrt, nicht nur den Ankunftsmoment. */
+  function minTideAt(tl: Timeline | null, lat: number, lon: number): number | null {
+    if (!tl?.points.length) return null;
+    let best = tl.points[0];
+    let bestD = Infinity;
+    for (const tp of tl.points) {
+      const d = (tp.lat - lat) ** 2 + (tp.lon - lon) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = tp;
+      }
+    }
+    const tides = best.steps.map((st) => st.tide_m).filter((x): x is number => x != null);
+    return tides.length ? Math.min(...tides) : null;
   }
 
   // Flachwasser-Check: Tiefe an den gerouteten Punkten gegen den Tiefgang.
   // Läuft automatisch nach jeder Berechnung; der Button wiederholt ihn manuell
   // (z. B. nach geändertem Tiefgang). Fehler bleiben in der Tiefen-Karte —
   // die Route selbst ist davon unabhängig gültig.
-  async function checkDepths(routingArg?: RoutingInfo, planArg?: RoutePlan, seqId?: number) {
+  async function checkDepths(
+    routingArg?: RoutingInfo,
+    planArg?: RoutePlan,
+    seqId?: number,
+    tlArg?: Timeline | null,
+  ) {
     const r = routingArg ?? routing;
     const p = planArg ?? plan;
+    const tl = tlArg !== undefined ? tlArg : timeline;
     if (!r) return;
     const myId = seqId ?? reqSeq.current;
     setDepthLoading(true);
@@ -267,11 +358,18 @@ export function NavApp() {
             depth_m?: number | null;
             check?: FlachwasserStatus;
           };
+          // Tide (REQ-NAV-012): Kartentiefe + Niedrigstwasser des Törns;
+          // bei Tide-Daten entscheidet die EFFEKTIVE Tiefe (strenger).
+          const depthM = res.ok ? (d.depth_m ?? null) : null;
+          const tideMin = minTideAt(tl, p.lat, p.lon);
+          const depthEff = depthM != null && tideMin != null ? Math.round((depthM + tideMin) * 10) / 10 : null;
           return {
             lat: p.lat,
             lon: p.lon,
-            depth_m: res.ok ? (d.depth_m ?? null) : null,
-            check: res.ok ? d.check : undefined,
+            depth_m: depthM,
+            tide_min_m: tideMin,
+            depth_eff_m: depthEff,
+            check: depthEff != null ? flachwasserCheck(depthEff, tiefgang) : res.ok ? d.check : undefined,
           };
         }),
       );
@@ -673,6 +771,97 @@ export function NavApp() {
             </label>
           </div>
 
+          {/* Boot (REQ-NAV-008): Presets + Ableitung — fließt in die ETA ein */}
+          <details className="card wetter-details">
+            <summary className="section-label" style={{ cursor: "pointer" }}>
+              Boot anpassen (optional)
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              <div className="pills">
+                {BOAT_PRESETS.map((ps) => (
+                  <button
+                    key={ps.id}
+                    type="button"
+                    data-testid={`nav-boat-preset-${ps.id}`}
+                    className={`pill ${specs.name === ps.specs.name ? "active" : ""}`}
+                    onClick={() => applyPreset(ps.specs)}
+                  >
+                    {ps.label}
+                  </button>
+                ))}
+              </div>
+              <p className="caption" data-testid="nav-boat-derived">
+                → Rumpfgeschwindigkeit {boat.hull_speed_kn} kn ·{" "}
+                {boat.has_engine ? `Marschfahrt ${boat.cruise_speed_motor_kn} kn` : "ohne Motor"}
+                {boat.min_wind_kn != null ? ` · min ${boat.min_wind_kn} kn Wind` : ""}
+                {boat.max_wind_kn != null ? ` · max ${boat.max_wind_kn} kn` : ""}
+                {" "}· Preset setzt auch den Tiefgang
+              </p>
+            </div>
+          </details>
+
+          {/* Abfahrts-Scan (REQ-NAV-009): über den gerouteten Wasserweg */}
+          <div className="card stack" style={{ gap: 10 }}>
+            <span className="section-label">Beste Abfahrt finden</span>
+            <label className="stack" style={{ gap: 4 }}>
+              <span className="caption">spätester Start</span>
+              <input
+                data-testid="nav-departure-to"
+                type="datetime-local"
+                className="wetter-select"
+                value={scanTo}
+                onChange={(e) => setScanTo(e.target.value)}
+              />
+            </label>
+            <button
+              data-testid="nav-departure-scan"
+              type="button"
+              className="btn btn-outline-teal btn-block"
+              disabled={!canCalc || loading}
+              onClick={() => void calculate({ scanWindowEnd: new Date(scanTo).toISOString() })}
+            >
+              Abfahrt empfehlen (über Wasserweg)
+            </button>
+            {scan && (
+              <div className="stack" style={{ gap: 6 }} data-testid="nav-departure-result">
+                {scan.all_windy && (
+                  <p className="wetter-warnband" style={{ fontSize: 12 }}>
+                    Im ganzen Fenster gibt es Warnungen — unten der am wenigsten kritische Slot.
+                  </p>
+                )}
+                <ol className="wetter-slot-list">
+                  {scan.slots.map((sl) => {
+                    const isRec = scan.recommended?.departure === sl.departure;
+                    return (
+                      <li key={sl.departure}>
+                        <button
+                          type="button"
+                          data-testid={isRec ? "nav-departure-recommended" : "nav-departure-slot"}
+                          className={`wetter-slot ${sl.avoid ? "avoid" : ""} ${isRec ? "recommended" : ""}`}
+                          onClick={() => {
+                            setStartTime(toLocalInput(new Date(sl.departure)));
+                            void calculate();
+                          }}
+                          title={sl.warnings.join(" · ") || "keine Warnungen"}
+                        >
+                          <span className="row" style={{ gap: 6 }}>
+                            <Icon name={sl.avoid ? "shield" : "check"} size={14} />
+                            {fmtEta(sl.departure)}
+                          </span>
+                          <span className="caption">
+                            {sl.avoid
+                              ? sl.warnings[0]
+                              : `${sl.min_wind_kn}–${sl.max_wind_kn} kn Wind · Böen ${sl.max_gust_kn} · ${sl.duration_h} h${isRec ? " · empfohlen" : ""}`}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
+          </div>
+
           <button
             data-testid="nav-calc"
             type="button"
@@ -695,6 +884,12 @@ export function NavApp() {
         </div>
       )}
 
+      {snapHinweis && (
+        <p className="caption" data-testid="nav-snap-hinweis" role="status">
+          ⚓ {snapHinweis}
+        </p>
+      )}
+
       {error && (
         <div className="wetter-error" role="alert" data-testid="nav-error">
           <Icon name="info-circle" size={18} /> {error}
@@ -709,6 +904,11 @@ export function NavApp() {
             <span className="muted" data-testid="nav-eta">
               Ankunft {fmtEta(plan.eta)}
             </span>
+            {plan.eta_alternative && (
+              <span className="caption" data-testid="nav-eta-alternative">
+                (unter Segeln kreuzend: {fmtEta(plan.eta_alternative)})
+              </span>
+            )}
             {startAtGps && (
               <span className="tag phase-auf_dem_toern" data-testid="nav-live-badge">
                 ab eigener Position
@@ -762,8 +962,10 @@ export function NavApp() {
                   <div className="wetter-warnband stack" style={{ gap: 4 }}>
                     {kritischeTiefen.map((d, i) => (
                       <span key={i} data-testid="nav-depth-warning">
-                        {d.check === "gefahr" && `⚠ GEFAHR: ${d.depth_m} m Tiefe`}
-                        {d.check === "knapp" && `△ knapp: ${d.depth_m} m Tiefe`}
+                        {d.check === "gefahr" &&
+                          `⚠ GEFAHR: ${d.depth_eff_m ?? d.depth_m} m Tiefe${d.tide_min_m != null ? ` (Karte ${d.depth_m} m, NW ${d.tide_min_m >= 0 ? "+" : ""}${d.tide_min_m} m)` : ""}`}
+                        {d.check === "knapp" &&
+                          `△ knapp: ${d.depth_eff_m ?? d.depth_m} m Tiefe${d.tide_min_m != null ? ` (Karte ${d.depth_m} m, NW ${d.tide_min_m >= 0 ? "+" : ""}${d.tide_min_m} m)` : ""}`}
                         {d.check === "unbekannt" &&
                           "△ keine Tiefe (evtl. Land/trockenfallend — amtliche Karte prüfen)"}{" "}
                         bei {d.lat.toFixed(3)}, {d.lon.toFixed(3)}
@@ -777,7 +979,11 @@ export function NavApp() {
                 )}
                 <p className="caption">
                   Geprüft an {depths.length} Routenpunkten · EMODnet/GEBCO (Planungsdaten, keine
-                  amtliche Seekarte) — enge Passagen zusätzlich in der amtlichen Karte prüfen.
+                  amtliche Seekarte)
+                  {depths.some((d) => d.tide_min_m != null)
+                    ? " · Tide: konservativ gegen das Niedrigstwasser des Törns gerechnet (Kartennull-Unsicherheit beachten)"
+                    : ""}{" "}
+                  — enge Passagen zusätzlich in der amtlichen Karte prüfen.
                 </p>
               </div>
             )}
@@ -821,10 +1027,20 @@ function NavLegCard({ leg }: { leg: RouteLeg }) {
         <h3 style={{ fontSize: 14, fontFamily: "var(--font-sans)", fontWeight: 500 }}>
           Leg {leg.leg}: {leg.from} → {leg.to}
         </h3>
-        <span className={`tag ${leg.mode === "sail" ? "phase-auf_dem_toern" : "phase-vor_buchung"}`}>
-          {leg.mode === "sail" ? "Segel" : "Motor"}
+        <span
+          className={`tag ${leg.mode === "sail" ? "phase-auf_dem_toern" : leg.mode === "kreuzen" ? "phase-planung" : "phase-vor_buchung"}`}
+          data-testid="leg-mode"
+        >
+          {leg.mode === "sail" ? "Segel" : leg.mode === "kreuzen" ? "Kreuzen" : "Motor"}
         </span>
       </div>
+      {leg.alternative && (
+        <p className="caption" data-testid="leg-alternative">
+          Alternativ {leg.alternative.mode === "kreuzen" ? "⛵ kreuzen" : "⚙ Motor"}:{" "}
+          {leg.alternative.speed_kn} kn · {leg.alternative.duration_h} h · ETA{" "}
+          {fmtEta(leg.alternative.eta)}
+        </p>
+      )}
       <div className="wetter-leg-facts">
         <span>{leg.distance_nm} sm</span>
         <span>Kurs {leg.course_deg}°</span>
