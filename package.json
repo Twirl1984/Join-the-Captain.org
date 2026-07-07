@@ -14,17 +14,25 @@
     "db:seed": "tsx scripts/seed.ts",
     "pipeline:run": "tsx scripts/run-pipeline.ts",
     "research:run": "tsx scripts/run-research.ts",
-    "discovery:run": "tsx scripts/run-discovery.ts"
+    "discovery:run": "tsx scripts/run-discovery.ts",
+    "test:weather": "node --import tsx --test src/lib/weather/__tests__/*.test.ts",
+    "test:e2e": "playwright test",
+    "weather:backtest": "tsx scripts/weather-backtest-fetch.ts && tsx scripts/weather-backtest-run.ts",
+    "weather:verify": "tsx scripts/weather-feedback-verify.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "leaflet": "^1.9.4",
     "next": "15.5.19",
     "pg": "^8.13.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-leaflet": "^5.0.0",
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^22.10.7",
     "@types/pg": "^8.11.10",
     "@types/react": "^19.0.7",
