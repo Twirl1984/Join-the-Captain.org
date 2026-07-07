@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Plausible } from "@/components/Plausible";
+import { SwRegister } from "@/components/SwRegister";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Plausible />
+        <SwRegister />
         <SiteHeader />
         <main>{children}</main>
         <SiteFooter />

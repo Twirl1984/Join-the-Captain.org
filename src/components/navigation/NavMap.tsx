@@ -51,6 +51,8 @@ interface NavMapProps {
   revier: NavRevier;
   waypoints: NavUiWaypoint[];
   onAddWaypoint: (w: Waypoint) => void;
+  /** Drag-Ende eines Wegpunkts (REQ-NAV-013) — Snap-Prüfung macht die App. */
+  onMoveWaypoint: (id: string, lat: number, lon: number) => void;
   routed?: NavRoutedLine | null;
   overlay?: NavOverlay | null;
   showDepth: boolean;
@@ -171,6 +173,7 @@ export default function NavMap({
   revier,
   waypoints,
   onAddWaypoint,
+  onMoveWaypoint,
   routed,
   overlay,
   showDepth,
@@ -214,7 +217,21 @@ export default function NavMap({
       ))}
 
       {waypoints.map((w, i) => (
-        <Marker key={w.id} position={[w.lat, w.lon]} icon={waypointIcon(i + 1)} />
+        <Marker
+          key={w.id}
+          position={[w.lat, w.lon]}
+          icon={waypointIcon(i + 1)}
+          // Verschieben per Klicken-und-Halten (REQ-NAV-013); die Snap-/
+          // Land-Prüfung übernimmt die App beim Loslassen.
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const ll = (e.target as L.Marker).getLatLng();
+              const r5 = (x: number) => Math.round(x * 1e5) / 1e5;
+              onMoveWaypoint(w.id, r5(ll.lat), r5(ll.lng));
+            },
+          }}
+        />
       ))}
 
       {/* Vorschau-Linie, solange noch keine geroutete Route vorliegt. */}

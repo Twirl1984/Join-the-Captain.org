@@ -44,6 +44,9 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-NAV-011** Kreuz-ETA (Status: umgesetzt) — Liegt der Kurs in der No-Go-Zone (Segel-Modus), werden BEIDE Varianten ausgewiesen: Kreuzen (VMG-basiert) und Motor; ohne Motor ist Kreuzen primär. Folge-ETAs rechnen deterministisch auf der Primär-Variante. Quelle: User-Entscheid 2026-07-06 („beide anzeigen").
 - **REQ-NAV-012** Tide im Tiefen-Check (Status: umgesetzt) — Der Flachwasser-Check rechnet den Open-Meteo-Wasserstand (sea_level_height_msl) konservativ ein (Niedrigstwasser über das gesamte Törnfenster — strenger als ±3 h um die Ankunft) und weist das Tide-Delta aus; Kartennull-Unsicherheit bleibt dokumentiert, Marge unangetastet. Quelle: User-Review 2026-07-06.
 
+- **REQ-NAV-013** Wegpunkt-Verschieben (Status: umgesetzt) — Gesetzte Wegpunkte lassen sich per Ziehen (Klicken-und-Halten) auf der Karte verschieben; beim Loslassen greift dieselbe Wasser-Snap-Prüfung wie beim Setzen (snappt ≤ 1,5 km, lehnt tiefe Landpunkte ab und stellt die alte Position wieder her). Quelle: User 2026-07-07.
+- **REQ-NAV-014** Offline-Grundfähigkeit & TWA-Basis (Status: umgesetzt) — Ein Service Worker cached App-Shell, statische Assets und die Karten-Kacheln der letzten Nutzung (begrenzt), sodass die zuletzt geladene Ansicht offline aufrufbar bleibt; API-Antworten werden bewusst NICHT gecacht (keine veralteten Wetterdaten als aktuell). Erfüllt zugleich das Install-Kriterium für den Play-Store-Weg (TWA). Quelle: User-Entscheid 2026-07-07; NAV-4 (Offline = K.-o. auf See).
+
 ## SAFE — Sicherheit & Recht
 
 - **REQ-SAFE-001** Erstnutzungs-Disclaimer (Status: umgesetzt) — /navigation blockiert bis zur aktiven Bestätigung: Open-Source-Daten, nicht als Navigationsmittel zugelassen, nur unterstützend; amtliche Seekarten/Warnungen/Seemannschaft Pflicht. Quelle: User 2026-07-06.

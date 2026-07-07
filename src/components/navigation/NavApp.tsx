@@ -188,6 +188,41 @@ export function NavApp() {
     })();
   };
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
+
+  /** Wegpunkt verschoben (Drag, REQ-NAV-013): Position übernehmen, dann
+      dieselbe Wasser-Snap-Prüfung wie beim Setzen — bei "zu weit im Land"
+      springt der Punkt auf die alte Position zurück. */
+  const moveWaypoint = (id: string, lat: number, lon: number) => {
+    const alt = waypoints.find((w) => w.id === id);
+    if (!alt) return;
+    const vorher = { lat: alt.lat, lon: alt.lon };
+    setWaypoints((prev) => prev.map((w) => (w.id === id ? { ...w, lat, lon } : w)));
+    const myId = reqSeq.current;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/navigation/snap?revier=${encodeURIComponent(revier.id)}&lat=${lat}&lon=${lon}`,
+        );
+        const d = (await res.json().catch(() => ({}))) as {
+          lat?: number; lon?: number; snapped?: boolean; error?: string;
+        };
+        if (myId !== reqSeq.current) return;
+        if (res.status === 422) {
+          setWaypoints((prev) => prev.map((w) => (w.id === id ? { ...w, ...vorher } : w)));
+          setSnapHinweis(d.error ?? "Der Punkt liegt zu weit im Land — zurückgesetzt.");
+          return;
+        }
+        if (res.ok && d.snapped && d.lat != null && d.lon != null) {
+          setWaypoints((prev) =>
+            prev.map((w) => (w.id === id ? { ...w, lat: d.lat!, lon: d.lon! } : w)),
+          );
+          setSnapHinweis("Wegpunkt an die nächste Wasserstelle gesetzt.");
+        }
+      } catch {
+        /* Snap ist Komfort — Route-API snappt serverseitig ohnehin. */
+      }
+    })();
+  };
   const reset = () => {
     reqSeq.current++;
     setScan(null);
@@ -547,6 +582,7 @@ export function NavApp() {
               revier={revier}
               waypoints={waypoints}
               onAddWaypoint={addWaypoint}
+              onMoveWaypoint={moveWaypoint}
               routed={routed}
               overlay={overlay}
               showDepth={showDepth}

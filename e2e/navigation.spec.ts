@@ -478,3 +478,45 @@ test.describe("/navigation — Boot, Abfahrt, Snap, Kreuzen, Tide", () => {
     await expect(page.getByTestId("nav-depth-result")).toContainText(/Niedrigstwasser/);
   });
 });
+
+test.describe("/navigation — Drag & Offline", () => {
+  test("[REQ-NAV-013] Wegpunkt per Ziehen verschieben → Snap-Prüfung greift", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    const map = page.getByTestId("nav-map");
+    const box = (await map.boundingBox())!;
+    await map.click({ position: { x: box.width * 0.35, y: box.height * 0.4 } });
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(1);
+    // Marker greifen und ~15% nach rechts unten ziehen (Klicken-und-Halten)
+    const marker = page.locator(".wp-marker").first();
+    const mb = (await marker.boundingBox())!;
+    await page.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(mb.x + box.width * 0.15, mb.y + box.height * 0.15, { steps: 8 });
+    await page.mouse.up();
+    // Snap-Mock antwortet mit 54.600/13.600 → Listeneintrag zeigt die gesnappte Position
+    await expect(page.getByTestId("nav-snap-hinweis")).toContainText(/Wasserstelle/);
+    await expect(page.getByTestId("nav-waypoint-item").first()).toContainText("54.600");
+  });
+
+  test("[REQ-NAV-014] Offline: zuletzt geladene Seite bleibt aufrufbar (Service Worker)", async ({ page, context, browserName }) => {
+    test.skip(browserName !== "chromium", "SW-Offline-Test nur Chromium");
+    await blockTiles(page);
+    await page.addInitScript(() => localStorage.setItem("jtc-nav-disclaimer-v1", "1"));
+    await page.goto("/navigation");
+    await expect(page.getByTestId("nav-map").locator(".leaflet-container")).toBeVisible();
+    // SW aktiv werden lassen (registriert nur im Prod-Build, E2E läuft gegen next start)
+    await page.waitForFunction(async () => {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      return !!reg?.active;
+    }, undefined, { timeout: 15000 });
+    // Erstladung lief VOR der SW-Kontrolle → einmal online neu laden, damit
+    // Shell + Chunks durch den SW in den Cache wandern (real: 2. Besuch).
+    await page.reload();
+    await expect(page.getByTestId("nav-map").locator(".leaflet-container")).toBeVisible();
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByTestId("nav-map").locator(".leaflet-container")).toBeVisible({ timeout: 15000 });
+    await context.setOffline(false);
+  });
+});

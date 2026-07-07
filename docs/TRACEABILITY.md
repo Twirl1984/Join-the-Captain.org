@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 32 · getaggte Zuordnungen 39.
+Stand: Requirements 34 · getaggte Zuordnungen 41.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -30,6 +30,8 @@ Stand: Requirements 32 · getaggte Zuordnungen 39.
 | REQ-NAV-010 — Sichtbares Land-Snapping | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-010] Land-Klick snappt den Marker sichtbar an die Küste<br>`e2e/navigation.spec.ts`: [REQ-NAV-010] Klick zu weit im Land wird abgelehnt (Punkt verschwindet) |
 | REQ-NAV-011 — Kreuz-ETA | umgesetzt | `src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternati<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative<br>`e2e/navigation.spec.ts`: [REQ-NAV-011] Am-Wind-Leg zeigt Kreuz-Alternative und Gesamt-Alternative |
 | REQ-NAV-012 — Tide im Tiefen-Check | umgesetzt | `src/lib/navigation/__tests__/depth.test.ts`: [REQ-NAV-012] Tide-Verrechnung: Niedrigwasser kippt den Flachwasser-Status<br>`e2e/navigation.spec.ts`: [REQ-NAV-012] Flachwasser-Check rechnet die Tide ein und weist sie aus |
+| REQ-NAV-013 — Wegpunkt-Verschieben | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-013] Wegpunkt per Ziehen verschieben → Snap-Prüfung greift |
+| REQ-NAV-014 — Offline-Grundfähigkeit & TWA-Basis | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-014] Offline: zuletzt geladene Seite bleibt aufrufbar (Service Worker) |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |

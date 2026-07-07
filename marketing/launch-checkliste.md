@@ -43,8 +43,8 @@ Erstellen wegen API-Überlastung nicht möglich; Kernfakten sind Stand Anfang 20
 | ✅ | Store-Texte DE/EN, ASO-Keywords, Datenschutz-Formular-Antworten: `marketing/store-listing.md` |
 | ✅ | Social-/Foren-/WhatsApp-Texte: `marketing/social-posts.md` |
 | ✅ | Demo-Videos (mp4, 1280×720) + Store-Screenshots (1290×2796 = iPhone-6.7"-Pflichtmaß ⚠): `~/Downloads/jtc-marketing/` + `marketing/store-assets/` |
-| ⛔ P1 | **Service Worker** (Offline-Shell + Install-Kriterium für TWA/Android): `next-pwa` o. ä. — ~½ Tag |
-| ⛔ P1 | **assetlinks.json** für TWA (braucht den Signing-Key aus A1) |
+| ✅ | **Service Worker** (public/sw.js): Offline-Shell, Asset-Cache, Karten-Kacheln der letzten Route (400er-Deckel), APIs bewusst ungecacht — TWA-Install-Kriterium erfüllt [REQ-NAV-014] |
+| 🟡 | **assetlinks.json**: Template liegt unter public/.well-known/assetlinks.json.TEMPLATE — nach Play-Konto den SHA-256-Fingerprint eintragen und .TEMPLATE entfernen |
 | ⛔ P1 | **TWA-Paket** bauen (PWABuilder) + Play-Listing befüllen — ~½ Tag nach A1 |
 | ⛔ P2 | **Capacitor-iOS**: static-export-Shell oder Remote-URL + natives Geolocation-Plugin + Offline-Route-Cache (Apple-4.2-Mehrwert) — 2–4 Tage nach A3/A5 |
 | ⛔ P2 | Play: Feature-Graphic 1024×500, Screenshots 16:9; iOS: ggf. 6.9"-Maß prüfen ⚠ |
