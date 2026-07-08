@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/impressum" },
 };
 
-// ⚠️ PLATZHALTER: Vor Veröffentlichung die [ECKIGEN] Angaben befüllen und
-// juristisch gegenprüfen. Pflichtangaben nach § 5 DDG.
+// Angaben übernommen von join-the-captain.de (Impressum, Stand 2026-07) —
+// bewusst OHNE Telefonnummer: § 5 DDG verlangt neben der E-Mail nur einen
+// schnellen elektronischen Kommunikationsweg (EuGH C-298/07), kein Telefon.
 export default function ImpressumPage() {
   return (
     <div className="container section prose" style={{ maxWidth: 720 }}>
@@ -16,24 +17,24 @@ export default function ImpressumPage() {
 
       <h3>Angaben gemäß § 5 DDG</h3>
       <p>
-        [VORNAME NACHNAME]
+        Christoph Funda
         <br />
-        [STRASSE HAUSNUMMER]
+        Dr. Funda Engineering
         <br />
-        [PLZ ORT]
+        Einzelunternehmer
+        <br />
+        Wiesenstraße 52B
+        <br />
+        90443 Nürnberg
         <br />
         Deutschland
       </p>
 
       <h3>Kontakt</h3>
-      <p>
-        E-Mail: [KONTAKT@ADRESSE.DE]
-        <br />
-        Telefon: [+49 …] <em>(optional, aber empfohlen)</em>
-      </p>
+      <p>E-Mail: impressum@join-the-captain.de</p>
 
       <h3>Verantwortlich für den Inhalt</h3>
-      <p>[VORNAME NACHNAME], Anschrift wie oben.</p>
+      <p>Christoph Funda, Anschrift wie oben.</p>
 
       <h3>Hinweis zu Navigations- und Wetterdaten</h3>
       <p>
@@ -47,10 +48,10 @@ export default function ImpressumPage() {
         Vollständigkeit und Aktualität der Daten wird keine Gewähr übernommen.
       </p>
 
-      <h3>Streitschlichtung</h3>
+      <h3>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h3>
       <p>
-        Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren
-        vor einer Verbraucherschlichtungsstelle teilzunehmen.
+        Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor
+        einer Verbraucherschlichtungsstelle teilzunehmen.
       </p>
     </div>
   );

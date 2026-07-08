@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/datenschutz" },
 };
 
-// ⚠️ PLATZHALTER: Verantwortlichen befüllen und vor Veröffentlichung prüfen.
+// Verantwortlichen-Daten übernommen von join-the-captain.de (Stand 2026-07).
 // Deckt den realen Stand der Website/App ab: Server-Logs (Strato-VPS, nginx),
 // Karten-Tiles (OSM/OpenSeaMap/EMODnet), Wetterdaten (Open-Meteo), Plausible
 // (cookielos), Feedback-Formular (Name/E-Mail optional), GPS im Browser.
@@ -18,8 +18,8 @@ export default function DatenschutzPage() {
 
       <h3>1. Verantwortlicher</h3>
       <p>
-        [VORNAME NACHNAME], [STRASSE HAUSNUMMER], [PLZ ORT], Deutschland ·
-        E-Mail: [KONTAKT@ADRESSE.DE]
+        Christoph Funda · Dr. Funda Engineering · Wiesenstraße 52B, 90443
+        Nürnberg, Deutschland · E-Mail: datenschutz@join-the-captain.de
       </p>
 
       <h3>2. Hosting &amp; Server-Logs</h3>
@@ -86,7 +86,23 @@ export default function DatenschutzPage() {
         Datenschutzhinweise von Stripe gelten).
       </p>
 
-      <h3>9. Deine Rechte</h3>
+      <h3>9. SSL-/TLS-Verschlüsselung</h3>
+      <p>
+        Diese Website nutzt aus Sicherheitsgründen eine SSL- bzw.
+        TLS-Verschlüsselung (erkennbar an „https://" und dem Schloss-Symbol).
+        Damit können übermittelte Daten nicht von Dritten mitgelesen werden.
+      </p>
+
+      <h3>10. Widerruf deiner Einwilligung</h3>
+      <p>
+        Bereits erteilte Einwilligungen (z.&nbsp;B. GPS-Freigabe,
+        Feedback-Kontaktdaten) kannst du jederzeit mit Wirkung für die Zukunft
+        widerrufen — formlos an die o.&nbsp;g. Kontaktadresse. Die
+        Rechtmäßigkeit der bis zum Widerruf erfolgten Verarbeitung bleibt
+        unberührt.
+      </p>
+
+      <h3>11. Deine Rechte</h3>
       <p>
         Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung
         der Verarbeitung, Datenübertragbarkeit sowie Widerspruch
@@ -95,7 +111,7 @@ export default function DatenschutzPage() {
         Kontaktadresse.
       </p>
 
-      <p className="caption">Stand: Juli 2026 · [VOR VERÖFFENTLICHUNG PRÜFEN]</p>
+      <p className="caption">Stand: Juli 2026 · Quelle Grundstruktur: e-recht24.de / join-the-captain.de</p>
     </div>
   );
 }
