@@ -24,6 +24,12 @@ export interface Waypoint {
    * (Liegezeit); kommt es später an, fährt es direkt weiter.
    */
   depart_at?: string | Date;
+  /**
+   * Liegedauer an diesem Wegpunkt in MINUTEN ab Ankunft (REQ-NAV-017):
+   * Weiterfahrt = Ankunft + stay_min. Sind stay_min UND depart_at gesetzt,
+   * gewinnt der spätere Zeitpunkt (konservativ: nie früher losfahren als geplant).
+   */
+  stay_min?: number;
 }
 
 /** Wetter-Sample an einem Punkt zu einem Zeitpunkt (vom Sampler geliefert). */
@@ -156,12 +162,18 @@ export function planRoute({
     // Liegezeit: hat der Start-Wegpunkt ein "Weiterfahrt ab", warten wir bis
     // dahin (Hafen-Übernachtung); frühere Ankunft verfällt, spätere gewinnt.
     let layoverH: number | null = null;
+    let departMs: number | null = null;
     if (from.depart_at) {
       const dep = from.depart_at instanceof Date ? from.depart_at : new Date(from.depart_at);
-      if (!Number.isNaN(dep.getTime()) && dep.getTime() > t.getTime()) {
-        layoverH = round((dep.getTime() - t.getTime()) / 3600e3, 1);
-        t = new Date(dep);
-      }
+      if (!Number.isNaN(dep.getTime())) departMs = dep.getTime();
+    }
+    // Liegedauer relativ zur Ankunft (t = Ankunft am Start-Wegpunkt des Legs).
+    if (from.stay_min != null && Number.isFinite(from.stay_min) && from.stay_min > 0) {
+      departMs = Math.max(departMs ?? 0, t.getTime() + from.stay_min * 60e3);
+    }
+    if (departMs != null && departMs > t.getTime()) {
+      layoverH = round((departMs - t.getTime()) / 3600e3, 1);
+      t = new Date(departMs);
     }
     const depart = new Date(t);
 

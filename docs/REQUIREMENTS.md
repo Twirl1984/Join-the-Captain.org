@@ -49,6 +49,7 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 
 - **REQ-NAV-015** Warn-Empfindlichkeit in Navigation (Status: umgesetzt) — Der Risiko-Regler (REQ-WET-002) ist in /navigation bedienbar und wirkt auf Route, Abfahrts-Scan und Zeitreise. Quelle: User 2026-07-08.
 - **REQ-NAV-016** Eine App: Navigation & Wetter (Status: umgesetzt) — /navigation ist die einzige App (inkl. Modell-Wahl mit Revier-Empfehlung, Feedback-Karte, Liegezeiten, Archiv-Badge aus /wetter); /wetter leitet dauerhaft auf /navigation um (bestehende Links bleiben gültig). REVIDIERT den Entscheid „/wetter bleibt" vom 2026-07-06. Quelle: User-Entscheid 2026-07-08.
+- **REQ-NAV-017** Liegezeit als Dauer und Uhrzeit (Status: umgesetzt) — An Zwischenstopps kann die Liegezeit als Dauer (Stunden/Minuten) ODER als Weiterfahrt-Uhrzeit eingegeben werden; beide Eingaben sind über die berechnete Ankunft bidirektional gekoppelt. Der Server versteht stay_min (Weiterfahrt = Ankunft + Dauer; ist zusätzlich depart_at gesetzt, gilt der spätere Zeitpunkt). Quelle: User 2026-07-08.
 
 ## SAFE — Sicherheit & Recht
 

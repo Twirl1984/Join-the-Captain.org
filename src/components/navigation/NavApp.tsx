@@ -150,6 +150,9 @@ export function NavApp() {
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<RoutePlan | null>(null);
   const [routing, setRouting] = useState<RoutingInfo | null>(null);
+  // Berechnete ANKUNFT je Wegpunkt-ID (aus plan.legs × routing.segments) —
+  // Basis für die bidirektionale Liegezeit (Dauer ⇄ Uhrzeit, REQ-NAV-017).
+  const [arrivals, setArrivals] = useState<Record<string, string>>({});
   const [depths, setDepths] = useState<DepthPoint[] | null>(null);
   const [depthLoading, setDepthLoading] = useState(false);
   const [depthError, setDepthError] = useState<string | null>(null);
@@ -171,7 +174,11 @@ export function NavApp() {
 
   // Effektive Wegpunkte: optional die eigene GPS-Position als Start.
   const effectiveWaypoints = useMemo((): Waypoint[] => {
-    const clicked = waypoints.map(({ lat, lon, name }) => ({ lat, lon, name }));
+    // depart_at/stay_min MÜSSEN mit — sonst ist "Weiterfahrt ab" wirkungslos
+    // (Bugfix REQ-NAV-017; Felder wurden bei der Portierung verworfen).
+    const clicked = waypoints.map(({ lat, lon, name, depart_at, stay_min }) => ({
+      lat, lon, name, depart_at, stay_min,
+    }));
     if (startAtGps && gps.fix) {
       return [{ lat: gps.fix.lat, lon: gps.fix.lon, name: "Meine Position" }, ...clicked];
     }
@@ -217,9 +224,44 @@ export function NavApp() {
   const setWaypointDepart = (id: string, value: string) =>
     setWaypoints((prev) =>
       prev.map((w) =>
-        w.id === id ? { ...w, depart_at: value ? new Date(value).toISOString() : undefined } : w,
+        w.id === id
+          ? { ...w, depart_at: value ? new Date(value).toISOString() : undefined, stay_min: undefined }
+          : w,
       ),
     );
+  const setWaypointStay = (id: string, hStr: string, mStr: string) => {
+    const h = Math.max(0, Math.min(168, Math.floor(Number(hStr)) || 0));
+    const m = Math.max(0, Math.min(59, Math.floor(Number(mStr)) || 0));
+    const total = h * 60 + m;
+    setWaypoints((prev) =>
+      prev.map((w) =>
+        w.id === id
+          ? { ...w, stay_min: total > 0 ? total : undefined, depart_at: undefined }
+          : w,
+      ),
+    );
+  };
+  // Anzeige-Ableitung: das NICHT führende Feld wird aus Ankunft + führendem Wert
+  // berechnet (bidirektional, REQ-NAV-017). Ohne berechnete Ankunft bleibt es leer.
+  const stayFieldsFor = (w: NavUiWaypoint): { h: string; m: string } => {
+    if (w.stay_min != null) {
+      return { h: String(Math.floor(w.stay_min / 60)), m: String(w.stay_min % 60) };
+    }
+    const arr = arrivals[w.id];
+    if (w.depart_at && arr) {
+      const diffMin = Math.round((new Date(w.depart_at).getTime() - Date.parse(arr)) / 60e3);
+      if (diffMin >= 0) return { h: String(Math.floor(diffMin / 60)), m: String(diffMin % 60) };
+    }
+    return { h: "", m: "" };
+  };
+  const departFieldFor = (w: NavUiWaypoint): string => {
+    if (w.depart_at) return toLocalInput(new Date(w.depart_at));
+    const arr = arrivals[w.id];
+    if (w.stay_min != null && arr) {
+      return toLocalInput(new Date(Date.parse(arr) + w.stay_min * 60e3));
+    }
+    return "";
+  };
 
   /** Wegpunkt verschoben (Drag, REQ-NAV-013): Position übernehmen, dann
       dieselbe Wasser-Snap-Prüfung wie beim Setzen — bei "zu weit im Land"
@@ -262,6 +304,7 @@ export function NavApp() {
     setWaypoints([]);
     setPlan(null);
     setRouting(null);
+    setArrivals({});
     setDepths(null);
     setTimeline(null);
     setPlaying(false);
@@ -270,6 +313,10 @@ export function NavApp() {
   };
 
   async function calculate(opts: { silent?: boolean; scanWindowEnd?: string } = {}) {
+    // Request-Stand festhalten: Wegpunkte + GPS-Offset, wie sie in
+    // effectiveWaypoints eingehen (Basis fürs arrivals-Mapping der Antwort).
+    const wpsSnapshot = waypoints;
+    const gpsOffSnapshot = startAtGps && gps.fix ? 1 : 0;
     if (!canCalc) return;
     // Ab eigener Position gilt: Abfahrt JETZT (echte Ankunftszeiten).
     const startDate = startAtGps && gps.fix ? new Date() : new Date(startTime);
@@ -319,6 +366,21 @@ export function NavApp() {
       }
       setPlan(data.plan);
       setRouting(data.routing);
+      // Ankunft je UI-Wegpunkt: Segment i verbindet User-Punkt i mit i+1;
+      // das Leg, das am Segment-Endpunkt endet, trägt die Ankunfts-ETA.
+      // WICHTIG: wpsSnapshot/gpsOffSnapshot (Request-Stand) statt Live-State —
+      // segments wurden für GENAU diese Punktfolge gerechnet (tiefgangSnapshot-Muster).
+      {
+        const arr: Record<string, string> = {};
+        wpsSnapshot.forEach((w, i) => {
+          const effIdx = i + gpsOffSnapshot;
+          if (effIdx === 0) return; // Startpunkt hat keine Ankunft
+          const seg = data.routing!.segments[effIdx - 1];
+          const leg = seg ? data.plan!.legs[seg.to - 1] : undefined;
+          if (leg) arr[w.id] = leg.eta;
+        });
+        setArrivals(arr);
+      }
       setScan(data.scan ?? null);
       setSource((data as { source?: string }).source ?? null);
       setFbState("idle");
@@ -846,19 +908,63 @@ export function NavApp() {
                         <Icon name="x" size={14} />
                       </button>
                     </span>
-                    {/* Liegezeit ("Weiterfahrt ab") an Zwischenstopps — REQ-NAV-016 */}
+                    {/* Liegezeit an Zwischenstopps: Dauer (h/min) ⇄ Uhrzeit,
+                        bidirektional über die berechnete Ankunft (REQ-NAV-017). */}
                     {i > 0 && i < waypoints.length - 1 && (
-                      <label className="row" style={{ gap: 6, paddingLeft: 28, flexWrap: "wrap" }}>
-                        <span className="caption">Weiterfahrt ab</span>
-                        <input
-                          type="datetime-local"
-                          className="wetter-select"
-                          style={{ minHeight: 34, fontSize: 12, maxWidth: 210 }}
-                          value={w.depart_at ? toLocalInput(new Date(w.depart_at)) : ""}
-                          onChange={(e) => setWaypointDepart(w.id, e.target.value)}
-                          aria-label={`Weiterfahrt ab Wegpunkt ${i + 1}`}
-                        />
-                      </label>
+                      <div className="stack" style={{ gap: 4, paddingLeft: 28 }}>
+                        {arrivals[w.id] ? (
+                          <span className="caption" data-testid="nav-arrival">
+                            Ankunft {fmtEta(arrivals[w.id])}
+                          </span>
+                        ) : (w.stay_min != null || w.depart_at) && (
+                          <span className="caption" data-testid="nav-arrival-pending">
+                            Dauer und Uhrzeit werden nach „Route berechnen“ gekoppelt.
+                          </span>
+                        )}
+                        <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                          <span className="caption">Liegezeit</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={168}
+                            inputMode="numeric"
+                            data-testid="nav-stay-h"
+                            className="wetter-select"
+                            style={{ minHeight: 44, fontSize: 14, width: 72 }}
+                            placeholder="0"
+                            value={stayFieldsFor(w).h}
+                            onChange={(e) => setWaypointStay(w.id, e.target.value, stayFieldsFor(w).m)}
+                            aria-label={`Liegezeit Stunden an Wegpunkt ${i + 1}`}
+                          />
+                          <span className="caption">h</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            inputMode="numeric"
+                            data-testid="nav-stay-min"
+                            className="wetter-select"
+                            style={{ minHeight: 44, fontSize: 14, width: 72 }}
+                            placeholder="0"
+                            value={stayFieldsFor(w).m}
+                            onChange={(e) => setWaypointStay(w.id, stayFieldsFor(w).h, e.target.value)}
+                            aria-label={`Liegezeit Minuten an Wegpunkt ${i + 1}`}
+                          />
+                          <span className="caption">min</span>
+                        </label>
+                        <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                          <span className="caption">Weiterfahrt ab</span>
+                          <input
+                            type="datetime-local"
+                            data-testid="nav-depart-at"
+                            className="wetter-select"
+                            style={{ minHeight: 44, fontSize: 14, maxWidth: 220 }}
+                            value={departFieldFor(w)}
+                            onChange={(e) => setWaypointDepart(w.id, e.target.value)}
+                            aria-label={`Weiterfahrt ab Wegpunkt ${i + 1}`}
+                          />
+                        </label>
+                      </div>
                     )}
                   </li>
                 ))}

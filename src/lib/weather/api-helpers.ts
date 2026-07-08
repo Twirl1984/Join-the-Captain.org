@@ -28,11 +28,20 @@ export function parseWaypoints(raw: unknown): Waypoint[] | null {
       if (Number.isNaN(d.getTime())) return null;
       depart_at = d.toISOString();
     }
+    // Optionale Liegedauer in Minuten (REQ-NAV-017), gedeckelt auf 7 Tage —
+    // mehr würde das Vorhersage-Fenster des Samplers sprengen.
+    let stay_min: number | undefined;
+    if (w.stay_min != null) {
+      const n = Number(w.stay_min);
+      if (!Number.isFinite(n) || n < 0 || n > 7 * 24 * 60) return null;
+      stay_min = Math.round(n) || undefined;
+    }
     out.push({
       lat,
       lon,
       name: typeof w.name === "string" ? w.name.slice(0, MAX_NAME_LEN) : undefined,
       depart_at,
+      stay_min,
     });
   }
   return out;
@@ -99,4 +108,13 @@ export function mergeBoat(raw: unknown): Boat {
     min_wind_kn: minWind != null && maxWind != null && minWind >= maxWind ? null : minWind,
     max_wind_kn: maxWind ?? DEFAULT_BOAT.max_wind_kn,
   };
+}
+
+/** Summe aller Liegedauern gedeckelt auf 7 Tage — mehr sprengt das
+ *  Vorhersage-Fenster des Samplers (REQ-NAV-017, Review-Finding). */
+export function staySumError(waypoints: ReadonlyArray<Waypoint>): string | null {
+  const total = waypoints.reduce((a, w) => a + (w.stay_min ?? 0), 0);
+  return total > 7 * 24 * 60
+    ? "Liegezeiten zusammen länger als 7 Tage — so weit reicht die Vorhersage nicht."
+    : null;
 }

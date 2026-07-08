@@ -193,3 +193,54 @@ test("[REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative", () => {
   assert.equal(r.legs[0].alternative, undefined);
   assert.equal(r.eta_alternative, undefined);
 });
+
+// ── Liegezeit als Dauer: stay_min (REQ-NAV-017) ──────────────────────────────
+
+const stayWps = [
+  { lat: 54, lon: 13, name: "A" },
+  { lat: 54, lon: 13.2, name: "B" },
+  { lat: 54, lon: 13.4, name: "C" },
+];
+const steadySampler = (): ForecastSample => ({ wind_speed_kn: 12, wind_from_deg: 0 });
+const stayStart = new Date("2026-07-10T08:00:00Z");
+
+test("[REQ-NAV-017] stay_min: Weiterfahrt = Ankunft + Dauer, layover_h gesetzt", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const r = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 150 }, stayWps[2]],
+    startTime: stayStart,
+    mode: "sail",
+    sampleForecast: steadySampler,
+  });
+  near(r.legs[1].layover_h ?? 0, 2.5, 0.05, "layover_h = 2,5 h");
+  const depart = new Date(r.legs[1].depart).getTime();
+  const arrival = new Date(base.legs[0].eta).getTime();
+  near((depart - arrival) / 3600e3, 2.5, 0.02, "Weiterfahrt exakt 2,5 h nach Ankunft");
+});
+
+test("[REQ-NAV-017] stay_min + depart_at: der spätere Zeitpunkt gewinnt (konservativ)", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const arrival = new Date(base.legs[0].eta).getTime();
+  // depart_at NACH der Liegedauer → depart_at gewinnt
+  const late = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 60, depart_at: new Date(arrival + 3 * 3600e3) }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  near(new Date(late.legs[1].depart).getTime(), arrival + 3 * 3600e3, 1000);
+  // depart_at VOR Ablauf der Liegedauer → stay_min gewinnt
+  const early = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 180, depart_at: new Date(arrival + 3600e3) }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  near(new Date(early.legs[1].depart).getTime(), arrival + 3 * 3600e3, 1000);
+});
+
+test("[REQ-NAV-017] stay_min 0/undefined: kein Layover, ETA unverändert", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const zero = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 0 }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  assert.equal(zero.legs[1].layover_h, null);
+  assert.equal(zero.eta, base.eta);
+});

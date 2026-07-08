@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 36 · getaggte Zuordnungen 46.
+Stand: Requirements 37 · getaggte Zuordnungen 55.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -34,6 +34,7 @@ Stand: Requirements 36 · getaggte Zuordnungen 46.
 | REQ-NAV-014 — Offline-Grundfähigkeit & TWA-Basis | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-014] Offline: zuletzt geladene Seite bleibt aufrufbar (Service Worker) |
 | REQ-NAV-015 — Warn-Empfindlichkeit in Navigation | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-WET-002] [REQ-NAV-015] Regler ↑ erhöht (oder hält) die Warnungszahl |
 | REQ-NAV-016 — Eine App: Navigation & Wetter | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-NAV-016] /wetter leitet dauerhaft auf /navigation um |
+| REQ-NAV-017 — Liegezeit als Dauer und Uhrzeit | umgesetzt | `src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: stay_min wird übernommen und gerundet<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: stay_min 0 wird zu undefined (keine Liegezeit)<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: ungültige stay_min werden abgelehnt<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] staySumError: Summe der Liegezeiten über 7 Tage wird abgelehnt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min: Weiterfahrt = Ankunft + Dauer, layover_h gesetzt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min + depart_at: der spätere Zeitpunkt gewinnt (konservativ)<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min 0/undefined: kein Layover, ETA unverändert<br>`e2e/navigation.spec.ts`: [REQ-NAV-017] Dauer ergibt Uhrzeit, Uhrzeit ergibt Dauer, stay_min/depart_at im Request<br>`e2e/navigation.spec.ts`: [REQ-NAV-017] vor der ersten Berechnung: Eingabe wird angenommen, Kopplung angekündigt |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-SAFE-002] Seite lädt mit Karte, Regler und Attribution<br>`e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |

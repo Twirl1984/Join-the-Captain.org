@@ -6,6 +6,7 @@ import {
   MAX_WAYPOINTS,
   MAX_BODY_BYTES,
   parseWaypoints,
+  staySumError,
   midpointsOf,
   parseSensitivity,
   startTimeError,
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
   const waypoints = parseWaypoints(b.waypoints);
   if (!waypoints) return fehler("waypoints: ≥2 gültige {lat,lon} nötig.");
   if (waypoints.length > MAX_WAYPOINTS) return fehler(`Maximal ${MAX_WAYPOINTS} Wegpunkte.`);
+  const stayErr = staySumError(waypoints);
+  if (stayErr) return fehler(stayErr, 422);
 
   const startTime = b.startTime ? new Date(String(b.startTime)) : new Date();
   if (Number.isNaN(startTime.getTime())) return fehler("startTime ist kein gültiges Datum.");
@@ -52,9 +55,11 @@ export async function POST(req: NextRequest) {
   const lastDepart = waypoints
     .map((w) => (w.depart_at ? new Date(w.depart_at).getTime() : 0))
     .reduce((a, c) => Math.max(a, c), startTime.getTime());
+  // Liegedauern (stay_min) verschieben alles Folgende — Fenster entsprechend weiten.
+  const totalStayMs = waypoints.reduce((a, w) => a + (w.stay_min ?? 0) * 60e3, 0);
   const window: TimeWindow = {
     start: startTime,
-    end: new Date(lastDepart + ROUTE_WINDOW_DAYS * 24 * 3600e3),
+    end: new Date(lastDepart + totalStayMs + ROUTE_WINDOW_DAYS * 24 * 3600e3),
   };
 
   try {

@@ -520,3 +520,88 @@ test.describe("/navigation — Drag & Offline", () => {
     await context.setOffline(false);
   });
 });
+
+test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", () => {
+  test("[REQ-NAV-017] Dauer ergibt Uhrzeit, Uhrzeit ergibt Dauer, stay_min/depart_at im Request", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    const map = page.getByTestId("nav-map");
+    const box = (await map.boundingBox())!;
+    await map.click({ position: { x: box.width * 0.3, y: box.height * 0.4 } });
+    await map.click({ position: { x: box.width * 0.5, y: box.height * 0.5 } });
+    await map.click({ position: { x: box.width * 0.7, y: box.height * 0.6 } });
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(3);
+    await calcAndWait(page);
+
+    // Nach der Berechnung zeigt der Zwischenstopp seine Ankunft.
+    await expect(page.getByTestId("nav-arrival")).toBeVisible();
+    await expect(page.getByTestId("nav-arrival-pending")).toHaveCount(0);
+
+    // Dauer → Uhrzeit: 2 h 30 min ergibt eine abgeleitete Weiterfahrt-Uhrzeit …
+    await page.getByTestId("nav-stay-h").fill("2");
+    await page.getByTestId("nav-stay-min").fill("30");
+    const v1 = await page.getByTestId("nav-depart-at").inputValue();
+    expect(v1).not.toBe("");
+    // … und +1 h Dauer verschiebt sie um exakt 60 Minuten.
+    await page.getByTestId("nav-stay-h").fill("3");
+    const v2 = await page.getByTestId("nav-depart-at").inputValue();
+    expect(new Date(v2).getTime() - new Date(v1).getTime()).toBe(3600e3);
+
+    // Die Liegedauer wird auch wirklich MITGESENDET (Bugfix: ging vorher verloren).
+    const resp1 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
+    await page.getByTestId("nav-calc").click();
+    const body1 = JSON.parse((await resp1).request().postData() ?? "{}") as {
+      waypoints: Array<{ stay_min?: number; depart_at?: string }>;
+    };
+    expect(body1.waypoints[1].stay_min).toBe(210);
+    expect(body1.waypoints[1].depart_at).toBeUndefined();
+
+    // Uhrzeit → Dauer: Weiterfahrt 15 min später ⇒ Felder zeigen 3 h 45 min.
+    const plus15 = new Date(new Date(v2).getTime() + 15 * 60e3);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const local = `${plus15.getFullYear()}-${pad(plus15.getMonth() + 1)}-${pad(plus15.getDate())}T${pad(plus15.getHours())}:${pad(plus15.getMinutes())}`;
+    await page.getByTestId("nav-depart-at").fill(local);
+    await expect(page.getByTestId("nav-stay-h")).toHaveValue("3");
+    await expect(page.getByTestId("nav-stay-min")).toHaveValue("45");
+
+    // Jetzt führt die Uhrzeit: Request trägt depart_at, keine stay_min.
+    const resp2 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
+    await page.getByTestId("nav-calc").click();
+    const body2 = JSON.parse((await resp2).request().postData() ?? "{}") as {
+      waypoints: Array<{ stay_min?: number; depart_at?: string }>;
+    };
+    expect(body2.waypoints[1].depart_at).toBeTruthy();
+    expect(body2.waypoints[1].stay_min).toBeUndefined();
+
+    // Dauer-Felder leeren ⇒ keine Liegezeit mehr im Request.
+    await page.getByTestId("nav-stay-h").fill("0");
+    await page.getByTestId("nav-stay-min").fill("0");
+    const resp3 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
+    await page.getByTestId("nav-calc").click();
+    const body3 = JSON.parse((await resp3).request().postData() ?? "{}") as {
+      waypoints: Array<{ stay_min?: number; depart_at?: string }>;
+    };
+    expect(body3.waypoints[1].stay_min).toBeUndefined();
+    expect(body3.waypoints[1].depart_at).toBeUndefined();
+  });
+
+  test("[REQ-NAV-017] vor der ersten Berechnung: Eingabe wird angenommen, Kopplung angekündigt", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    const map = page.getByTestId("nav-map");
+    const box = (await map.boundingBox())!;
+    await map.click({ position: { x: box.width * 0.3, y: box.height * 0.4 } });
+    await map.click({ position: { x: box.width * 0.5, y: box.height * 0.5 } });
+    await map.click({ position: { x: box.width * 0.7, y: box.height * 0.6 } });
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(3);
+    // Ohne Berechnung gibt es noch keine Ankunft: Dauer-Eingabe funktioniert,
+    // die Uhrzeit bleibt leer und der Hinweis erklärt warum.
+    await page.getByTestId("nav-stay-h").fill("2");
+    await expect(page.getByTestId("nav-depart-at")).toHaveValue("");
+    await expect(page.getByTestId("nav-arrival-pending")).toBeVisible();
+    // Nach der Berechnung ist die Kopplung aktiv.
+    await calcAndWait(page);
+    await expect(page.getByTestId("nav-arrival")).toBeVisible();
+    await expect(page.getByTestId("nav-depart-at")).not.toHaveValue("");
+  });
+});
