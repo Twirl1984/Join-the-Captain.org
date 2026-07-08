@@ -4,7 +4,7 @@ import { NavApp } from "@/components/navigation/NavApp";
 import { navigationEnabled } from "@/lib/flags";
 
 export const metadata: Metadata = {
-  title: "Navigation — Seekarte, Tiefen & GPS",
+  title: "Navigation & Wetter — Seekarte, Tiefen & GPS",
   description:
     "Seekarte mit Tiefen (EMODnet), Routenplanung die Land automatisch umfährt, GPS-Position, " +
     "echte Ankunftszeiten, Strömung, Windrichtung und Wolkenfelder über die Zeit — für Nordsee, " +
@@ -21,7 +21,7 @@ export default function NavigationPage() {
     <div className="container section">
       <div className="stack" style={{ gap: 6, marginBottom: 20 }}>
         <span className="section-label">JTC-Eigenbau · Beta</span>
-        <h1>Navigation</h1>
+        <h1>Navigation &amp; Wetter</h1>
         <p className="muted" style={{ maxWidth: 620 }}>
           Seekarte mit Tiefen, Route, die automatisch um Land herumführt, deine GPS-Position
           und echte Ankunftszeiten — dazu Strömung, Wind und Wolkenfelder über die Zeit.

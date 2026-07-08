@@ -18,6 +18,7 @@ import { flachwasserCheck, type FlachwasserStatus } from "@/lib/navigation/depth
 import { boatFromSpecs, BOAT_PRESETS, type BoatSpecs } from "@/lib/weather/polar";
 import type { DepartureScan } from "@/lib/weather/departure-scan";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
+import { WEATHER_MODELS, type WeatherModel } from "@/lib/weather/open-meteo";
 import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import { boatPositionAt } from "@/lib/weather/playback";
 import type { TimelinePoint } from "@/lib/weather/open-meteo";
@@ -52,6 +53,15 @@ interface DepthPoint {
   depth_eff_m?: number | null;
   check?: FlachwasserStatus;
 }
+
+const FEEDBACK_ISSUES = [
+  "Wind stärker als vorhergesagt",
+  "Wind schwächer als vorhergesagt",
+  "Gewitter kam nicht (Fehlalarm)",
+  "Gewitter/Sturm kam ungewarnt",
+  "Welle falsch",
+  "Ankunftszeit lag daneben",
+] as const;
 
 const fmtEta = (iso: string) =>
   new Date(iso).toLocaleString("de-DE", {
@@ -113,6 +123,22 @@ export function NavApp() {
   // Abfahrts-Scan (REQ-NAV-009): Fenster-Ende + Ergebnis.
   const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 48 * 3600e3)));
   const [scan, setScan] = useState<DepartureScan | null>(null);
+  // Warn-Empfindlichkeit (REQ-NAV-015) — wirkt auf Route, Scan und Zeitreise.
+  const [sensitivity, setSensitivity] = useState(RECOMMENDED_SENSITIVITY);
+  // Wettermodell + gemessene Revier-Empfehlung (REQ-NAV-016 aus /wetter).
+  const [model, setModel] = useState<WeatherModel>("best_match");
+  const [modelRec, setModelRec] = useState<{
+    model: string; label: string; mae_gust_kn: number | null; n_samples: number;
+  } | null>(null);
+  const [source, setSource] = useState<string | null>(null);
+  // Feedback-Schleife (REQ-WET-012, portiert).
+  const [fbRating, setFbRating] = useState<number | null>(null);
+  const [fbOk, setFbOk] = useState<boolean | null>(null);
+  const [fbText, setFbText] = useState("");
+  const [fbName, setFbName] = useState("");
+  const [fbEmail, setFbEmail] = useState("");
+  const [fbIssues, setFbIssues] = useState<string[]>([]);
+  const [fbState, setFbState] = useState<"idle" | "sending" | "done">("idle");
   const [snapHinweis, setSnapHinweis] = useState<string | null>(null);
   // GPS
   const gps = useGeolocation();
@@ -188,6 +214,12 @@ export function NavApp() {
     })();
   };
   const removeWaypoint = (id: string) => setWaypoints((prev) => prev.filter((w) => w.id !== id));
+  const setWaypointDepart = (id: string, value: string) =>
+    setWaypoints((prev) =>
+      prev.map((w) =>
+        w.id === id ? { ...w, depart_at: value ? new Date(value).toISOString() : undefined } : w,
+      ),
+    );
 
   /** Wegpunkt verschoben (Drag, REQ-NAV-013): Position übernehmen, dann
       dieselbe Wasser-Snap-Prüfung wie beim Setzen — bei "zu weit im Land"
@@ -262,7 +294,8 @@ export function NavApp() {
           waypoints: effectiveWaypoints,
           startTime: startIso,
           mode,
-          sensitivity: RECOMMENDED_SENSITIVITY,
+          sensitivity,
+          model,
           boat,
           ...(opts.scanWindowEnd
             ? { scanWindowEnd: opts.scanWindowEnd, scanStepH: 1 }
@@ -287,6 +320,8 @@ export function NavApp() {
       setPlan(data.plan);
       setRouting(data.routing);
       setScan(data.scan ?? null);
+      setSource((data as { source?: string }).source ?? null);
+      setFbState("idle");
       setDepths(null);
       // Timeline zuerst (liefert die Tide fürs Flachwasser, REQ-NAV-012),
       // dann automatischer Tiefen-Check mit Tide-Verrechnung.
@@ -328,7 +363,8 @@ export function NavApp() {
           startTime: startIso,
           endTime: new Date(Date.parse(p.eta) + 3 * 3600e3).toISOString(),
           stepH: 1,
-          sensitivity: RECOMMENDED_SENSITIVITY,
+          sensitivity,
+          model,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as Partial<Timeline>;
@@ -427,6 +463,63 @@ export function NavApp() {
       if (myId === reqSeq.current) setDepthLoading(false);
     }
   }
+
+  async function sendFeedback() {
+    setFbState("sending");
+    try {
+      const res = await fetch("/api/weather/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          zufriedenheit: fbRating ?? undefined,
+          vorhersage_ok: fbOk ?? undefined,
+          freitext: fbText || undefined,
+          name: fbName.trim() || undefined,
+          email: fbEmail.trim() || undefined,
+          kontext: plan
+            ? {
+                revier: revierId,
+                waypoints: effectiveWaypoints,
+                startTime: new Date(startTime).toISOString(),
+                mode,
+                sensitivity,
+                model,
+                source,
+                boat,
+                abweichungen: fbIssues,
+                plan: {
+                  eta: plan.eta,
+                  total_nm: plan.total_nm,
+                  warnings: plan.warnings,
+                  legs: plan.legs.map((l) => ({
+                    from: l.from, to: l.to, wind_kn: l.wind_kn, gust_kn: l.gust_kn,
+                    wind_from_deg: l.wind_from_deg, wave_m: l.wave_m,
+                    depart: l.depart, eta: l.eta, warnings: l.warnings,
+                  })),
+                },
+              }
+            : undefined,
+        }),
+      });
+      setFbState(res.ok ? "done" : "idle");
+      if (!res.ok) setError("Feedback konnte nicht gespeichert werden — bitte später erneut.");
+    } catch {
+      setFbState("idle");
+      setError("Netzwerkfehler — Feedback nicht gespeichert.");
+    }
+  }
+
+  // Gemessene Modell-Empfehlung fürs Revier (Feedback-Loop, REQ-WET-011).
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/weather/model-scores?revier=${encodeURIComponent(revierId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setModelRec(d?.empfehlung ?? null))
+      .catch(() => alive && setModelRec(null));
+    return () => {
+      alive = false;
+    };
+  }, [revierId]);
 
   // Auto-Update: mit GPS-Start alle 60 s still neu rechnen → echte Live-ETA.
   // Über calcRef, damit jeder Tick die AKTUELLE Position/Route nutzt.
@@ -753,6 +846,20 @@ export function NavApp() {
                         <Icon name="x" size={14} />
                       </button>
                     </span>
+                    {/* Liegezeit ("Weiterfahrt ab") an Zwischenstopps — REQ-NAV-016 */}
+                    {i > 0 && i < waypoints.length - 1 && (
+                      <label className="row" style={{ gap: 6, paddingLeft: 28, flexWrap: "wrap" }}>
+                        <span className="caption">Weiterfahrt ab</span>
+                        <input
+                          type="datetime-local"
+                          className="wetter-select"
+                          style={{ minHeight: 34, fontSize: 12, maxWidth: 210 }}
+                          value={w.depart_at ? toLocalInput(new Date(w.depart_at)) : ""}
+                          onChange={(e) => setWaypointDepart(w.id, e.target.value)}
+                          aria-label={`Weiterfahrt ab Wegpunkt ${i + 1}`}
+                        />
+                      </label>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -842,6 +949,64 @@ export function NavApp() {
               </p>
             </div>
           </details>
+
+          {/* Warn-Empfindlichkeit (REQ-NAV-015) */}
+          <div className="card stack" style={{ gap: 10 }}>
+            <span className="section-label">Warn-Empfindlichkeit</span>
+            <input
+              data-testid="risk-slider"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={sensitivity}
+              onChange={(e) => setSensitivity(Number(e.target.value))}
+              className="wetter-slider"
+              aria-label="Warn-Empfindlichkeit: 0 risikofreudig bis 1 vorsichtig"
+            />
+            <div className="row-between" style={{ fontSize: 11 }}>
+              <span className="muted">Risikofreudig — wenige Fehlalarme</span>
+              <span className="muted">Vorsichtig — keine verpasste Warnung</span>
+            </div>
+            <p className="caption">
+              Fehlalarm (FP) heißt: unnötig in den Hafen. Verpasste Warnung (FN) heißt: ungewarnt
+              im Sturm — schwere Stürme (≥&nbsp;9&nbsp;Bft) warnen deshalb immer, unabhängig vom
+              Regler.
+            </p>
+            {/* Wettermodell — transparent wählbar, mit gemessener Revier-Empfehlung */}
+            <label className="stack" style={{ gap: 6 }}>
+              <span className="caption">Wettermodell</span>
+              <select
+                data-testid="model-select"
+                className="wetter-select"
+                value={model}
+                onChange={(e) => setModel(e.target.value as WeatherModel)}
+              >
+                {(Object.keys(WEATHER_MODELS) as WeatherModel[]).map((m) => (
+                  <option key={m} value={m}>
+                    {WEATHER_MODELS[m].label}
+                  </option>
+                ))}
+              </select>
+              <span className="caption" data-testid="model-reason">
+                {WEATHER_MODELS[model].grund}
+              </span>
+              {modelRec && modelRec.model !== model && (
+                <span className="caption row" style={{ gap: 6 }} data-testid="model-recommendation">
+                  📊 Gemessen fürs Revier: <strong>{modelRec.label}</strong> trifft am besten
+                  (Böen-MAE {modelRec.mae_gust_kn} kn, n={modelRec.n_samples})
+                  <button
+                    type="button"
+                    className="pill"
+                    data-testid="model-adopt"
+                    onClick={() => setModel(modelRec.model as WeatherModel)}
+                  >
+                    übernehmen
+                  </button>
+                </span>
+              )}
+            </label>
+          </div>
 
           {/* Abfahrts-Scan (REQ-NAV-009): über den gerouteten Wasserweg */}
           <div className="card stack" style={{ gap: 10 }}>
@@ -943,6 +1108,11 @@ export function NavApp() {
         <div data-testid="nav-result" className="stack" style={{ gap: 16 }}>
           <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
             <span className="tag phase-planung">Navigation</span>
+            {source === "open-meteo-archive" && (
+              <span className="tag badge-verworfen" data-testid="archive-badge">
+                Archivdaten · Validierung
+              </span>
+            )}
             <strong>{plan.total_nm} sm</strong>
             <span className="muted" data-testid="nav-eta">
               Ankunft {fmtEta(plan.eta)}
@@ -1047,6 +1217,123 @@ export function NavApp() {
             Land herum und zeigt Wind, Strömung, Wolken und echte Ankunftszeiten. Mit GPS
             startet sie an deiner Position.
           </p>
+        </div>
+      )}
+
+      {plan && !loading && (
+        <div className="card stack" style={{ gap: 10 }} data-testid="feedback-card">
+          <span className="section-label">Dein Feedback</span>
+          {fbState === "done" ? (
+            <p data-testid="feedback-thanks" className="muted" style={{ fontSize: 13 }}>
+              Danke! Dein Feedback fließt in die Kalibrierung der Warnungen ein.
+            </p>
+          ) : (
+            <>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                <span className="caption" style={{ minWidth: 130 }}>
+                  Hat die Vorhersage gepasst?
+                </span>
+                <button
+                  type="button"
+                  data-testid="feedback-ok"
+                  className={`pill ${fbOk === true ? "active" : ""}`}
+                  onClick={() => setFbOk(fbOk === true ? null : true)}
+                >
+                  👍 passte
+                </button>
+                <button
+                  type="button"
+                  data-testid="feedback-not-ok"
+                  className={`pill ${fbOk === false ? "active" : ""}`}
+                  onClick={() => setFbOk(fbOk === false ? null : false)}
+                >
+                  👎 lag daneben
+                </button>
+              </div>
+              {fbOk === false && (
+                <div className="pills" data-testid="feedback-issues">
+                  {FEEDBACK_ISSUES.map((issue) => (
+                    <button
+                      key={issue}
+                      type="button"
+                      className={`pill ${fbIssues.includes(issue) ? "active" : ""}`}
+                      onClick={() =>
+                        setFbIssues((prev) =>
+                          prev.includes(issue) ? prev.filter((i) => i !== issue) : [...prev, issue],
+                        )
+                      }
+                    >
+                      {issue}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="row" style={{ gap: 4, flexWrap: "wrap" }}>
+                <span className="caption" style={{ minWidth: 130 }}>
+                  Wie zufrieden bist du?
+                </span>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    data-testid={`feedback-star-${n}`}
+                    className="wetter-star"
+                    aria-label={`${n} von 5 Sternen`}
+                    aria-pressed={fbRating != null && n <= fbRating}
+                    onClick={() => setFbRating(fbRating === n ? null : n)}
+                  >
+                    <Icon
+                      name="star"
+                      size={18}
+                      style={{ color: fbRating != null && n <= fbRating ? "var(--accent)" : "var(--fg-faint)" }}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                data-testid="feedback-text"
+                className="wish-input"
+                rows={2}
+                maxLength={2000}
+                placeholder="Was war falsch, was wünschst du dir noch?"
+                value={fbText}
+                onChange={(e) => setFbText(e.target.value)}
+              />
+              <div className="wetter-specs-grid">
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">Name (optional)</span>
+                  <input
+                    data-testid="feedback-name"
+                    type="text"
+                    maxLength={120}
+                    className="wetter-select"
+                    value={fbName}
+                    onChange={(e) => setFbName(e.target.value)}
+                  />
+                </label>
+                <label className="stack" style={{ gap: 4 }}>
+                  <span className="caption">E-Mail (optional, für Rückfragen)</span>
+                  <input
+                    data-testid="feedback-email"
+                    type="email"
+                    maxLength={200}
+                    className="wetter-select"
+                    value={fbEmail}
+                    onChange={(e) => setFbEmail(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                data-testid="feedback-submit"
+                className="btn btn-outline-gold"
+                disabled={fbState === "sending" || (fbRating == null && fbOk == null && !fbText.trim())}
+                onClick={sendFeedback}
+              >
+                {fbState === "sending" ? "Sende …" : "Feedback senden"}
+              </button>
+            </>
+          )}
         </div>
       )}
 

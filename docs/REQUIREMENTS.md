@@ -47,6 +47,9 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-NAV-013** Wegpunkt-Verschieben (Status: umgesetzt) — Gesetzte Wegpunkte lassen sich per Ziehen (Klicken-und-Halten) auf der Karte verschieben; beim Loslassen greift dieselbe Wasser-Snap-Prüfung wie beim Setzen (snappt ≤ 1,5 km, lehnt tiefe Landpunkte ab und stellt die alte Position wieder her). Quelle: User 2026-07-07.
 - **REQ-NAV-014** Offline-Grundfähigkeit & TWA-Basis (Status: umgesetzt) — Ein Service Worker cached App-Shell, statische Assets und die Karten-Kacheln der letzten Nutzung (begrenzt), sodass die zuletzt geladene Ansicht offline aufrufbar bleibt; API-Antworten werden bewusst NICHT gecacht (keine veralteten Wetterdaten als aktuell). Erfüllt zugleich das Install-Kriterium für den Play-Store-Weg (TWA). Quelle: User-Entscheid 2026-07-07; NAV-4 (Offline = K.-o. auf See).
 
+- **REQ-NAV-015** Warn-Empfindlichkeit in Navigation (Status: umgesetzt) — Der Risiko-Regler (REQ-WET-002) ist in /navigation bedienbar und wirkt auf Route, Abfahrts-Scan und Zeitreise. Quelle: User 2026-07-08.
+- **REQ-NAV-016** Eine App: Navigation & Wetter (Status: umgesetzt) — /navigation ist die einzige App (inkl. Modell-Wahl mit Revier-Empfehlung, Feedback-Karte, Liegezeiten, Archiv-Badge aus /wetter); /wetter leitet dauerhaft auf /navigation um (bestehende Links bleiben gültig). REVIDIERT den Entscheid „/wetter bleibt" vom 2026-07-06. Quelle: User-Entscheid 2026-07-08.
+
 ## SAFE — Sicherheit & Recht
 
 - **REQ-SAFE-001** Erstnutzungs-Disclaimer (Status: umgesetzt) — /navigation blockiert bis zur aktiven Bestätigung: Open-Source-Daten, nicht als Navigationsmittel zugelassen, nur unterstützend; amtliche Seekarten/Warnungen/Seemannschaft Pflicht. Quelle: User 2026-07-06.

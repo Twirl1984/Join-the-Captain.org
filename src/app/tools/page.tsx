@@ -75,7 +75,7 @@ export default async function ToolsPage({
 // Eigenbau-Tool /wetter: fester Eintrag (keine DB, KEIN Affiliate-Hinweis).
 function WetterToolCard() {
   return (
-    <Link href="/wetter" className="card card-hover stack" style={{ gap: 12 }}>
+    <Link href="/navigation" className="card card-hover stack" style={{ gap: 12 }}>
       <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
         <span
           style={{
@@ -88,14 +88,14 @@ function WetterToolCard() {
         </span>
         <div className="stack" style={{ gap: 6 }}>
           <h3 style={{ fontSize: 14, fontFamily: "var(--font-sans)", fontWeight: 500 }}>
-            Wetter & Routen-Planer
+            Navigation & Wetter
           </h3>
           <JourneyTag phase="planung" />
         </div>
       </div>
       <p style={{ margin: 0, fontSize: 12, fontWeight: 300, lineHeight: 1.6, color: "var(--fg-muted)" }}>
-        Wind, Welle, Warnungen und Ankunftszeit entlang deiner Route — mit
-        einstellbarer Warn-Empfindlichkeit.
+        Seekarte mit Tiefen, Route um Land herum, Wetter-Warnungen und echte
+        Ankunftszeiten — mit einstellbarer Warn-Empfindlichkeit.
       </p>
       <div className="row-between" style={{ marginTop: "auto", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
         <span className="caption">JTC-Eigenbau · kostenlos</span>
