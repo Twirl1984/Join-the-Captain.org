@@ -89,7 +89,7 @@ export default function DatenschutzPage() {
       <h3>9. SSL-/TLS-Verschlüsselung</h3>
       <p>
         Diese Website nutzt aus Sicherheitsgründen eine SSL- bzw.
-        TLS-Verschlüsselung (erkennbar an „https://" und dem Schloss-Symbol).
+        TLS-Verschlüsselung (erkennbar an „https://“ und dem Schloss-Symbol).
         Damit können übermittelte Daten nicht von Dritten mitgelesen werden.
       </p>
 
