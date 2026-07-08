@@ -15,7 +15,15 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
-  use: { baseURL, trace: "on-first-retry" },
+  use: {
+    baseURL,
+    trace: "on-first-retry",
+    // Optional: vorinstalliertes Chromium nutzen (z. B. Sandbox/CI mit
+    // PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD) statt des versionsgebundenen Downloads.
+    ...(process.env.PW_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
+      : {}),
+  },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },

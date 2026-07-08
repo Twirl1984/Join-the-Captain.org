@@ -31,7 +31,9 @@ function BuildCard({ card }: { card: FeatureCardData }) {
   const [betrag, setBetrag] = useState("10");
   const [pledgeBusy, setPledgeBusy] = useState(false);
   const [pledgeDone, setPledgeDone] = useState(false);
-  const [summe, setSumme] = useState(card.pledge_summe_cent);
+  // Summe ist bewusst nur lesend im State (Aktualisierung kommt per Reload);
+  // der Setter entfiel beim Lint-Aufräumen.
+  const [summe] = useState(card.pledge_summe_cent);
 
   const ziel = card.pledge_ziel_cent || 0;
   const prozent = ziel > 0 ? Math.min(100, Math.round((summe / ziel) * 100)) : 0;

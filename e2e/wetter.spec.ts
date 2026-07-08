@@ -52,7 +52,7 @@ test.describe("/wetter — Seite & Route", () => {
     await expect(page.getByTestId("leg-card").first()).toBeVisible();
   });
 
-  test("Risiko-Regler ↑ erhöht (oder hält) die Warnungszahl (Monotonie)", async ({ page }) => {
+  test("[REQ-WET-002] Risiko-Regler ↑ erhöht (oder hält) die Warnungszahl (Monotonie)", async ({ page }) => {
     await openWithMap(page);
     await addTwoWaypoints(page);
 
@@ -125,7 +125,7 @@ test.describe("/wetter — Playback & Feedback", () => {
     expect(await page.locator(".wx-marker").count()).toBeGreaterThanOrEqual(2);
   });
 
-  test("Feedback lässt sich absenden (API gemockt) → Danke-Zustand", async ({ page }) => {
+  test("[REQ-WET-012] Feedback lässt sich absenden (API gemockt) → Danke-Zustand", async ({ page }) => {
     await page.route("**/api/weather/feedback", (r) =>
       r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) }),
     );
@@ -155,7 +155,7 @@ test.describe("/wetter — Playback & Feedback", () => {
     expect(await page.locator(".hafen-marker").count()).toBeGreaterThanOrEqual(3);
   });
 
-  test("Modell-Wahl zeigt eine Begründung", async ({ page }) => {
+  test("[REQ-WET-011] Modell-Wahl zeigt eine Begründung", async ({ page }) => {
     await page.goto("/wetter");
     await page.getByTestId("model-select").selectOption("icon_seamless");
     await expect(page.getByTestId("model-reason")).toContainText(/ICON|Ostsee/);

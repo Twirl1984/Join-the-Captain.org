@@ -25,6 +25,8 @@ export function SiteFooter() {
             <h4>Bereiche</h4>
             <ul>
               <li><Link href="/tools">Tools</Link></li>
+              <li><Link href="/wetter">Wetter</Link></li>
+              <li><Link href="/navigation">Navigation</Link></li>
               <li><Link href="/podcast">Podcast</Link></li>
               <li><Link href="/community">Community</Link></li>
               <li><Link href="/entrepreneurs">Entrepreneurs</Link></li>
@@ -38,6 +40,8 @@ export function SiteFooter() {
                   Zur Buchung (.de)
                 </a>
               </li>
+              <li><Link href="/impressum">Impressum</Link></li>
+              <li><Link href="/datenschutz">Datenschutz</Link></li>
             </ul>
           </div>
         </div>

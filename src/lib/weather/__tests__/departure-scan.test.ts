@@ -26,7 +26,7 @@ test("motorCruiseFromPower: schwacher Motor fährt deutlich langsamer", () => {
   assert.ok(schwach > 3, `${schwach} noch plausibel`);
 });
 
-test("boatFromSpecs: direkte Marschfahrt gewinnt gegen PS-Ableitung", () => {
+test("[REQ-WET-006] boatFromSpecs: direkte Marschfahrt gewinnt gegen PS-Ableitung", () => {
   const b = boatFromSpecs({ length_waterline_m: 10, displacement_t: 8, engine_hp: 40, cruise_speed_motor_kn: 5 });
   assert.equal(b.cruise_speed_motor_kn, 5);
 });
@@ -91,7 +91,7 @@ const stormySaturday = ({ at }: { lat: number; lon: number; at: Date }): Forecas
   return { wind_speed_kn: 12, wind_from_deg: 270, gust_kn: 16, wave_height_m: 0.5 };
 };
 
-test("scanDepartures: empfiehlt Sonntagmorgen statt Samstag im Gewitter", () => {
+test("[REQ-WET-004] [REQ-WET-005] scanDepartures: empfiehlt Sonntagmorgen statt Samstag im Gewitter", () => {
   const scan = scanDepartures({
     waypoints: [
       { lat: 54.679, lon: 13.432, name: "Arkona" },
@@ -167,7 +167,7 @@ test("Jolle ohne Motor: Flaute crasht nicht, Kriechfahrt statt Motor-Fallback", 
   assert.ok(r.speed_kn >= 0.5 && r.speed_kn < 2, `${r.speed_kn}`);
 });
 
-test("planRoute (Jolle): zu wenig Wind erzeugt Flaute-Warnung, endliche Dauer", () => {
+test("[REQ-WET-007] planRoute (Jolle): zu wenig Wind erzeugt Flaute-Warnung, endliche Dauer", () => {
   const still = (): ForecastSample => ({ wind_speed_kn: 2, wind_from_deg: 270, gust_kn: 3 });
   const r = planRoute({
     waypoints: [

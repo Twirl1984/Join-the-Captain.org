@@ -60,6 +60,8 @@ export interface BoatSpecs {
   min_wind_kn?: number | null;
   /** Max. Mittelwind (kn) — darüber Bootslimit (Kentergefahr/Charterregel). */
   max_wind_kn?: number | null;
+  /** Typischer Tiefgang (m) — Vorbelegung für den Flachwasser-Check. */
+  tiefgang_m?: number;
 }
 
 /**
@@ -71,7 +73,7 @@ export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }
     id: "jolle",
     label: "Jolle (z.B. 420er)",
     specs: {
-      name: "Jolle", length_waterline_m: 4, has_engine: false,
+      name: "Jolle", tiefgang_m: 1.0, length_waterline_m: 4, has_engine: false,
       min_wind_kn: 4, max_wind_kn: 16,
     },
   },
@@ -79,7 +81,7 @@ export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }
     id: "katamaran",
     label: "Strand-Kat (z.B. Hobie 16)",
     specs: {
-      name: "Strand-Katamaran", length_waterline_m: 5, has_engine: false,
+      name: "Strand-Katamaran", tiefgang_m: 0.3, length_waterline_m: 5, has_engine: false,
       min_wind_kn: 5, max_wind_kn: 20,
     },
   },
@@ -87,7 +89,7 @@ export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }
     id: "kielboot",
     label: "Kleinkreuzer / Kielboot",
     specs: {
-      name: "Kleinkreuzer", length_waterline_m: 6.5, displacement_t: 1.2, engine_hp: 6,
+      name: "Kleinkreuzer", tiefgang_m: 1.2, length_waterline_m: 6.5, displacement_t: 1.2, engine_hp: 6,
       has_engine: true, min_wind_kn: 3, max_wind_kn: 22,
     },
   },
@@ -95,7 +97,7 @@ export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }
     id: "charter35",
     label: "Charter-Yacht 35 ft",
     specs: {
-      name: "Charter 35ft", length_waterline_m: 10, displacement_t: 8, engine_hp: 40,
+      name: "Charter 35ft", tiefgang_m: 1.8, length_waterline_m: 10, displacement_t: 8, engine_hp: 40,
       has_engine: true, min_wind_kn: null, max_wind_kn: 35,
     },
   },
@@ -103,7 +105,7 @@ export const BOAT_PRESETS: Array<{ id: string; label: string; specs: BoatSpecs }
     id: "yacht45",
     label: "Yacht 45 ft",
     specs: {
-      name: "Yacht 45ft", length_waterline_m: 12.5, displacement_t: 12, engine_hp: 75,
+      name: "Yacht 45ft", tiefgang_m: 2.2, length_waterline_m: 12.5, displacement_t: 12, engine_hp: 75,
       has_engine: true, min_wind_kn: null, max_wind_kn: 40,
     },
   },
@@ -182,6 +184,18 @@ export function sailSpeed(twsKn: number, twaDeg: number, boat: Boat = DEFAULT_BO
   if (af === 0) return 0;
   const raw = boat.drive_efficiency * twsKn * af;
   return round(Math.min(raw, boat.hull_speed_kn ?? DEFAULT_BOAT.hull_speed_kn));
+}
+
+/**
+ * VMG beim Aufkreuzen (REQ-NAV-011): Liegt das Ziel in der No-Go-Zone, segelt
+ * man Schläge am optimalen Am-Wind-Winkel βopt und macht Richtung Ziel nur die
+ * Projektion gut: v_vmg = sailSpeed(tws, βopt) · cos(βopt).
+ * Heuristik βopt = no_go + 10° (dokumentiert, kein echtes Polardiagramm).
+ */
+export function beatVmgSpeed(twsKn: number, boat: Boat = DEFAULT_BOAT): number {
+  const beta = (boat.upwind_no_go_deg ?? DEFAULT_BOAT.upwind_no_go_deg) + 10;
+  const v = sailSpeed(twsKn, beta, boat);
+  return round(v * Math.cos((beta * Math.PI) / 180));
 }
 
 /** Motor-Marschfahrt (konstant, Bootsdatum). */

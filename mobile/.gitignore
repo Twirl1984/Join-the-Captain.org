@@ -1,0 +1,6 @@
+# Lokal erzeugte Capacitor-Plattform-Ordner und Build-Artefakte —
+# werden per `npx cap add ios|android` auf der Dev-Maschine generiert.
+ios/
+android/
+www/
+node_modules/

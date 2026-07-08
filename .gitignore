@@ -42,3 +42,6 @@ docs/design/quellen/Join the Captain Startseite.zip
 # Playwright-Artefakte
 playwright-report/
 test-results/
+
+# Session-Worktrees (lokal, nie committen)
+.claude/worktrees/
