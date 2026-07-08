@@ -25,8 +25,7 @@ export function SiteFooter() {
             <h4>Bereiche</h4>
             <ul>
               <li><Link href="/tools">Tools</Link></li>
-              <li><Link href="/wetter">Wetter</Link></li>
-              <li><Link href="/navigation">Navigation</Link></li>
+              <li><Link href="/navigation">Navigation &amp; Wetter</Link></li>
               <li><Link href="/podcast">Podcast</Link></li>
               <li><Link href="/community">Community</Link></li>
               <li><Link href="/entrepreneurs">Entrepreneurs</Link></li>
