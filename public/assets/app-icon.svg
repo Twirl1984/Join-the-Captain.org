@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JTC Navigation">
+  <!-- JTC Navigation App-Icon: Kompassrose über Wasser, Markenfarben Navy/Teal/Gold.
+       Maskable: alle wichtigen Formen innerhalb der inneren 80 % (safe zone). -->
+  <rect width="512" height="512" rx="96" fill="#0B2545"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#2EA39E" stroke-width="14"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#13315C" stroke-width="4"/>
+  <!-- Kompassnadel: Nord teal, Süd gold -->
+  <polygon points="256,132 292,256 256,236 220,256" fill="#2EA39E"/>
+  <polygon points="256,380 220,256 256,276 292,256" fill="#C9A24B"/>
+  <circle cx="256" cy="256" r="16" fill="#F4EEE2"/>
+  <!-- Wellen unten -->
+  <path d="M116 396c24 16 48 16 70 0s46-16 70 0 46 16 70 0 46-16 70 0"
+        fill="none" stroke="#2EA39E" stroke-width="12" stroke-linecap="round" opacity="0.85"/>
+  <!-- N-Markierung -->
+  <text x="256" y="102" text-anchor="middle" font-family="Georgia, serif" font-size="44"
+        font-weight="bold" fill="#F4EEE2">N</text>
+</svg>

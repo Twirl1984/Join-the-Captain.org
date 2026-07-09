@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Plausible } from "@/components/Plausible";
+import { SwRegister } from "@/components/SwRegister";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -37,6 +38,11 @@ export const metadata: Metadata = {
     locale: "de_DE",
   },
   robots: { index: true, follow: true },
+  // PWA/Home-Screen: iOS liest apple-touch-icon, nicht die Manifest-Icons.
+  icons: {
+    icon: "/assets/icons/icon-192.png",
+    apple: "/assets/icons/icon-192.png",
+  },
 };
 
 // Setzt data-theme vor dem ersten Paint (kein Flackern beim Laden).
@@ -56,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Plausible />
+        <SwRegister />
         <SiteHeader />
         <main>{children}</main>
         <SiteFooter />

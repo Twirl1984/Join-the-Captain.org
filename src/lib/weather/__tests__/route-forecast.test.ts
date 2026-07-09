@@ -49,7 +49,7 @@ test("geometrie: bearing Nord ≈ 0°, Ost ≈ 90°", () => {
 
 const calm = (): ForecastSample => ({ wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 });
 
-test("planRoute: zwei Wegpunkte → ein Leg, plausible ETA", () => {
+test("[REQ-WET-001] planRoute: zwei Wegpunkte → ein Leg, plausible ETA", () => {
   const r = planRoute({
     waypoints: [
       { lat: 54.679, lon: 13.432, name: "Arkona" },
@@ -105,4 +105,142 @@ test("planRoute: mehrere Wegpunkte → ETA wächst monoton, mode=motor durchgän
   assert.equal(r.legs.length, 2);
   assert.ok(Date.parse(r.legs[1].eta) > Date.parse(r.legs[0].eta));
   assert.ok(r.legs.every((l) => l.mode === "motor"));
+});
+
+// ── Strömung: Fahrt über Grund (SOG) ─────────────────────────────────────────
+
+test("[REQ-WET-008] Schiebestrom verkürzt, Gegenstrom verlängert die Legdauer", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0, name: "A" },
+    { lat: 55.0, lon: 13.0, name: "B" }, // Kurs ≈ 0° (Nord)
+  ];
+  const base = { wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 };
+  const mit = (cur: number, to: number): (() => ForecastSample) => () => ({
+    ...base, current_kn: cur, current_to_deg: to,
+  });
+  const ohne = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: () => base });
+  const schiebt = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: mit(2, 0) }); // setzt nach Nord = mit uns
+  const gegen = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: mit(2, 180) }); // setzt nach Süd = gegen uns
+  assert.ok(schiebt.legs[0].duration_h! < ohne.legs[0].duration_h!, "Schiebestrom schneller");
+  assert.ok(gegen.legs[0].duration_h! > ohne.legs[0].duration_h!, "Gegenstrom langsamer");
+  assert.ok(schiebt.legs[0].sog_kn > ohne.legs[0].sog_kn);
+  assert.equal(schiebt.legs[0].current_kn, 2);
+});
+
+test("Querstrom (90° zum Kurs) ändert die Dauer kaum", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0 },
+    { lat: 55.0, lon: 13.0 },
+  ];
+  const base = { wind_speed_kn: 12, wind_from_deg: 270, wave_height_m: 0.4 };
+  const ohne = planRoute({ waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor", sampleForecast: () => base });
+  const quer = planRoute({
+    waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor",
+    sampleForecast: () => ({ ...base, current_kn: 2, current_to_deg: 90 }),
+  });
+  assert.ok(Math.abs(quer.legs[0].duration_h! - ohne.legs[0].duration_h!) < 0.15);
+});
+
+test("Extremer Gegenstrom: SOG bleibt ≥ 0.3 kn (kein Stillstand/Infinity)", () => {
+  const wps = [
+    { lat: 54.0, lon: 13.0 },
+    { lat: 54.1, lon: 13.0 },
+  ];
+  const r = planRoute({
+    waypoints: wps, startTime: "2026-07-06T08:00:00Z", mode: "motor",
+    sampleForecast: () => ({ wind_speed_kn: 5, wind_from_deg: 0, current_kn: 12, current_to_deg: 180 }),
+  });
+  assert.ok(r.legs[0].sog_kn >= 0.3);
+  assert.ok(Number.isFinite(r.legs[0].duration_h!));
+});
+
+// ── Kreuzen (REQ-NAV-011): Am-Wind-Kurs, beide Varianten ─────────────────────
+
+import { beatVmgSpeed, boatFromSpecs, BOAT_PRESETS } from "../polar";
+
+const gegenan = (): ForecastSample => ({ wind_speed_kn: 14, wind_from_deg: 0 }); // Kurs 0° = genau gegenan
+const NORD = [
+  { lat: 54.0, lon: 13.0, name: "A" },
+  { lat: 54.5, lon: 13.0, name: "B" },
+];
+
+test("[REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt", () => {
+  const vmg = beatVmgSpeed(14);
+  assert.ok(vmg > 0.5, `${vmg}`);
+  assert.ok(vmg < sailSpeed(14, 100), "VMG < Halbwindfahrt");
+});
+
+test("[REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer", () => {
+  const jolle = boatFromSpecs(BOAT_PRESETS.find((p) => p.id === "jolle")!.specs);
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", boat: jolle, mode: "sail", sampleForecast: gegenan });
+  assert.equal(r.legs[0].mode, "kreuzen");
+  assert.ok(Number.isFinite(r.legs[0].duration_h!) && r.legs[0].duration_h! > 0);
+  assert.equal(r.legs[0].alternative, undefined); // kein Motor an Bord
+});
+
+test("[REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternative gesetzt", () => {
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", mode: "sail", sampleForecast: gegenan });
+  assert.equal(r.legs[0].mode, "motor");
+  assert.equal(r.legs[0].alternative?.mode, "kreuzen");
+  assert.ok(r.legs[0].alternative!.duration_h > r.legs[0].duration_h!, "Kreuzen dauert länger als Motor");
+  assert.ok(r.eta_alternative && Date.parse(r.eta_alternative) > Date.parse(r.eta));
+});
+
+test("[REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative", () => {
+  const halbwind = (): ForecastSample => ({ wind_speed_kn: 14, wind_from_deg: 90 });
+  const r = planRoute({ waypoints: NORD, startTime: "2026-07-08T08:00:00Z", mode: "sail", sampleForecast: halbwind });
+  assert.equal(r.legs[0].mode, "sail");
+  assert.equal(r.legs[0].alternative, undefined);
+  assert.equal(r.eta_alternative, undefined);
+});
+
+// ── Liegezeit als Dauer: stay_min (REQ-NAV-017) ──────────────────────────────
+
+const stayWps = [
+  { lat: 54, lon: 13, name: "A" },
+  { lat: 54, lon: 13.2, name: "B" },
+  { lat: 54, lon: 13.4, name: "C" },
+];
+const steadySampler = (): ForecastSample => ({ wind_speed_kn: 12, wind_from_deg: 0 });
+const stayStart = new Date("2026-07-10T08:00:00Z");
+
+test("[REQ-NAV-017] stay_min: Weiterfahrt = Ankunft + Dauer, layover_h gesetzt", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const r = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 150 }, stayWps[2]],
+    startTime: stayStart,
+    mode: "sail",
+    sampleForecast: steadySampler,
+  });
+  near(r.legs[1].layover_h ?? 0, 2.5, 0.05, "layover_h = 2,5 h");
+  const depart = new Date(r.legs[1].depart).getTime();
+  const arrival = new Date(base.legs[0].eta).getTime();
+  near((depart - arrival) / 3600e3, 2.5, 0.02, "Weiterfahrt exakt 2,5 h nach Ankunft");
+});
+
+test("[REQ-NAV-017] stay_min + depart_at: der spätere Zeitpunkt gewinnt (konservativ)", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const arrival = new Date(base.legs[0].eta).getTime();
+  // depart_at NACH der Liegedauer → depart_at gewinnt
+  const late = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 60, depart_at: new Date(arrival + 3 * 3600e3) }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  near(new Date(late.legs[1].depart).getTime(), arrival + 3 * 3600e3, 1000);
+  // depart_at VOR Ablauf der Liegedauer → stay_min gewinnt
+  const early = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 180, depart_at: new Date(arrival + 3600e3) }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  near(new Date(early.legs[1].depart).getTime(), arrival + 3 * 3600e3, 1000);
+});
+
+test("[REQ-NAV-017] stay_min 0/undefined: kein Layover, ETA unverändert", () => {
+  const base = planRoute({ waypoints: stayWps, startTime: stayStart, mode: "sail", sampleForecast: steadySampler });
+  const zero = planRoute({
+    waypoints: [stayWps[0], { ...stayWps[1], stay_min: 0 }, stayWps[2]],
+    startTime: stayStart, mode: "sail", sampleForecast: steadySampler,
+  });
+  assert.equal(zero.legs[1].layover_h, null);
+  assert.equal(zero.eta, base.eta);
 });

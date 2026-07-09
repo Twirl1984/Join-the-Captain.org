@@ -9,7 +9,7 @@
 // Iteration: pro Leg Großkreis-Distanz → Wind zum geschätzten Ankunftsfenster →
 // effektive Fahrt (polar.ts) → Legdauer → kumulierte Ankunftszeit → nächster Leg.
 
-import { effectiveSpeed, twaFromCourse, DEFAULT_BOAT, type Boat, type SailMode } from "./polar";
+import { effectiveSpeed, twaFromCourse, beatVmgSpeed, DEFAULT_BOAT, type Boat, type SailMode } from "./polar";
 import { stormSeverity } from "./warnings";
 
 const R_NM = 3440.065; // Erdradius in Seemeilen
@@ -24,6 +24,12 @@ export interface Waypoint {
    * (Liegezeit); kommt es später an, fährt es direkt weiter.
    */
   depart_at?: string | Date;
+  /**
+   * Liegedauer an diesem Wegpunkt in MINUTEN ab Ankunft (REQ-NAV-017):
+   * Weiterfahrt = Ankunft + stay_min. Sind stay_min UND depart_at gesetzt,
+   * gewinnt der spätere Zeitpunkt (konservativ: nie früher losfahren als geplant).
+   */
+  stay_min?: number;
 }
 
 /** Wetter-Sample an einem Punkt zu einem Zeitpunkt (vom Sampler geliefert). */
@@ -32,6 +38,11 @@ export interface ForecastSample {
   wind_from_deg: number;
   gust_kn?: number;
   wave_height_m?: number | null;
+  /** Strömung: Fahrt (kn) und Setzrichtung (WOHIN sie setzt, ozeanographisch). */
+  current_kn?: number | null;
+  current_to_deg?: number | null;
+  /** Wasserstand rel. MSL (m), Tide — für den Flachwasser-Check. */
+  tide_m?: number | null;
   gale?: boolean; // Sturm (aus warnings.classify)
   thunderstorm?: boolean; // Gewitter
   high_wave?: boolean; // hohe Welle
@@ -39,14 +50,32 @@ export interface ForecastSample {
 
 export type SampleForecast = (arg: { lat: number; lon: number; at: Date }) => ForecastSample;
 
+/** Fahrt-Art eines Legs: Segeln, Motor oder Aufkreuzen (REQ-NAV-011). */
+export type LegMode = SailMode | "kreuzen";
+
+/** Zweite ETA-Variante eines Am-Wind-Legs (User-Entscheid: beide anzeigen). */
+export interface LegAlternative {
+  mode: LegMode;
+  speed_kn: number;
+  duration_h: number;
+  eta: string;
+}
+
 export interface RouteLeg {
   leg: number;
   from: string;
   to: string;
   distance_nm: number;
   course_deg: number;
-  mode: SailMode;
+  mode: LegMode;
+  /** Gesetzt bei Am-Wind-Legs mit Motor an Bord: die jeweils andere Variante. */
+  alternative?: LegAlternative;
+  /** Fahrt durchs Wasser (kn). */
   speed_kn: number;
+  /** Fahrt über Grund (kn) = speed_kn + Strömungskomponente längs Kurs. */
+  sog_kn: number;
+  current_kn: number | null;
+  current_to_deg: number | null;
   wind_kn: number;
   gust_kn: number;
   wind_from_deg: number;
@@ -64,6 +93,9 @@ export interface RoutePlan {
   legs: RouteLeg[];
   total_nm: number;
   eta: string;
+  /** Gesamt-ETA der Alternativ-Varianten (Kreuzen statt Motor), falls abweichend.
+      Näherung: Liegezeiten werden nicht neu verschoben (nur Informationswert). */
+  eta_alternative?: string;
   warnings: string[];
 }
 
@@ -118,6 +150,8 @@ export function planRoute({
   const legs: RouteLeg[] = [];
   const warnings: string[] = [];
   let total = 0;
+  // Zeit-Mehraufwand der Alternativ-Varianten (Kreuzen statt Motor), Summe in h.
+  let altDeltaH = 0;
 
   for (let i = 0; i < waypoints.length - 1; i++) {
     const from = waypoints[i];
@@ -128,12 +162,18 @@ export function planRoute({
     // Liegezeit: hat der Start-Wegpunkt ein "Weiterfahrt ab", warten wir bis
     // dahin (Hafen-Übernachtung); frühere Ankunft verfällt, spätere gewinnt.
     let layoverH: number | null = null;
+    let departMs: number | null = null;
     if (from.depart_at) {
       const dep = from.depart_at instanceof Date ? from.depart_at : new Date(from.depart_at);
-      if (!Number.isNaN(dep.getTime()) && dep.getTime() > t.getTime()) {
-        layoverH = round((dep.getTime() - t.getTime()) / 3600e3, 1);
-        t = new Date(dep);
-      }
+      if (!Number.isNaN(dep.getTime())) departMs = dep.getTime();
+    }
+    // Liegedauer relativ zur Ankunft (t = Ankunft am Start-Wegpunkt des Legs).
+    if (from.stay_min != null && Number.isFinite(from.stay_min) && from.stay_min > 0) {
+      departMs = Math.max(departMs ?? 0, t.getTime() + from.stay_min * 60e3);
+    }
+    if (departMs != null && departMs > t.getTime()) {
+      layoverH = round((departMs - t.getTime()) / 3600e3, 1);
+      t = new Date(departMs);
     }
     const depart = new Date(t);
 
@@ -145,7 +185,42 @@ export function planRoute({
     const mid = new Date(t.getTime() + (hours / 2) * 3600e3);
     wx = sampleForecast({ lat: midLat(from, to), lon: midLon(from, to), at: mid });
     ({ speed_kn, mode: usedMode } = legSpeed(wx, course, mode, boat));
-    hours = speed_kn > 0 ? dist / speed_kn : Infinity;
+    // Fahrt ÜBER GRUND: Strömungskomponente längs des Kurses addieren
+    // (Setzrichtung = wohin der Strom läuft; positiver Anteil schiebt).
+    // Mindestens 0.3 kn, sonst "steht" das Boot rechnerisch ewig.
+    const cur = wx.current_kn ?? 0;
+    const curTo = wx.current_to_deg ?? 0;
+    const along = cur > 0 ? cur * Math.cos(((curTo - course) * Math.PI) / 180) : 0;
+    let sog = Math.max(0.3, speed_kn + along);
+    hours = dist / sog;
+
+    // Kreuzen (REQ-NAV-011): Ziel in der No-Go-Zone im Segel-Modus.
+    // Ohne Motor wird Kreuzen die PRIMÄRE Variante (statt Kriechfahrt);
+    // mit Motor bleibt Motor primär und Kreuzen wird als Alternative
+    // ausgewiesen (User-Entscheid 2026-07-06: beide anzeigen).
+    let legMode: LegMode = usedMode;
+    let alternative: LegAlternative | undefined;
+    const twa = twaFromCourse(course, wx.wind_from_deg);
+    const noGo = boat.upwind_no_go_deg ?? DEFAULT_BOAT.upwind_no_go_deg;
+    if (mode === "sail" && twa < noGo && (wx.wind_speed_kn ?? 0) > 0) {
+      const vmg = beatVmgSpeed(wx.wind_speed_kn, boat);
+      const sogKreuz = Math.max(0.3, vmg + along);
+      const hoursKreuz = dist / sogKreuz;
+      if (boat.has_engine === false) {
+        legMode = "kreuzen";
+        speed_kn = vmg;
+        sog = sogKreuz;
+        hours = hoursKreuz;
+      } else {
+        // primär bleibt Motor (usedMode aus effectiveSpeed) — Alternative Kreuzen.
+        alternative = {
+          mode: "kreuzen",
+          speed_kn: round(vmg, 1),
+          duration_h: Number.isFinite(hoursKreuz) ? round(hoursKreuz, 1) : 0,
+          eta: new Date(t.getTime() + hoursKreuz * 3600e3).toISOString(),
+        };
+      }
+    }
 
     const eta = new Date(t.getTime() + hours * 3600e3);
     total += dist;
@@ -189,14 +264,21 @@ export function planRoute({
       warnings.push(`${w} auf Leg ${i + 1} (→ ${to.name || waypointLabel(to)})`),
     );
 
+    if (alternative && Number.isFinite(hours)) {
+      altDeltaH += Math.max(0, alternative.duration_h - hours);
+    }
     legs.push({
       leg: i + 1,
       from: from.name || waypointLabel(from),
       to: to.name || waypointLabel(to),
       distance_nm: dist,
       course_deg: course,
-      mode: usedMode,
+      mode: legMode,
+      alternative,
       speed_kn: round(speed_kn, 1),
+      sog_kn: round(sog, 1),
+      current_kn: wx.current_kn != null ? round(wx.current_kn, 1) : null,
+      current_to_deg: wx.current_to_deg != null ? round(wx.current_to_deg, 0) : null,
       wind_kn: round(wx.wind_speed_kn, 0),
       gust_kn: round(maxGust, 0),
       wind_from_deg: round(wx.wind_from_deg, 0),
@@ -210,7 +292,14 @@ export function planRoute({
     t = eta;
   }
 
-  return { legs, total_nm: round(total, 1), eta: t.toISOString(), warnings };
+  return {
+    legs,
+    total_nm: round(total, 1),
+    eta: t.toISOString(),
+    eta_alternative:
+      altDeltaH > 0.05 ? new Date(t.getTime() + altDeltaH * 3600e3).toISOString() : undefined,
+    warnings,
+  };
 }
 
 function legSpeed(

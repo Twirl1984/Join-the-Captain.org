@@ -75,6 +75,10 @@ interface PointSeries {
   cape: number[];
   cloud_pct: (number | null)[];
   wave_height_m: (number | null)[];
+  current_kn: (number | null)[];
+  current_to_deg: (number | null)[];
+  /** Wasserstand rel. MSL (m) — Tide (REQ-NAV-012). */
+  tide_m: (number | null)[];
 }
 
 /**
@@ -108,6 +112,9 @@ export async function buildSampler(
       wind_from_deg: ps.wind_from_deg[i] ?? 0,
       gust_kn: gust,
       wave_height_m: metrics.wave_height_m,
+      current_kn: ps.current_kn[i] ?? null,
+      current_to_deg: ps.current_to_deg[i] ?? null,
+      tide_m: ps.tide_m[i] ?? null,
       gale: w.sturm,
       thunderstorm: w.gewitter,
       high_wave: w.welle,
@@ -157,7 +164,7 @@ async function fetchSeries(
     `&wind_speed_unit=kn&timezone=UTC${range}${modelParam}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wave_height&timezone=UTC${marineRange}${key}`;
+    `&hourly=wave_height,ocean_current_velocity,ocean_current_direction,sea_level_height_msl&timezone=UTC${marineRange}${key}`;
 
   // Marine-API liefert für Binnen-/landnahe Punkte ggf. einen Fehler → tolerieren.
   const [atmo, marine] = await Promise.all([
@@ -192,6 +199,12 @@ async function fetchSeries(
       cape: aH.cape ?? [],
       cloud_pct: aH.cloud_cover ?? times.map(() => null),
       wave_height_m: alignWave(times, mH.time, mH.wave_height),
+      // Open-Meteo liefert Strömung in km/h → Knoten; Richtung = WOHIN sie setzt.
+      current_kn: alignWave(times, mH.time, mH.ocean_current_velocity).map((v) =>
+        v == null ? null : Math.round((v / 1.852) * 10) / 10,
+      ),
+      current_to_deg: alignWave(times, mH.time, mH.ocean_current_direction),
+      tide_m: alignWave(times, mH.time, mH.sea_level_height_msl),
     };
   });
 }
@@ -206,6 +219,7 @@ export interface TimelineStep {
   wind_from_deg: number;
   cloud_pct: number | null;
   wave_m: number | null;
+  tide_m: number | null;
   gale: boolean;
   thunderstorm: boolean;
   high_wave: boolean;
@@ -264,6 +278,7 @@ export async function buildTimeline(
         wind_from_deg: Math.round(ps.wind_from_deg[i] ?? 0),
         cloud_pct: ps.cloud_pct[i] ?? null,
         wave_m: ps.wave_height_m[i] != null ? Math.round(ps.wave_height_m[i]! * 10) / 10 : null,
+        tide_m: ps.tide_m[i] != null ? Math.round(ps.tide_m[i]! * 100) / 100 : null,
         gale: w.sturm,
         thunderstorm: w.gewitter,
         high_wave: w.welle,
@@ -338,6 +353,9 @@ type NextFetchInit = RequestInit & { next?: { revalidate?: number } };
 async function fetchJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { "User-Agent": "JTC-Weather/1.0 (join-the-captain.org)" },
+    // Harter Timeout: ein hängendes Open-Meteo darf keine Worker binden
+    // (gilt zentral für route/departure/timeline/navigation).
+    signal: AbortSignal.timeout(15_000),
     next: { revalidate: REVALIDATE_S },
   } as NextFetchInit);
   if (!res.ok) {
@@ -356,5 +374,8 @@ interface OpenMeteoLocation {
     cape?: number[];
     cloud_cover?: (number | null)[];
     wave_height?: (number | null)[];
+    ocean_current_velocity?: (number | null)[];
+    ocean_current_direction?: (number | null)[];
+    sea_level_height_msl?: (number | null)[];
   };
 }
