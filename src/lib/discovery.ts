@@ -13,21 +13,14 @@
 // Kommentare → Haiku strukturiert → creator_submissions pending → Outreach Draft
 // → Admin-Freigabe → (später: Send via n8n) → Community-Voting.
 
-import { callJsonTool, webRecherche, MODEL_HAIKU } from "./anthropic";
+import { callJsonTool, MODEL_HAIKU } from "./anthropic";
 import { query, queryOne, withTransaction } from "./db";
-import type {
-  CreatorSubmission,
-  OutreachQueue,
-  RunBudgetLog,
-  SubmissionProduct,
-  Topic,
-} from "./types";
+import type { CreatorSubmission, OutreachQueue, Topic } from "./types";
 
 // ── Konfiguration ──────────────────────────────────────────────────────
 const YOUTUBE_DISCOVERY_ENABLED = process.env.YOUTUBE_DISCOVERY_ENABLED === "true";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || ""; // Falls vorhanden
 const MAX_RUN_BUDGET_EUR = Number(process.env.DISCOVERY_MAX_RUN_BUDGET_EUR ?? 0.25);
-const MAX_DAILY_BUDGET_EUR = Number(process.env.DISCOVERY_MAX_DAILY_BUDGET_EUR ?? 0.25);
 const MAX_CANDIDATES_PER_TOPIC = Number(process.env.DISCOVERY_MAX_CANDIDATES ?? 3);
 const MIN_RELEVANCE_SCORE = Number(process.env.DISCOVERY_MIN_RELEVANCE ?? 0.6);
 // Aktualität (Teil D): nur Videos der letzten N Jahre, Mindest-Views als Qualität.
@@ -53,13 +46,6 @@ interface DiscoveryCandidate {
   published_at: string; // ISO
   view_count: number;
   comment_highlights: string[];
-}
-
-interface DiscoveryResult {
-  topic_id: string;
-  candidates: DiscoveryCandidate[];
-  stopped_reason: "completed" | "budget_reached" | "error";
-  spent_eur: number;
 }
 
 // ── Hilfsfunktionen ────────────────────────────────────────────────────
