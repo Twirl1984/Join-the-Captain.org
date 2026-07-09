@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getTools, getEpisodes, getPartner } from "@/lib/data";
+import { getTools, getEpisodes, getPartner, getWissenTeaser } from "@/lib/data";
 import { HomeToolFilter } from "@/components/HomeToolFilter";
+import { WissenVideoCard } from "@/components/WissenVideoCard";
 import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +11,11 @@ function initialen(name: string): string {
 }
 
 export default async function Home() {
-  const [tools, episodes, partner] = await Promise.all([
+  const [tools, episodes, partner, wissen] = await Promise.all([
     getTools(),
     getEpisodes(),
     getPartner(),
+    getWissenTeaser(3),
   ]);
   const neuesteFolge = episodes[0];
 
@@ -102,6 +104,26 @@ export default async function Home() {
           <span className="status-pill"><Icon name="clock" size={14} className="ic" /> Coming soon</span>
         )}
       </section>
+
+      {/* ── Segel-Wissen (Videos) ──────────────────────────────── */}
+      {wissen.length > 0 && (
+        <section>
+          <div className="row-between" style={{ alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
+            <div className="home-section-head" style={{ marginBottom: 0 }}>
+              <span className="eyebrow">Segel-Wissen</span>
+              <h2>Videos aus der <em>Szene</em></h2>
+            </div>
+            <Link href="/wissen" className="row" style={{ color: "var(--accent)", fontWeight: 500, fontSize: 13 }}>
+              Alle ansehen <Icon name="arrow-right" size={16} />
+            </Link>
+          </div>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+            {wissen.map((v) => (
+              <WissenVideoCard key={v.id} video={v} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Community / Feature-Loop ───────────────────────────── */}
       <section className="card stack" style={{ gap: 14, padding: "28px 26px" }}>

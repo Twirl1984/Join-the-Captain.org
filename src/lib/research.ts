@@ -35,6 +35,8 @@ const MELDE_SCHWELLE = Number(process.env.RESEARCH_MELDE_SCHWELLE ?? 3);
 const MAX_SEARCHES = Number(process.env.RESEARCH_MAX_SEARCHES ?? 20); // Suchen/Lauf gesamt
 const TIME_BUDGET_MS = Number(process.env.RESEARCH_TIME_BUDGET_MS ?? 240000); // 4 min
 const CALL_TIMEOUT_MS = Number(process.env.RESEARCH_CALL_TIMEOUT_MS ?? 90000); // pro Suche
+// Teil D: jährliche Neubewertung. Tools älter als X Tage wieder in die Queue.
+const RESEARCH_REEVAL_TAGE = Number(process.env.RESEARCH_REEVAL_TAGE ?? 365);
 
 type ZielTyp = "affiliate_tool" | "feature";
 type Schritt = "affiliate_programm" | "oss";
@@ -128,6 +130,9 @@ interface AffiliateRecherche {
   // Falls etwas fehlt: knappe Dev-Aufgabe, um teilnahmefähig zu werden
   // (z.B. „Besucherzahlen tracken und Schwelle X erreichen"). null = nichts nötig.
   roadmap_hinweis: string | null;
+  // Versions-Tracking (Teil D): für Aktualitäts-Checks
+  aktuelle_version: string | null; // aktuelle Version des Tools
+  changelog_hinweis: string | null; // Changelog-Highlights (2-3 neue Features, Bugfixes)
   confidence: number; // 0..1
   quellen: string[];
   // Nur gesetzt, wenn das Tool selbst KEIN Programm hat:
@@ -164,7 +169,9 @@ export async function recherchiereAffiliateProgramm(
         "junge Community diese voraussichtlich schon erfüllt " +
         "(voraussetzungen_erfuellt). Falls etwas fehlt (z.B. Mindest-Traffic), " +
         "formuliere in roadmap_hinweis eine knappe Dev-Aufgabe, um " +
-        "teilnahmefähig zu werden (z.B. Besucher tracken + Schwelle erreichen).",
+        "teilnahmefähig zu werden (z.B. Besucher tracken + Schwelle erreichen).\n" +
+        "BONUS (falls sichtbar): Aktuelle Version des Tools + Changelog-Highlights " +
+        "(für Aktualitäts-Bewertung).",
       user:
         `Tool: ${tool.name}\n` +
         `Kontext: ${tool.kurzbeschreibung ?? ""}\n\n` +
@@ -214,6 +221,14 @@ export async function recherchiereAffiliateProgramm(
             type: ["string", "null"],
             description: "Knappe Dev-Aufgabe, falls Bedingungen noch nicht erfüllt (z.B. Besucher tracken). null wenn nichts nötig.",
           },
+          aktuelle_version: {
+            type: ["string", "null"],
+            description: "Aktuelle Version des Tools (falls sichtbar, z.B. '3.2.1'). null wenn nicht findbar.",
+          },
+          changelog_hinweis: {
+            type: ["string", "null"],
+            description: "2-3 neueste Features/Bugfixes aus Changelog (für Aktualitäts-Bewertung). null falls nicht sichtbar.",
+          },
           confidence: { type: "number" },
           quellen: { type: "array", items: { type: "string" } },
           alternative_mit_programm: {
@@ -232,34 +247,35 @@ export async function recherchiereAffiliateProgramm(
       },
     });
 
-    // 3) Auswerten + (auto-)publizieren.
+    // 3) Auswerten + in Anmeldungs-Liste legen statt Auto-Publish.
+    // Links werden nur publiziert, wenn affiliate_programm.status='aktiv' + affiliate_url gefüllt.
     const programmUrl = out.hat_programm ? out.programm_url || "" : "";
-    const zielUrl = programmUrl || out.tool_url || tool.affiliate_url || "";
-    const linkOk = zielUrl ? await urlLebt(zielUrl) : false;
+    const linkOk = programmUrl ? await urlLebt(programmUrl) : false;
     let status: AffiliateProgrammStatus;
     if (out.hat_programm) status = "hat_programm";
     else if (out.via_partner) status = "ueber_partner"; // z.B. Navionics → Garmin
     else status = "kein_programm";
     const confOk = out.confidence >= MIN_CONFIDENCE;
-    const publish = confOk && linkOk && !!zielUrl;
     // Bei via_partner den Partner als „Netzwerk" ausweisen.
     const netzwerk = out.netzwerk ?? out.via_partner ?? null;
 
+    // Speichere Recherche-Ergebnis im Tool (nicht als Affiliate-Link auto-publiziert)
+    // Incluye Versions-Tracking (Teil D)
     await query(
       `UPDATE affiliate_tool
-       SET affiliate_url = COALESCE(NULLIF($1,''), affiliate_url),
-           affiliate_programm_status = $2,
-           affiliate_netzwerk = $3,
-           affiliate_bedingungen = $4,
-           affiliate_voraussetzungen_erfuellt = $5,
-           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $6),
-           recherche_quellen_json = $7,
-           recherche_confidence = $8,
-           recherchiert_am = now(),
-           veroeffentlicht = (veroeffentlicht OR $9)
+       SET affiliate_programm_status = $1,
+           affiliate_netzwerk = $2,
+           affiliate_bedingungen = $3,
+           affiliate_voraussetzungen_erfuellt = $4,
+           kurzbeschreibung = COALESCE(NULLIF(kurzbeschreibung,''), $5),
+           recherche_quellen_json = $6,
+           recherche_confidence = $7,
+           aktuelle_version = COALESCE(NULLIF($8,''), aktuelle_version),
+           changelog_hinweis = COALESCE(NULLIF($9,''), changelog_hinweis),
+           version_geprueft_am = now(),
+           recherchiert_am = now()
        WHERE id = $10`,
       [
-        zielUrl,
         confOk ? status : "unbekannt",
         netzwerk,
         out.bedingungen ?? null,
@@ -267,10 +283,23 @@ export async function recherchiereAffiliateProgramm(
         out.kurzbeschreibung.slice(0, 240),
         JSON.stringify([...new Set([...(out.quellen ?? []), ...recherche.quellen])]),
         out.confidence,
-        publish,
+        out.aktuelle_version ?? null,
+        out.changelog_hinweis ?? null,
         tool.id,
       ],
     );
+
+    // Lege gefundenes Programm als "gefunden" in die Anmeldungs-Liste
+    // (statt Auto-Publish). Status bleibt "gefunden", bis Admin anmeldung bestätigt.
+    if (confOk && linkOk && programmUrl) {
+      await legeAffiliateProgrammAn(
+        tool,
+        status,
+        programmUrl,
+        netzwerk,
+        out.bedingungen ?? null,
+      );
+    }
 
     // Auto-Roadmap: fehlt eine Voraussetzung (z.B. Mindest-Traffic), lege eine
     // Dev-Aufgabe an — genau das „dann brauchen wir ein Feature, um da
@@ -295,9 +324,9 @@ export async function recherchiereAffiliateProgramm(
 
     await logSchritt("affiliate_tool", tool.id, "affiliate_programm", "ok", {
       ...out,
-      publiziert: publish,
       link_ok: linkOk,
       alternative_angelegt: alternativeAngelegt,
+      programm_gelegt: confOk && linkOk && !!programmUrl,
     });
     return recherche.suchen;
   } catch (err) {
@@ -372,7 +401,8 @@ export async function legeRoadmapAn(
   );
 }
 
-// ── Schritt B: Open-Source-Recherche ────────────────────────────────
+// ── Schritt B: Open-Source + Kostenlose Alternativen ─────────────────
+// Teil B: erweitere um kostenlose (nicht-OSS) Alternativen (z.B. KittySplit)
 interface OssFund {
   name: string;
   repo_url: string;
@@ -381,15 +411,18 @@ interface OssFund {
   beschreibung: string;
   wettbewerbs_einschaetzung: string | null; // nur sinnvoll bei forkbar
   // Lizenz-Sorgfalt fürs Forken in eine eigene, VERKAUFBARE Closed-Source-App.
+  // Nur nötig bei typ='forkbar'. Bei typ='kostenlos_alternative': null.
   lizenz_risiko: "niedrig" | "mittel" | "hoch" | "unklar" | null;
   fork_kommerziell_ok: boolean | null;
   lizenz_hinweis: string | null;
+  kostenlos: boolean | null; // Explizit: kostenlose (nicht-OSS) Alternative?
   confidence: number;
   quellen: string[];
 }
 interface OssRecherche {
   alternativen: OssFund[];
   forkbare_basis: OssFund[];
+  kostenlose_alternativen: OssFund[]; // Neu (Teil B)
 }
 
 async function speichereOss(
@@ -405,8 +438,8 @@ async function speichereOss(
     `INSERT INTO oss_kandidat
        (feature_id, typ, name, repo_url, lizenz, sterne, journey_phase,
         beschreibung, wettbewerbs_einschaetzung, lizenz_risiko, fork_kommerziell_ok,
-        lizenz_hinweis, quellen_json, confidence, veroeffentlicht)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        lizenz_hinweis, kostenlos, quellen_json, confidence, veroeffentlicht)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      ON CONFLICT (feature_id, repo_url) DO UPDATE SET
        typ = EXCLUDED.typ,
        name = EXCLUDED.name,
@@ -417,6 +450,7 @@ async function speichereOss(
        lizenz_risiko = EXCLUDED.lizenz_risiko,
        fork_kommerziell_ok = EXCLUDED.fork_kommerziell_ok,
        lizenz_hinweis = EXCLUDED.lizenz_hinweis,
+       kostenlos = EXCLUDED.kostenlos,
        quellen_json = EXCLUDED.quellen_json,
        confidence = EXCLUDED.confidence,
        veroeffentlicht = (oss_kandidat.veroeffentlicht OR EXCLUDED.veroeffentlicht)`,
@@ -433,6 +467,7 @@ async function speichereOss(
       fund.lizenz_risiko ?? null,
       fund.fork_kommerziell_ok ?? null,
       fund.lizenz_hinweis ?? null,
+      fund.kostenlos ?? null,
       JSON.stringify(fund.quellen ?? []),
       fund.confidence,
       publish,
@@ -452,25 +487,27 @@ export async function recherchiereOss(feature: FeatureRequest): Promise<number> 
       maxTokens: 3072,
       timeoutMs: CALL_TIMEOUT_MS,
       system:
-        "Du bist der Open-Source-Scout von Join the Captain. Für einen " +
-        "Feature-Wunsch von Seglern suchst du zweierlei auf GitHub/GitLab: " +
-        "(1) ALTERNATIVEN – fertige, gut bewertete Open-Source-Apps (viele " +
-        "Stars, aktiv), die das Problem direkt lösen; (2) FORKBARE BASIS – " +
-        "Repos, die JTC weiterentwickeln kann, um eine eigene, konkurrenzfähige " +
-        "App zu bauen. Nenne reale Repos mit URL, Lizenz und ungefährer " +
-        "Stern-Zahl. Erfinde nichts.\n" +
-        "WICHTIG — Lizenz-Sorgfalt: Ziel sind EIGENE, VERKAUFBARE Apps " +
+        "Du bist der Open-Source & Kostenlos-Scout von Join the Captain. Für einen " +
+        "Feature-Wunsch von Seglern suchst du drei Kategorien: " +
+        "(1) OPEN-SOURCE-ALTERNATIVEN – fertige, gut bewertete OSS-Apps (viele " +
+        "Stars, aktiv), die das Problem direkt lösen; " +
+        "(2) FORKBARE BASIS – Repos, die JTC weiterentwickeln kann, um eine eigene, " +
+        "konkurrenzfähige App zu bauen; " +
+        "(3) KOSTENLOSE ALTERNATIVEN – gratis Tools (müssen NICHT OSS sein), die " +
+        "gute Lösungen bieten (z.B. KittySplit statt Splitwise). " +
+        "Nenne reale URLs mit Lizenz (OSS) und ungefährer Stern-Zahl (GitHub). Erfinde nichts.\n" +
+        "WICHTIG — Lizenz-Sorgfalt (nur bei OSS/forkbar): Ziel sind EIGENE, VERKAUFBARE Apps " +
         "(Closed-Source). Prüfe je Repo das Lizenzmodell:\n" +
         "• permissiv (MIT/Apache/BSD) → lizenz_risiko='niedrig', fork_kommerziell_ok=true.\n" +
         "• schwaches Copyleft (MPL/LGPL) → 'mittel', mit Sorgfalt.\n" +
         "• starkes Copyleft (GPL/AGPL) → 'hoch', fork_kommerziell_ok=false " +
-        "  (zwingt zur Offenlegung des Quellcodes — Rechtsrisiko, meiden).\n" +
-        "Begründe das in lizenz_hinweis. Bei forkbaren Kandidaten zusätzlich " +
-        "kurz: wie machen sie uns ggü. bestehenden Apps konkurrenzfähig?",
+        "  (zwingt zur Offenlegung — Rechtsrisiko, meiden).\n" +
+        "Bei kostenlosen (nicht-OSS) Alternativen: lizenz_risiko/fork_kommerziell_ok = null (entfällt). " +
+        "Bei forkbaren Kandidaten zusätzlich kurz: wie machen sie uns ggü. bestehenden Apps konkurrenzfähig?",
       user:
         `Titel: ${feature.titel}\nProblem: ${feature.problem ?? ""}\n` +
         `Nutzen: ${feature.nutzen ?? ""}\nPhase: ${feature.journey_phase ?? ""}\n\n` +
-        "Finde Open-Source-Alternativen und forkbare Basis-Repos.",
+        "Finde Open-Source-Alternativen, forkbare Basis-Repos UND kostenlose (nicht-OSS) Alternativen.",
     });
 
     const fundSchema = {
@@ -496,7 +533,11 @@ export async function recherchiereOss(feature: FeatureRequest): Promise<number> 
         },
         lizenz_hinweis: {
           type: ["string", "null"],
-          description: "Begründung der Lizenzfolgen (Offenlegungspflicht etc.).",
+          description: "Begründung der Lizenzfolgen (Offenlegungspflicht etc.). null bei kostenlos (nicht-OSS).",
+        },
+        kostenlos: {
+          type: ["boolean", "null"],
+          description: "Explizite Kennzeichnung: ist das Ding kostenlos (nicht-OSS)? z.B. true für KittySplit.",
         },
         confidence: { type: "number" },
         quellen: { type: "array", items: { type: "string" } },
@@ -520,8 +561,14 @@ export async function recherchiereOss(feature: FeatureRequest): Promise<number> 
         properties: {
           alternativen: { type: "array", items: fundSchema, maxItems: 3 },
           forkbare_basis: { type: "array", items: fundSchema, maxItems: 3 },
+          kostenlose_alternativen: {
+            type: "array",
+            items: fundSchema,
+            maxItems: 3,
+            description: "Kostenlose (nicht-OSS) Alternativen mit gutem Ruf.",
+          },
         },
-        required: ["alternativen", "forkbare_basis"],
+        required: ["alternativen", "forkbare_basis", "kostenlose_alternativen"],
       },
     });
 
@@ -532,10 +579,15 @@ export async function recherchiereOss(feature: FeatureRequest): Promise<number> 
     for (const f of out.forkbare_basis ?? []) {
       if (await speichereOss(feature, f, "forkbar")) publiziert++;
     }
+    // Teil B: kostenlose Alternativen auch speichern
+    for (const f of out.kostenlose_alternativen ?? []) {
+      if (await speichereOss(feature, f, "kostenlos_alternative")) publiziert++;
+    }
 
     await logSchritt("feature", feature.id, "oss", "ok", {
       alternativen: out.alternativen?.length ?? 0,
       forkbare_basis: out.forkbare_basis?.length ?? 0,
+      kostenlose_alternativen: out.kostenlose_alternativen?.length ?? 0,
       publiziert,
     });
     return recherche.suchen;
@@ -590,12 +642,13 @@ export async function runResearchScan(): Promise<ScanErgebnis> {
     return false;
   };
 
-  // Queue A: Affiliate-Tools, die noch nie recherchiert wurden.
+  // Queue A: Affiliate-Tools, die noch nie recherchiert wurden ODER älter als RESEARCH_REEVAL_TAGE (Teil D).
   const tools = await query<AffiliateTool>(
     `SELECT * FROM affiliate_tool
      WHERE recherchiert_am IS NULL
-     ORDER BY created_at LIMIT $1`,
-    [MAX_ITEMS],
+        OR recherchiert_am < now() - (CAST($1 AS INTEGER) || ' days')::INTERVAL
+     ORDER BY recherchiert_am ASC NULLS FIRST, created_at LIMIT $2`,
+    [RESEARCH_REEVAL_TAGE, MAX_ITEMS],
   );
   for (const t of tools) {
     if (budgetErschoepft()) return ergebnis;
@@ -608,16 +661,27 @@ export async function runResearchScan(): Promise<ScanErgebnis> {
     }
   }
 
-  // Queue B: Features, für die noch keine OSS-Recherche vorliegt.
+  // Queue B: Features, für die noch keine OSS-Recherche vorliegt ODER älter als RESEARCH_REEVAL_TAGE (Teil D).
   const features = await query<FeatureRequest>(
     `SELECT f.* FROM feature_request f
      WHERE f.status IN ('build','voting','umgesetzt')
-       AND NOT EXISTS (
-         SELECT 1 FROM research_log r
-         WHERE r.ziel_typ = 'feature' AND r.ziel_id = f.id
-           AND r.schritt = 'oss' AND r.status = 'ok')
-     ORDER BY f.updated_at LIMIT $1`,
-    [MAX_ITEMS],
+       AND (
+         NOT EXISTS (
+           SELECT 1 FROM research_log r
+           WHERE r.ziel_typ = 'feature' AND r.ziel_id = f.id
+             AND r.schritt = 'oss' AND r.status = 'ok'
+           -- Keine OK-Einträge → noch nicht recherchiert
+         )
+         OR EXISTS (
+           SELECT 1 FROM research_log r
+           WHERE r.ziel_typ = 'feature' AND r.ziel_id = f.id
+             AND r.schritt = 'oss' AND r.status = 'ok'
+             AND r.created_at < now() - (CAST($1 AS INTEGER) || ' days')::INTERVAL
+           -- OK-Eintrag älter als Reeval-Schwelle
+         )
+       )
+     ORDER BY created_at LIMIT $2`,
+    [RESEARCH_REEVAL_TAGE, MAX_ITEMS],
   );
   for (const f of features) {
     if (budgetErschoepft()) return ergebnis;
@@ -631,6 +695,29 @@ export async function runResearchScan(): Promise<ScanErgebnis> {
   }
 
   return ergebnis;
+}
+
+// ── Affiliate-Programm in Anmeldungs-Liste ─────────────────────────────
+// Gefundene Programme landen als "gefunden" in der internen Anmeldungs-Liste.
+// Status bleibt "gefunden", bis ein Admin die Anmeldung durchführt und den
+// echten affiliate_url eintragen kann → status='aktiv' → Link wird öffentlich.
+async function legeAffiliateProgrammAn(
+  tool: AffiliateTool,
+  programmStatus: AffiliateProgrammStatus,
+  programmUrl: string,
+  netzwerk: string | null,
+  bedingungen: string | null,
+): Promise<void> {
+  await query(
+    `INSERT INTO affiliate_programm
+       (tool_id, programm_name, netzwerk, signup_url, bedingungen, status)
+     VALUES ($1, $2, $3, $4, $5, 'gefunden')
+     ON CONFLICT (tool_id, signup_url) DO UPDATE
+       SET bedingungen = COALESCE(EXCLUDED.bedingungen, affiliate_programm.bedingungen),
+           status = CASE WHEN affiliate_programm.status = 'abgelehnt' THEN 'abgelehnt'
+                        ELSE 'gefunden' END`,
+    [tool.id, tool.name, netzwerk, programmUrl, bedingungen],
+  );
 }
 
 // ── Community-Reaktion ──────────────────────────────────────────────
