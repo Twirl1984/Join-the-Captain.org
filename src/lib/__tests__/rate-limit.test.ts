@@ -16,7 +16,7 @@ test("[REQ-SAFE-004] erlaubt bis zum Limit, blockt danach, Fenster läuft ab", (
   assert.equal(lim.allow("ip-a"), true, "nach Fensterablauf wieder frei");
 });
 
-test("Schlüssel sind unabhängig (eine IP blockt nicht die andere)", () => {
+test("[REQ-SAFE-004] Schlüssel sind unabhängig (eine IP blockt nicht die andere)", () => {
   let now = 0;
   const lim = createLimiter({ limit: 1, windowMs: 60_000, clock: () => now });
   assert.equal(lim.allow("a"), true);
@@ -26,7 +26,7 @@ test("Schlüssel sind unabhängig (eine IP blockt nicht die andere)", () => {
   assert.equal(lim.allow("b"), false);
 });
 
-test("Speicher wächst nicht unbegrenzt: abgelaufene Einträge werden geräumt", () => {
+test("[REQ-SAFE-004] Speicher wächst nicht unbegrenzt: abgelaufene Einträge werden geräumt", () => {
   let now = 0;
   const lim = createLimiter({ limit: 1, windowMs: 1_000, clock: () => now });
   for (let i = 0; i < 5_000; i++) lim.allow(`ip-${i}`);

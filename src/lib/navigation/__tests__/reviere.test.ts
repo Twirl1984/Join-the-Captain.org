@@ -17,21 +17,21 @@ import {
   type NavRevier,
 } from "../reviere";
 
-test("es gibt mindestens die Gruppen Nordsee, Ostsee, Mittelmeer und Binnen", () => {
+test("[REQ-NAV-020] es gibt mindestens die Gruppen Nordsee, Ostsee, Mittelmeer und Binnen", () => {
   const ids = REVIER_GRUPPEN.map((g) => g.id);
   for (const wanted of ["nordsee", "ostsee", "mittelmeer", "binnen"]) {
     assert.ok(ids.includes(wanted), `Gruppe ${wanted} fehlt (vorhanden: ${ids.join(", ")})`);
   }
 });
 
-test("jede Gruppe hat Label und mindestens ein Revier", () => {
+test("[REQ-NAV-020] jede Gruppe hat Label und mindestens ein Revier", () => {
   for (const g of REVIER_GRUPPEN) {
     assert.ok(g.label.length > 2, `Gruppe ${g.id} ohne Label`);
     assert.ok(g.reviere.length >= 1, `Gruppe ${g.id} ist leer`);
   }
 });
 
-test("alle Revier- und Gruppen-IDs sind global eindeutig", () => {
+test("[REQ-NAV-020] alle Revier- und Gruppen-IDs sind global eindeutig", () => {
   const seen = new Set<string>();
   for (const g of REVIER_GRUPPEN) {
     assert.ok(!seen.has(g.id), `doppelte ID ${g.id}`);
@@ -55,11 +55,11 @@ function checkRevier(r: NavRevier) {
   );
 }
 
-test("jedes Revier hat konsistente bbox, Center im Kasten und plausiblen Zoom", () => {
+test("[REQ-NAV-020] jedes Revier hat konsistente bbox, Center im Kasten und plausiblen Zoom", () => {
   for (const r of alleReviere()) checkRevier(r);
 });
 
-test("jedes Revier hat >= 3 Häfen, alle innerhalb der bbox", () => {
+test("[REQ-NAV-020] jedes Revier hat >= 3 Häfen, alle innerhalb der bbox", () => {
   for (const r of alleReviere()) {
     assert.ok(r.haefen.length >= 3, `${r.id}: nur ${r.haefen.length} Häfen`);
     for (const h of r.haefen) {
@@ -69,7 +69,7 @@ test("jedes Revier hat >= 3 Häfen, alle innerhalb der bbox", () => {
   }
 });
 
-test("getNavRevier findet per ID, unbekannte ID -> undefined", () => {
+test("[REQ-NAV-020] getNavRevier findet per ID, unbekannte ID -> undefined", () => {
   const alle = alleReviere();
   assert.ok(alle.length >= 8, `zu wenige Reviere: ${alle.length}`);
   const first = alle[0];
@@ -77,7 +77,7 @@ test("getNavRevier findet per ID, unbekannte ID -> undefined", () => {
   assert.equal(getNavRevier("gibt-es-nicht"), undefined);
 });
 
-test("gruppeVon liefert die Gruppe eines Reviers", () => {
+test("[REQ-NAV-020] gruppeVon liefert die Gruppe eines Reviers", () => {
   for (const g of REVIER_GRUPPEN) {
     for (const r of g.reviere) {
       assert.equal(gruppeVon(r.id)?.id, g.id, `${r.id} nicht in ${g.id} gefunden`);
@@ -86,7 +86,7 @@ test("gruppeVon liefert die Gruppe eines Reviers", () => {
   assert.equal(gruppeVon("gibt-es-nicht"), undefined);
 });
 
-test("die bewährten /wetter-Reviere leben als Navigation-Reviere weiter", () => {
+test("[REQ-NAV-020] die bewährten /wetter-Reviere leben als Navigation-Reviere weiter", () => {
   // Rügen/Ostsee, Istrien, Dalmatien und Brombachsee waren die Start-Reviere
   // des Wetter-Tools — die Navigation deckt sie weiter ab (Suche über Häfen).
   for (const hafen of ["Stralsund", "Pula", "Split", "Ramsberg"]) {
@@ -94,7 +94,7 @@ test("die bewährten /wetter-Reviere leben als Navigation-Reviere weiter", () =>
   }
 });
 
-test("sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv", () => {
+test("[REQ-NAV-020] sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv", () => {
   const byLabel = sucheReviere("dalmatien");
   assert.ok(byLabel.some((r) => r.id.includes("dalmatien")), "Label-Match fehlt");
 
@@ -108,7 +108,7 @@ test("sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv", ()
   assert.deepEqual(sucheReviere("  "), []);
 });
 
-test("Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis", () => {
+test("[REQ-NAV-020] Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis", () => {
   // Die Wassermasken kennen kein Trockenfallen — im Watt ist Navigation ohne
   // Tidenkenntnis fahrlässig. Challenge-Review-Auflage: Warnhinweis pro Revier.
   const nordsee = REVIER_GRUPPEN.find((g) => g.id === "nordsee")!;
@@ -121,7 +121,7 @@ test("Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis", () =
   assert.equal(ruegen.warnhinweis, undefined);
 });
 
-test("inBbox: Ränder zählen als innen, außerhalb nicht", () => {
+test("[REQ-NAV-020] inBbox: Ränder zählen als innen, außerhalb nicht", () => {
   const bbox: [number, number, number, number] = [50, 5, 55, 10];
   assert.ok(inBbox(50, 5, bbox));
   assert.ok(inBbox(55, 10, bbox));

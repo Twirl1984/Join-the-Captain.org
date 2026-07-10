@@ -13,6 +13,9 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 
 ---
 
+> PROC-Anforderungen sind Verfahrensregeln (nicht funktional testbar) — sie sind
+> im Skill aspice-istqb-workflow und im trace-Gate verankert, nicht in Testtiteln.
+
 ## WET — Wetter-Kern (geteilt von /wetter und /navigation)
 
 - **REQ-WET-001** Routen-Forecast (Status: umgesetzt) — Für ≥2 Wegpunkte werden je Etappe Distanz, Kurs, Wind, Böen, Welle, Fahrt und ETA berechnet (planRoute, injizierter Wetter-Sampler). Quelle: Kernauftrag 2026-06-30.
@@ -52,6 +55,8 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-NAV-016** Eine App: Navigation & Wetter (Status: umgesetzt) — /navigation ist die einzige App (inkl. Modell-Wahl mit Revier-Empfehlung, Feedback-Karte, Liegezeiten, Archiv-Badge aus /wetter); /wetter leitet dauerhaft auf /navigation um (bestehende Links bleiben gültig). REVIDIERT den Entscheid „/wetter bleibt" vom 2026-07-06. Quelle: User-Entscheid 2026-07-08.
 - **REQ-NAV-017** Liegezeit als Dauer und Uhrzeit (Status: umgesetzt) — An Zwischenstopps kann die Liegezeit als Dauer (Stunden/Minuten) ODER als Weiterfahrt-Uhrzeit eingegeben werden; beide Eingaben sind über die berechnete Ankunft bidirektional gekoppelt. Der Server versteht stay_min (Weiterfahrt = Ankunft + Dauer; ist zusätzlich depart_at gesetzt, gilt der spätere Zeitpunkt). Quelle: User 2026-07-08.
 - **REQ-NAV-018** Karte im Vollbild (Status: umgesetzt) — Die Navigationskarte lässt sich per Schalter auf den ganzen (Smartphone-)Bildschirm vergrößern und wieder verkleinern; im Vollbild bleiben alle Karten-Interaktionen (Wegpunkt setzen/ziehen, Zeitreise) erhalten, Leaflet misst seine Größe nach dem Wechsel neu. Quelle: Nutzer-Feedback 2026-07-10 („Maps-Fenster auf den ganzen Smartphonebildschirm vergrößern“).
+- **REQ-NAV-019** Routen-Profile (Status: umgesetzt) — Neben dem kürzesten Wasserweg sind drei Profile wählbar: schnellster Weg unter Segeln (Polare + Kreuz-VMG, meidet Flaute), schnellster Weg unter Motor (Welle bremst) und Komfort (meidet Seegang/Starkwind auch per Umweg). Kantenkosten im A* aus einem groben Wetterfeld zur Startzeit; Heuristik bleibt zulässig. Quelle: User 2026-07-10.
+- **REQ-NAV-020** Revier-Katalog-Integrität (Status: umgesetzt) — Revier-IDs sind eindeutig, Bounding-Boxen konsistent mit plausiblem Zoom, jedes Revier hat Häfen innerhalb der bbox, Tidenreviere tragen den Gezeiten-Hinweis; die früheren /wetter-Reviere leben als Navigations-Reviere weiter. Quelle: Traceability-Audit 2026-07-10.
 
 ## SAFE — Sicherheit & Recht
 
@@ -65,3 +70,4 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-PROC-001** Traceability (Status: umgesetzt) — Anforderungen tragen IDs; verifizierende Tests taggen sie im Titel; `npm run trace` bricht bei Lücken und toten Tags; die Matrix wird generiert. Quelle: User 2026-07-06 (ASPICE/ISTQB).
 - **REQ-PROC-002** Widerspruchs-Regel (Status: umgesetzt) — Bei widersprüchlichen oder unklaren Anforderungen wird die Arbeit gestoppt und der User konkret gefragt; keine stillen Entscheidungen. Verankert im Skill. Quelle: User 2026-07-06.
 - **REQ-PROC-003** Verifikationsschleifen (Status: umgesetzt) — Vor Push/Staging: `npm run verify` (Lint, Typecheck, Unit, Trace) + E2E grün; bei größeren Diffs adversarialer Multi-Agent-Review. Quelle: Projektkonvention seit 2026-07-02.
+- **REQ-PROC-004** Device-Matrix (Status: umgesetzt) — E2E-Tests laufen auf Desktop Chrome, Desktop Safari (WebKit), Android Chrome (Pixel 7) und iOS Safari (iPhone 14); die Matrix ist in playwright.config.ts verankert. Quelle: User 2026-07-10.

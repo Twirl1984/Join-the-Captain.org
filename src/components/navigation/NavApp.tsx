@@ -125,6 +125,8 @@ export function NavApp() {
   // Abfahrts-Scan (REQ-NAV-009): Fenster-Ende + Ergebnis.
   const [scanTo, setScanTo] = useState(() => toLocalInput(new Date(Date.now() + 48 * 3600e3)));
   const [scan, setScan] = useState<DepartureScan | null>(null);
+  // Routen-Profil (REQ-NAV-019): welcher WEG gesucht wird (nicht die Antriebsart).
+  const [routeProfil, setRouteProfil] = useState<"kuerzeste" | "segel" | "motor" | "komfort">("kuerzeste");
   // Warn-Empfindlichkeit (REQ-NAV-015) — wirkt auf Route, Scan und Zeitreise.
   const [sensitivity, setSensitivity] = useState(RECOMMENDED_SENSITIVITY);
   // Wettermodell + gemessene Revier-Empfehlung (REQ-NAV-016 aus /wetter).
@@ -300,6 +302,8 @@ export function NavApp() {
     })();
   };
   const reset = () => {
+    // Versehentliches Löschen verhindern (Usability-Audit G-002).
+    if (waypoints.length > 0 && !window.confirm("Route und alle Wegpunkte löschen?")) return;
     reqSeq.current++;
     setScan(null);
     setSnapHinweis(null); // laufende Antworten verwerfen
@@ -345,6 +349,7 @@ export function NavApp() {
           mode,
           sensitivity,
           model,
+          routeProfil,
           boat,
           ...(opts.scanWindowEnd
             ? { scanWindowEnd: opts.scanWindowEnd, scanStepH: 1 }
@@ -965,7 +970,7 @@ export function NavApp() {
                             inputMode="numeric"
                             data-testid="nav-stay-h"
                             className="wetter-select"
-                            style={{ minHeight: 44, fontSize: 14, width: 72 }}
+                            style={{ minHeight: 44, fontSize: 16, width: 76 }}
                             placeholder="0"
                             value={stayFieldsFor(w).h}
                             onChange={(e) => setWaypointStay(w.id, e.target.value, stayFieldsFor(w).m)}
@@ -979,7 +984,7 @@ export function NavApp() {
                             inputMode="numeric"
                             data-testid="nav-stay-min"
                             className="wetter-select"
-                            style={{ minHeight: 44, fontSize: 14, width: 72 }}
+                            style={{ minHeight: 44, fontSize: 16, width: 76 }}
                             placeholder="0"
                             value={stayFieldsFor(w).m}
                             onChange={(e) => setWaypointStay(w.id, stayFieldsFor(w).h, e.target.value)}
@@ -993,7 +998,7 @@ export function NavApp() {
                             type="datetime-local"
                             data-testid="nav-depart-at"
                             className="wetter-select"
-                            style={{ minHeight: 44, fontSize: 14, maxWidth: 220 }}
+                            style={{ minHeight: 44, fontSize: 16, maxWidth: 230 }}
                             value={departFieldFor(w)}
                             onChange={(e) => setWaypointDepart(w.id, e.target.value)}
                             aria-label={`Weiterfahrt ab Wegpunkt ${i + 1}`}
@@ -1149,6 +1154,40 @@ export function NavApp() {
             </label>
           </div>
 
+          {/* Routen-Profil (REQ-NAV-019): kürzester / Segel- / Motor- / Komfort-Weg */}
+          <div className="card stack" style={{ gap: 8 }}>
+            <span className="section-label">Welcher Weg?</span>
+            <div className="pills" role="radiogroup" aria-label="Routen-Profil">
+              {(
+                [
+                  ["kuerzeste", "Kürzester", "reiner Wasserweg, ohne Wetter"],
+                  ["segel", "Segel-schnell", "meidet Flaute, kreuzt durch die No-Go-Zone"],
+                  ["motor", "Motor-schnell", "Marschfahrt, hohe Welle bremst"],
+                  ["komfort", "Komfort", "meidet Seegang und Starkwind, auch per Umweg"],
+                ] as const
+              ).map(([wert, label, hint]) => (
+                <button
+                  key={wert}
+                  type="button"
+                  role="radio"
+                  aria-checked={routeProfil === wert}
+                  data-testid={`nav-profil-${wert}`}
+                  className={`pill ${routeProfil === wert ? "active" : ""}`}
+                  title={hint}
+                  onClick={() => setRouteProfil(wert)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {routeProfil !== "kuerzeste" && (
+              <p className="caption" data-testid="nav-profil-hinweis">
+                Wetter-bepreister Weg zur Abfahrtszeit — Planungshilfe, ersetzt keine
+                laufende Wetterbeobachtung unterwegs.
+              </p>
+            )}
+          </div>
+
           {/* Abfahrts-Scan (REQ-NAV-009): über den gerouteten Wasserweg */}
           <div className="card stack" style={{ gap: 10 }}>
             <span className="section-label">Beste Abfahrt finden</span>
@@ -1221,6 +1260,11 @@ export function NavApp() {
             {loading ? "Berechne …" : "Route über Wasser berechnen"}
             {!loading && <Icon name="arrow-right" size={16} />}
           </button>
+            {!canCalc && (
+              <p className="caption" data-testid="nav-calc-hint">
+                Mindestens 2 Wegpunkte setzen — auf die Karte oder einen Hafen tippen.
+              </p>
+            )}
         </div>
       </div>
 
@@ -1419,13 +1463,14 @@ export function NavApp() {
                     type="button"
                     data-testid={`feedback-star-${n}`}
                     className="wetter-star"
+                    style={{ minWidth: 48, minHeight: 48 }}
                     aria-label={`${n} von 5 Sternen`}
                     aria-pressed={fbRating != null && n <= fbRating}
                     onClick={() => setFbRating(fbRating === n ? null : n)}
                   >
                     <Icon
                       name="star"
-                      size={18}
+                      size={24}
                       style={{ color: fbRating != null && n <= fbRating ? "var(--accent)" : "var(--fg-faint)" }}
                     />
                   </button>

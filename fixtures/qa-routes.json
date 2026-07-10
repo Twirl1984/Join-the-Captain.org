@@ -1,0 +1,414 @@
+{
+  "routes": [
+    {
+      "id": "ADRIA_SPLIT_HVAR",
+      "name": "Adria: Split–Hvar",
+      "description": "Klassisches Mittelmeer-Crewing, offene See, tiefes Wasser",
+      "waypoints": [
+        {
+          "lat": 43.51,
+          "lon": 16.44,
+          "name": "Split"
+        },
+        {
+          "lat": 43.19,
+          "lon": 16.84,
+          "name": "Hvar"
+        }
+      ],
+      "boat_id": "bavaria_50",
+      "boat_name": "Bavaria 50 (Segler)",
+      "start_time": "2025-06-15T08:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 30,
+        "distance_nm_max": 35,
+        "distance_tolerance_pct": 3,
+        "depth_points": [
+          {
+            "lat": 43.51,
+            "lon": 16.44,
+            "expect_m": [50, 250],
+            "desc": "Split Hafen"
+          },
+          {
+            "lat": 43.35,
+            "lon": 16.62,
+            "expect_m": [100, 300],
+            "desc": "Mitte Passage"
+          },
+          {
+            "lat": 43.19,
+            "lon": 16.84,
+            "expect_m": [50, 200],
+            "desc": "Hvar Hafen"
+          }
+        ],
+        "snap_tolerance_m": 1500,
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 1,
+        "expect_model": "best_match",
+        "expect_current_min_kn": 0.1,
+        "expect_current_max_kn": 1.5,
+        "description": "Test: Routing bleibt im Wasser, Tiefenwasser korrekt, Strömung eingerechnet"
+      }
+    },
+    {
+      "id": "OSTSEE_BINZ_BAABE",
+      "name": "Ostsee: Binz–Baabe (Rügen)",
+      "description": "Flachgewässer, Snap-Test (Binz an Strand), Jolle-Segelbereich",
+      "waypoints": [
+        {
+          "lat": 54.40,
+          "lon": 13.61,
+          "name": "Binz"
+        },
+        {
+          "lat": 54.41,
+          "lon": 13.79,
+          "name": "Baabe"
+        }
+      ],
+      "boat_id": "jolle_5m",
+      "boat_name": "Kleine Jolle (5 m, 0,3 m Tiefgang)",
+      "start_time": "2025-06-15T09:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 8,
+        "distance_nm_max": 12,
+        "distance_tolerance_pct": 3,
+        "depth_points": [
+          {
+            "lat": 54.40,
+            "lon": 13.61,
+            "expect_m": [3, 15],
+            "desc": "Binz Strand/Hafen"
+          },
+          {
+            "lat": 54.405,
+            "lon": 13.70,
+            "expect_m": [5, 20],
+            "desc": "Mitte Passage"
+          },
+          {
+            "lat": 54.41,
+            "lon": 13.79,
+            "expect_m": [4, 12],
+            "desc": "Baabe Lagune"
+          }
+        ],
+        "snap_expected": true,
+        "snap_expected_distance_m": 800,
+        "flachwasser_expected": ["ok", "knapp"],
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 2,
+        "expect_wind_min_kn": 5,
+        "expect_wind_max_kn": 15,
+        "description": "Test: Snap aktiv (Start an Land), Flachwasser-Checks o.k., Jolle-Wind-Grenzen prüfen"
+      }
+    },
+    {
+      "id": "OSTSEE_KIEL_ECKERNFOERDE",
+      "name": "Ostsee: Kiel–Eckernförde",
+      "description": "Mittelstrecke Ostsee, ICON-Modell Test, Strömung NOK",
+      "waypoints": [
+        {
+          "lat": 54.32,
+          "lon": 10.15,
+          "name": "Kiel"
+        },
+        {
+          "lat": 54.47,
+          "lon": 9.84,
+          "name": "Eckernförde"
+        }
+      ],
+      "boat_id": "bavaria_35",
+      "boat_name": "Bavaria 35 Segelboot",
+      "start_time": "2025-06-15T10:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 20,
+        "distance_nm_max": 25,
+        "distance_tolerance_pct": 3,
+        "depth_points": [
+          {
+            "lat": 54.32,
+            "lon": 10.15,
+            "expect_m": [8, 25],
+            "desc": "Kiel Förde"
+          },
+          {
+            "lat": 54.40,
+            "lon": 10.00,
+            "expect_m": [15, 50],
+            "desc": "Offene Bucht"
+          },
+          {
+            "lat": 54.47,
+            "lon": 9.84,
+            "expect_m": [10, 30],
+            "desc": "Eckernförde Förde"
+          }
+        ],
+        "expect_model": "icon_seamless",
+        "expect_current_min_kn": 0.0,
+        "expect_current_max_kn": 1.5,
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 2,
+        "description": "Test: ICON-Modell (Ostsee-Revier laut REQ-WET-011), Darss-Strömung erkannt?"
+      }
+    },
+    {
+      "id": "DAENEMARK_SONDERBORG_AABENRAA",
+      "name": "Dänische Südsee: Sonderborg–Aabenraa",
+      "description": "Schlei-Förde, enge Passage, Gezeitenströmung",
+      "waypoints": [
+        {
+          "lat": 54.92,
+          "lon": 9.79,
+          "name": "Sonderborg"
+        },
+        {
+          "lat": 55.04,
+          "lon": 9.66,
+          "name": "Aabenraa"
+        }
+      ],
+      "boat_id": "bavaria_35",
+      "boat_name": "Bavaria 35 Segelboot",
+      "start_time": "2025-06-15T07:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 12,
+        "distance_nm_max": 15,
+        "distance_tolerance_pct": 4,
+        "depth_points": [
+          {
+            "lat": 54.92,
+            "lon": 9.79,
+            "expect_m": [3, 12],
+            "desc": "Sonderborg Hafen (Schlei)"
+          },
+          {
+            "lat": 55.00,
+            "lon": 9.72,
+            "expect_m": [5, 20],
+            "desc": "Mitte Schlei"
+          },
+          {
+            "lat": 55.04,
+            "lon": 9.66,
+            "expect_m": [3, 15],
+            "desc": "Aabenraa Hafen"
+          }
+        ],
+        "snap_expected": false,
+        "expect_current_min_kn": 0.2,
+        "expect_current_max_kn": 2.0,
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 2,
+        "description": "Test: Gezeitenströmung Schlei messbar, enge Passage routing-sicher"
+      }
+    },
+    {
+      "id": "BROMBACHSEE_JOLLE",
+      "name": "Brombachsee (Bayern): Süd–Nord",
+      "description": "Binnensee, kleine Jolle, kein EMODnet, Flachwasser trivial",
+      "waypoints": [
+        {
+          "lat": 49.04,
+          "lon": 10.75,
+          "name": "Brombach-See Süd"
+        },
+        {
+          "lat": 49.09,
+          "lon": 10.79,
+          "name": "Brombach-See Nord"
+        }
+      ],
+      "boat_id": "jolle_4m",
+      "boat_name": "Kleine Jolle (4 m, 0,25 m Tiefgang)",
+      "start_time": "2025-06-15T11:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 6,
+        "distance_nm_max": 8,
+        "distance_tolerance_pct": 5,
+        "depth_points": [
+          {
+            "lat": 49.04,
+            "lon": 10.75,
+            "expect_m": null,
+            "desc": "Brombach (Binnensee — keine Tiefendaten erwartet)"
+          }
+        ],
+        "snap_expected": false,
+        "flachwasser_expected": ["ok"],
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 1,
+        "expect_wind_min_kn": 5,
+        "expect_wind_max_kn": 12,
+        "description": "Test: Binnenrevier (keine Maske), Jolle-Grenzen ok, Flachwasser ignoriert (Tiefgang 0,25 m)"
+      }
+    },
+    {
+      "id": "DAENEMARK_FLENSBURG_KAPPEL",
+      "name": "Dänische Südsee: Flensburg–Kappel",
+      "description": "Längste Route, Multi-Leg ETA-Drift, NOK-Strömung",
+      "waypoints": [
+        {
+          "lat": 54.78,
+          "lon": 9.43,
+          "name": "Flensburg"
+        },
+        {
+          "lat": 54.84,
+          "lon": 9.98,
+          "name": "Wendepunkt (NOK)"
+        },
+        {
+          "lat": 54.70,
+          "lon": 10.27,
+          "name": "Kappel"
+        }
+      ],
+      "boat_id": "bavaria_50",
+      "boat_name": "Bavaria 50 Segelboot",
+      "start_time": "2025-06-15T06:00:00Z",
+      "mode": "sail",
+      "checks": {
+        "distance_nm_min": 35,
+        "distance_nm_max": 40,
+        "distance_tolerance_pct": 3,
+        "depth_points": [
+          {
+            "lat": 54.78,
+            "lon": 9.43,
+            "expect_m": [5, 20],
+            "desc": "Flensburg Förde"
+          },
+          {
+            "lat": 54.84,
+            "lon": 9.98,
+            "expect_m": [10, 40],
+            "desc": "Nord-Ostsee-Kanal Mitte"
+          },
+          {
+            "lat": 54.70,
+            "lon": 10.27,
+            "expect_m": [8, 30],
+            "desc": "Kappel Bucht"
+          }
+        ],
+        "snap_expected": false,
+        "expect_legs": 2,
+        "expect_eta_h_min": 4.5,
+        "expect_eta_h_max": 6.5,
+        "expect_current_min_kn": 0.5,
+        "expect_current_max_kn": 2.5,
+        "expect_warnings_min": 0,
+        "expect_warnings_max": 2,
+        "description": "Test: Mehrere Legs, ETA-Drift-Check (kumuliert Fehler), NOK-Strömung bis 2 kn erkannt"
+      }
+    }
+  ],
+  "archive_tests": [
+    {
+      "id": "STELLA_DEC2024",
+      "name": "Sturm Stella (Dez 2024, Ostsee)",
+      "description": "Bekannter Starkwind, Ostsee. Hätte das Tool gewarnt? (REQ-WET-009)",
+      "route_id": "OSTSEE_KIEL_ECKERNFOERDE",
+      "start_time": "2024-12-18T06:00:00Z",
+      "expected_storm_warning": true,
+      "expected_max_gust_kn_forecast": 48,
+      "expected_max_gust_kn_truth": 52,
+      "model": "icon_seamless",
+      "region": "Ostsee",
+      "reason": "Historischer Datensatz: ERA5-Böen zeigen ~52 kn real, ICON-Vorhersage ~48 kn. Tool-Warnung sollte aktiv sein."
+    },
+    {
+      "id": "BORA_JAN2025",
+      "name": "Adria-Starkwind Bora (Jan 2025)",
+      "description": "Klassische Bora-Lage Kroatien. Abfahrts-Scan: vorheriges Fenster besser?",
+      "route_id": "ADRIA_SPLIT_HVAR",
+      "start_time": "2025-01-10T06:00:00Z",
+      "expected_storm_warning": true,
+      "expected_max_gust_kn_forecast": 42,
+      "expected_max_gust_kn_truth": 45,
+      "model": "best_match",
+      "region": "Adria",
+      "reason": "Bora-Böen 35–45 kn vorhergesagt; 2025-01-09 ruhiger (< 15 kn). Scan sollte 01-09 bevorzugen."
+    },
+    {
+      "id": "DEPRESSION_MAR2025",
+      "name": "Schnelltiefdruckgebiet (März 2025, Ostsee)",
+      "description": "Wechselwind, Kreuzen-Variante vs. Motor. Beide ETAs sollten sichtbar sein.",
+      "route_id": "OSTSEE_BINZ_BAABE",
+      "start_time": "2025-03-22T09:00:00Z",
+      "expected_storm_warning": false,
+      "expected_max_gust_kn_forecast": 35,
+      "expected_max_gust_kn_truth": 38,
+      "model": "icon_seamless",
+      "region": "Ostsee",
+      "reason": "Wind 25–35 kn wechselnd (S→W→NW). Am-Wind-Leg mit Motor + Kreuzen-Alternative."
+    }
+  ],
+  "golden_windows": [
+    {
+      "id": "SUMMER_CALM_JUN2025",
+      "name": "Goldenes Fenster Juni 2025",
+      "description": "Ruhige Sommertage — False-Positive-Kontrolle (FPR-Messung)",
+      "start_date": "2025-06-15T00:00:00Z",
+      "end_date": "2025-06-20T23:59:59Z",
+      "expected_max_wind_kn": 12,
+      "expected_false_alarm_rate_max_pct": 10,
+      "reason": "Bekannt ruhige Periode; alle Routes sollten 0–1 Warnungen zeigen."
+    }
+  ],
+  "meta": {
+    "version": "1.0",
+    "created_at": "2026-07-10T00:00:00Z",
+    "description": "QA-Fixture für automatisiertes Wochenend-Testing. Enthält 6 reale Referenz-Routen (Adria, Ostsee, Dänemark, Bayern) + 3 historische Stürme (Archive-Mode) + 1 Ruhefenster (FPR-Kontrolle).",
+    "boats_referenced": [
+      {
+        "id": "bavaria_50",
+        "name": "Bavaria 50 (Segler)",
+        "length_m": 15.2,
+        "draft_m": 2.0,
+        "motor_kw": 30,
+        "sail_mode_min_kn": 3,
+        "sail_mode_max_kn": 40
+      },
+      {
+        "id": "bavaria_35",
+        "name": "Bavaria 35 (Segler)",
+        "length_m": 10.7,
+        "draft_m": 1.8,
+        "motor_kw": 20,
+        "sail_mode_min_kn": 4,
+        "sail_mode_max_kn": 35
+      },
+      {
+        "id": "jolle_5m",
+        "name": "Kleine Jolle (5 m)",
+        "length_m": 5.0,
+        "draft_m": 0.3,
+        "motor_kw": 0,
+        "sail_mode_min_kn": 5,
+        "sail_mode_max_kn": 12,
+        "comment": "Kein Motor — bei Windflaute Kriechfahrt oder Rudern"
+      },
+      {
+        "id": "jolle_4m",
+        "name": "Kleine Jolle (4 m)",
+        "length_m": 4.0,
+        "draft_m": 0.25,
+        "motor_kw": 0,
+        "sail_mode_min_kn": 5,
+        "sail_mode_max_kn": 10,
+        "comment": "Sehr kleine Jolle — strikte Wind-Grenzen"
+      }
+    ]
+  }
+}

@@ -269,7 +269,7 @@ test.describe("/navigation — Grundgerüst", () => {
     await expect(page.getByTestId("nav-attribution")).toContainText(/nicht als Navigationsmittel zugelassen/i);
   });
 
-  test("Tidenrevier zeigt Gezeiten-Warnband, Ostsee-Revier nicht", async ({ page }) => {
+  test("[REQ-NAV-012] Tidenrevier zeigt Gezeiten-Warnband, Ostsee-Revier nicht", async ({ page }) => {
     await openWithMap(page);
     await page.getByTestId("nav-revier-select").selectOption("deutsche-bucht");
     await expect(page.getByTestId("nav-revier-warnhinweis")).toContainText(/Tide/i);
@@ -309,7 +309,7 @@ test.describe("/navigation — Route & Landvermeidung", () => {
     await expect(page.getByTestId("nav-routing-hinweis")).toContainText(/1 Teilstrecke\(n\) als Luftlinie/);
   });
 
-  test("kein Wasserweg (422) → verständliche Fehlermeldung", async ({ page }) => {
+  test("[REQ-NAV-002] kein Wasserweg (422) → verständliche Fehlermeldung", async ({ page }) => {
     await mockApis(page, {
       routeStatus: 422,
       routeError: "Kein Wasserweg von Start nach Ziel gefunden — liegt ein Wegpunkt an Land?",
@@ -328,7 +328,7 @@ test.describe("/navigation — Route & Landvermeidung", () => {
     await expect(page.getByTestId("nav-error")).toContainText(/nicht verfügbar/);
   });
 
-  test("Warnungen aus dem Plan erscheinen im Warnband", async ({ page }) => {
+  test("[REQ-WET-004] Warnungen aus dem Plan erscheinen im Warnband", async ({ page }) => {
     await mockApis(page, { warnings: ["Sturm (9 Bft) ⚠ gefährlich auf Leg 1 (→ Ziel)"] });
     await openWithMap(page);
     await addTwoWaypoints(page);
@@ -444,7 +444,7 @@ test.describe("/navigation — GPS", () => {
 test.describe("/navigation — GPS verweigert", () => {
   test.use({ permissions: [] });
 
-  test("verweigerte Berechtigung → klarer Hinweis statt Endlos-Suche", async ({ page }) => {
+  test("[REQ-NAV-005] verweigerte Berechtigung → klarer Hinweis statt Endlos-Suche", async ({ page }) => {
     await openWithMap(page);
     await page.getByTestId("nav-gps-start").click();
     await expect(page.getByTestId("nav-gps-status")).toContainText(/verweigert|nicht verfügbar/);
@@ -546,7 +546,7 @@ test.describe("/navigation — Drag & Offline", () => {
     await expect(page.getByTestId("nav-waypoint-item").first()).toContainText("54.600");
   });
 
-  test("[REQ-NAV-014] Offline: zuletzt geladene Seite bleibt aufrufbar (Service Worker)", async ({ page, context, browserName }) => {
+  test("[REQ-NAV-014] Offline: zuletzt geladene Seite bleibt aufrufbar (Service Worker)", async ({ page, browserName, context }) => {
     test.skip(browserName !== "chromium", "SW-Offline-Test nur Chromium");
     await blockTiles(page);
     await page.addInitScript(() => localStorage.setItem("jtc-nav-disclaimer-v1", "1"));
@@ -630,6 +630,19 @@ test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", (
     };
     expect(body3.waypoints[1].stay_min).toBeUndefined();
     expect(body3.waypoints[1].depart_at).toBeUndefined();
+  });
+
+  test("[REQ-NAV-019] Routen-Profil: Auswahl wandert in den Request, Hinweis erscheint", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await page.getByTestId("nav-profil-komfort").click();
+    await expect(page.getByTestId("nav-profil-hinweis")).toBeVisible();
+    const resp = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
+    await page.getByTestId("nav-calc").click();
+    const body = JSON.parse((await resp).request().postData() ?? "{}") as { routeProfil?: string };
+    expect(body.routeProfil).toBe("komfort");
+    await expect(page.getByTestId("nav-profil-komfort")).toHaveAttribute("aria-checked", "true");
   });
 
   test("[REQ-NAV-017] vor der ersten Berechnung: Eingabe wird angenommen, Kopplung angekündigt", async ({ page }) => {

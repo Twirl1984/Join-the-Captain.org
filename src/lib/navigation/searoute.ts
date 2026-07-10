@@ -26,6 +26,16 @@ export interface LatLon {
   lon: number;
 }
 
+/**
+ * Kostenmodell für profil-abhängiges Routing (REQ-NAV-019). edgeCost liefert
+ * die Kosten einer Kante (z. B. Stunden); für eine ZULÄSSIGE A*-Heuristik muss
+ * stets gelten: edgeCost(a,b,dist) >= dist / heuristicSpeedNmPerCost.
+ */
+export interface RouteCosts {
+  edgeCost: (a: LatLon, b: LatLon, distNm: number) => number;
+  heuristicSpeedNmPerCost: number;
+}
+
 export interface SeaRouteResult {
   status: "ok" | "unreachable" | "outside";
   /** Route inkl. Original-Start und -Ziel (bei "ok"). */
@@ -52,7 +62,12 @@ function snapRinge(mask: WaterMask): number {
  * Liefert "outside" (Punkt außerhalb der bbox), "unreachable" (kein Wasserweg)
  * oder "ok" mit geglätteter Punktfolge inkl. der Originalendpunkte.
  */
-export function findSeaRoute(mask: WaterMask, from: LatLon, to: LatLon): SeaRouteResult {
+export function findSeaRoute(
+  mask: WaterMask,
+  from: LatLon,
+  to: LatLon,
+  costs?: RouteCosts,
+): SeaRouteResult {
   const fromCell = cellOf(mask, from.lat, from.lon);
   const toCell = cellOf(mask, to.lat, to.lon);
   if (!fromCell || !toCell) return { status: "outside", points: [] };
@@ -66,7 +81,7 @@ export function findSeaRoute(mask: WaterMask, from: LatLon, to: LatLon): SeaRout
   const goal = nearestWaterCell(mask, to.lat, to.lon, ringe);
   if (!start || !goal) return { status: "unreachable", points: [] };
 
-  const cellPath = aStar(mask, start, goal);
+  const cellPath = aStar(mask, start, goal, costs);
   if (!cellPath) return { status: "unreachable", points: [] };
 
   // Zellpfad -> Koordinaten; exakte Endpunkte ersetzen die Randzellen, wenn
@@ -79,7 +94,7 @@ export function findSeaRoute(mask: WaterMask, from: LatLon, to: LatLon): SeaRout
   pts.push(...raw);
   if (pts[pts.length - 1] !== to) pts.push(to);
 
-  const smooth = lineOfSightSimplify(mask, pts);
+  const smooth = lineOfSightSimplify(mask, pts, costs);
   let dist = 0;
   for (let i = 0; i < smooth.length - 1; i++) dist += haversineNm(smooth[i], smooth[i + 1]);
   return { status: "ok", points: smooth, distance_nm: Math.round(dist * 10) / 10 };
@@ -173,6 +188,7 @@ function aStar(
   mask: WaterMask,
   start: { row: number; col: number },
   goal: { row: number; col: number },
+  costs?: RouteCosts,
 ): Array<[number, number]> | null {
   const { rows, cols } = mask;
   const nCells = rows * cols;
@@ -185,7 +201,9 @@ function aStar(
   g[startI] = 0;
 
   const heap = new MinHeap();
-  heap.push(cellDistNm(mask, startI, goalI), startI);
+  const hSpeed = costs?.heuristicSpeedNmPerCost ?? 1;
+  const h = (i: number) => cellDistNm(mask, i, goalI) / hSpeed;
+  heap.push(h(startI), startI);
 
   while (heap.size > 0) {
     const cur = heap.pop();
@@ -206,11 +224,15 @@ function aStar(
         if (dr !== 0 && dc !== 0 && !(cellIsWater(mask, r, nc) && cellIsWater(mask, nr, c))) continue;
         const ni = nr * cols + nc;
         if (closed[ni]) continue;
-        const tentative = g[cur] + cellDistNm(mask, cur, ni);
+        const dNm = cellDistNm(mask, cur, ni);
+        const step = costs
+          ? costs.edgeCost(cellCenter(mask, r, c), cellCenter(mask, nr, nc), dNm)
+          : dNm;
+        const tentative = g[cur] + step;
         if (tentative < g[ni]) {
           g[ni] = tentative;
           cameFrom[ni] = cur;
-          heap.push(tentative + cellDistNm(mask, ni, goalI), ni);
+          heap.push(tentative + h(ni), ni);
         }
       }
     }
@@ -231,13 +253,27 @@ function aStar(
  * vorn springen, solange das Teilstück komplett im Wasser liegt. Liegt ein
  * Endpunkt an Land (Hafen), wird mindestens zum Folgepunkt weitergegangen.
  */
-function lineOfSightSimplify(mask: WaterMask, pts: LatLon[]): LatLon[] {
+function lineOfSightSimplify(mask: WaterMask, pts: LatLon[], costs?: RouteCosts): LatLon[] {
   if (pts.length <= 2) return pts;
+  // Bei Wetterkosten darf die Glättung keine teuren Gebiete "abkürzen":
+  // ein Sprung ist nur erlaubt, wenn er nicht teurer ist als die Teilstücke.
+  const prefix: number[] = [0];
+  if (costs) {
+    for (let k = 0; k < pts.length - 1; k++) {
+      prefix.push(prefix[k] + costs.edgeCost(pts[k], pts[k + 1], haversineNm(pts[k], pts[k + 1])));
+    }
+  }
+  const jumpOk = (i: number, j: number): boolean => {
+    if (!segmentInWater(mask, pts[i], pts[j])) return false;
+    if (!costs) return true;
+    const direct = costs.edgeCost(pts[i], pts[j], haversineNm(pts[i], pts[j]));
+    return direct <= (prefix[j] - prefix[i]) * 1.001 + 1e-9;
+  };
   const out: LatLon[] = [pts[0]];
   let i = 0;
   while (i < pts.length - 1) {
     let j = pts.length - 1;
-    while (j > i + 1 && !segmentInWater(mask, pts[i], pts[j])) j--;
+    while (j > i + 1 && !jumpOk(i, j)) j--;
     out.push(pts[j]);
     i = j;
   }

@@ -11,7 +11,7 @@
 
 import type { Waypoint } from "../weather/route-forecast";
 import type { WaterMask } from "./watermask";
-import { findSeaRoute, segmentInWater, type LatLon } from "./searoute";
+import { findSeaRoute, segmentInWater, type LatLon, type RouteCosts } from "./searoute";
 
 export type SegmentRouting = "wasserweg" | "luftlinie";
 
@@ -34,6 +34,8 @@ export interface ExpandResult {
 export interface ExpandOpts {
   /** Deckel für Zwischenpunkte je Teilstrecke (inkl. Endpunkt), Default 12. */
   maxPointsPerSegment?: number;
+  /** Profil-Kosten (REQ-NAV-019): Wetter-abhängiges A*-Routing statt Distanz. */
+  costs?: RouteCosts;
 }
 
 export function expandWaypointsOverWater(
@@ -54,7 +56,7 @@ export function expandWaypointsOverWater(
     let inner: Waypoint[] = [];
 
     if (mask) {
-      const sea = findSeaRoute(mask, { lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon });
+      const sea = findSeaRoute(mask, { lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, opts.costs);
       if (sea.status === "ok") {
         routing = "wasserweg";
         // Nur die ZWISCHENpunkte übernehmen — Endpunkte bleiben die Originale

@@ -17,6 +17,7 @@ import type { SailMode } from "@/lib/weather/polar";
 import { getNavRevier } from "@/lib/navigation/reviere";
 import { getMaskForRevier } from "@/lib/navigation/masks";
 import { expandWaypointsOverWater, thin } from "@/lib/navigation/route-helpers";
+import { gridField, parseRouteProfil, profileCosts, type FieldSample } from "@/lib/navigation/route-profiles";
 import { navigationEnabled } from "@/lib/flags";
 import { clientKey, createLimiter } from "@/lib/rate-limit";
 
@@ -36,7 +37,7 @@ function logRoute(fields: Record<string, unknown>): void {
 
 // POST /api/navigation/route
 // Body: { revier, waypoints: [{lat,lon,name?,depart_at?,stay_min?}], startTime?, mode?,
-//         sensitivity?, boat?, model?, scanWindowEnd?, scanStepH? }
+//         sensitivity?, boat?, model?, scanWindowEnd?, scanStepH?, routeProfil? }
 // scanWindowEnd (REQ-NAV-009): zusätzlich Abfahrts-Scan über die GERoutete
 // Punktfolge — ein Routing, ein Wetter-Fetch, Slots in der Antwort.
 // Wie /api/weather/route, aber: jede Teilstrecke wird VORHER über die
@@ -93,10 +94,54 @@ export async function POST(req: NextRequest) {
   const boat = mergeBoat(b.boat);
   const sensitivity = parseSensitivity(b.sensitivity);
   const model = parseModel(b.model);
+  // Routen-Profil (REQ-NAV-019): kürzeste (Default) | segel | motor | komfort.
+  const profil = parseRouteProfil(b.routeProfil);
+  if (!profil) return fehler("routeProfil: erlaubt sind kuerzeste, segel, motor, komfort.", 422);
 
   // Landvermeidung: Teilstrecken über die Wassermaske des Reviers routen.
   const mask = getMaskForRevier(revier.id);
-  const expanded = expandWaypointsOverWater(mask, waypoints);
+  // Profil-Routing (REQ-NAV-019): grobes Wetterfeld (3x3-Grid zur Startzeit)
+  // bepreist die A*-Kanten. Bewusst EIN Zeitpunkt — Planungshilfe, kein
+  // Wetter-Routing über die Zeitachse (Doku im Modul route-profiles.ts).
+  let costs = undefined;
+  if (profil !== "kuerzeste") {
+    try {
+      const lats = waypoints.map((w) => w.lat);
+      const lons = waypoints.map((w) => w.lon);
+      const pad = 0.25;
+      const s0 = Math.min(...lats) - pad;
+      const n0 = Math.max(...lats) + pad;
+      const w0 = Math.min(...lons) - pad;
+      const e0 = Math.max(...lons) + pad;
+      const grid: Array<{ lat: number; lon: number }> = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          grid.push({ lat: s0 + ((n0 - s0) * i) / 2, lon: w0 + ((e0 - w0) * j) / 2 });
+        }
+      }
+      const fieldSampler = await buildSampler(grid, {
+        sensitivity,
+        window: { start: startTime, end: new Date(startTime.getTime() + 3600e3) },
+        model,
+      });
+      const samples = grid.map((g) => {
+        const wx = fieldSampler({ lat: g.lat, lon: g.lon, at: startTime });
+        return {
+          ...g,
+          wind_kn: wx.wind_speed_kn,
+          wind_from_deg: wx.wind_from_deg,
+          wave_m: wx.wave_height_m ?? null,
+        } satisfies { lat: number; lon: number } & FieldSample;
+      });
+      costs = profileCosts(profil, gridField(samples), boat) ?? undefined;
+    } catch (err) {
+      // Feld nicht verfügbar (z. B. Upstream-Fehler): ehrlich scheitern statt
+      // still den kürzesten Weg als "Profil-Route" auszugeben.
+      console.error("route-profil-feld", err);
+      return fehler("Wetterfeld für das Routen-Profil gerade nicht verfügbar — bitte später erneut versuchen.", 502);
+    }
+  }
+  const expanded = expandWaypointsOverWater(mask, waypoints, { costs });
   if (expanded.status === "unreachable") {
     logRoute({ status: 422, grund: "unreachable", revier: revier.id, dauer_ms: Date.now() - t0 });
     const seg = expanded.failedSegment ?? 0;

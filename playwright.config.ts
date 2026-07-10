@@ -24,9 +24,16 @@ export default defineConfig({
       ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
       : {}),
   },
+  // Device-Matrix (REQ-PROC-004): die gebräuchlichsten Kombinationen —
+  // Desktop Chrome/Safari, Android Chrome (Pixel 7), iOS Safari (iPhone 14).
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
+    // WebKit: page.route() greift nicht bei Service-Worker-kontrollierten
+    // Requests (Playwright-Limit) — SW hier blocken; der Offline-Test (der den
+    // SW braucht) läuft nur auf den Chromium-Projekten (test.skip auf webkit).
+    { name: "safari", use: { ...devices["Desktop Safari"], serviceWorkers: "block" } },
+    { name: "iphone", use: { ...devices["iPhone 14"], serviceWorkers: "block" } },
   ],
   // Nur lokal die App hochfahren (nicht gegen eine externe baseURL).
   webServer: process.env.PLAYWRIGHT_BASE_URL

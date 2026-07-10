@@ -17,7 +17,7 @@ const jsonResponse = (body: unknown, status = 200): Response =>
     headers: { "content-type": "application/json" },
   });
 
-test("fetchDepth: EMODnet liefert avg<0 -> positive Tiefe in Metern", async () => {
+test("[REQ-NAV-003] fetchDepth: EMODnet liefert avg<0 -> positive Tiefe in Metern", async () => {
   const calls: string[] = [];
   const fetchImpl: FetchLike = async (url) => {
     calls.push(url);
@@ -32,7 +32,7 @@ test("fetchDepth: EMODnet liefert avg<0 -> positive Tiefe in Metern", async () =
   assert.ok(calls[0].includes(encodeURIComponent("POINT(13.2 54.5)")), calls[0]);
 });
 
-test("fetchDepth: EMODnet avg>=0 (Land) -> depth_m null, kein Fallback nötig", async () => {
+test("[REQ-NAV-003] fetchDepth: EMODnet avg>=0 (Land) -> depth_m null, kein Fallback nötig", async () => {
   const d = await fetchDepth(52, 10, {
     fetchImpl: async () => jsonResponse({ avg: 42.0 }),
   });
@@ -40,7 +40,7 @@ test("fetchDepth: EMODnet avg>=0 (Land) -> depth_m null, kein Fallback nötig", 
   assert.equal(d.source, "emodnet");
 });
 
-test("fetchDepth: EMODnet down -> GEBCO-Fallback (elevation<0 -> Tiefe)", async () => {
+test("[REQ-NAV-003] fetchDepth: EMODnet down -> GEBCO-Fallback (elevation<0 -> Tiefe)", async () => {
   const calls: string[] = [];
   const fetchImpl: FetchLike = async (url) => {
     calls.push(url);
@@ -54,21 +54,21 @@ test("fetchDepth: EMODnet down -> GEBCO-Fallback (elevation<0 -> Tiefe)", async 
   assert.ok(calls[1].includes("39.5,2.6"), `GEBCO erwartet lat,lon: ${calls[1]}`);
 });
 
-test("fetchDepth: beide Quellen down -> Fehler (kein stilles null)", async () => {
+test("[REQ-NAV-003] fetchDepth: beide Quellen down -> Fehler (kein stilles null)", async () => {
   await assert.rejects(
     fetchDepth(39.5, 2.6, { fetchImpl: async () => jsonResponse({}, 500) }),
     /Tiefendaten/,
   );
 });
 
-test("fetchDepth: validiert Koordinaten", async () => {
+test("[REQ-NAV-003] fetchDepth: validiert Koordinaten", async () => {
   const fetchImpl: FetchLike = async () => jsonResponse({ avg: -5 });
   await assert.rejects(fetchDepth(91, 0, { fetchImpl }), /Koordinaten/);
   await assert.rejects(fetchDepth(0, 181, { fetchImpl }), /Koordinaten/);
   await assert.rejects(fetchDepth(Number.NaN, 0, { fetchImpl }), /Koordinaten/);
 });
 
-test("fetchRouteDepths: eine Abfrage je Punkt, Reihenfolge bleibt erhalten", async () => {
+test("[REQ-NAV-003] fetchRouteDepths: eine Abfrage je Punkt, Reihenfolge bleibt erhalten", async () => {
   const fetchImpl: FetchLike = async (url) => {
     // Tiefe aus der lat kodieren, damit die Zuordnung prüfbar ist.
     const m = decodeURIComponent(url).match(/POINT\([\d.]+ ([\d.]+)\)/);
