@@ -478,6 +478,22 @@ p { margin: 0; }
 .wx-cloud { font-size: 11px; }
 .wx-sky { font-size: 12px; line-height: 1; }
 .wx-bolt { font-size: 11px; }
+
+/* Wetterzeichen v2 (REQ-WET-015/016): Windfahne + Temperatur/Niederschlag,
+   gestapelt, größer und kontrastreicher auf der OSM-Karte. */
+.wx-marker.wx-v2 {
+  flex-direction: column; gap: 1px; padding: 3px 6px; font-size: 11px;
+  background: rgba(6, 15, 24, 0.9); border-color: rgba(255,255,255,0.35);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.55);
+}
+.wx-v2 .wx-sky { font-size: 15px; }
+.wx-barb { transform-origin: 50% 50%; }
+.wx-v2 .wx-kn { font-size: 11px; font-weight: 700; }
+.wx-temp { font-size: 11px; font-weight: 700; color: #f2e9d8; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+.wx-precip { font-size: 12px; line-height: 1; }
+.wx-precip-leicht { opacity: 0.85; }
+.wx-precip-mäßig { opacity: 1; }
+.wx-precip-stark { opacity: 1; }
 .wx-boat {
   display: grid; place-items: center; width: 28px; height: 28px; font-size: 20px;
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));

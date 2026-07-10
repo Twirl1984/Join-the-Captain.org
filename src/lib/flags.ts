@@ -19,3 +19,13 @@ export function flagEnabled(raw: string | undefined): boolean {
 export function navigationEnabled(): boolean {
   return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_NAVIGATION);
 }
+
+/**
+ * Wetterzeichen v2 auf der Navigationskarte (REQ-WET-015/016): Beaufort-Windfahnen
+ * statt Pfeil, größere/kontrastreichere Symbole, Temperatur- und Niederschlags-Glyphen.
+ * Default an; `off/false/0` fällt auf die bisherige Pfeil-Darstellung zurück
+ * (Rollback-Hebel, kein Code-Revert nötig).
+ */
+export function weatherSymbolsV2Enabled(): boolean {
+  return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_WX_SYMBOLS_V2);
+}

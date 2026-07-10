@@ -76,6 +76,10 @@ interface PointSeries {
   cloud_pct: (number | null)[];
   /** Tag/Nacht (1/0) je Stunde — für das Himmels-Icon der Zeitreise (REQ-WET-014). */
   is_day: (number | null)[];
+  /** 2-m-Temperatur (°C) je Stunde — Kartensymbol (REQ-WET-016). */
+  temperature_c: (number | null)[];
+  /** Niederschlag (mm/h) je Stunde — Regen-Glyph (REQ-WET-016). */
+  precip_mm: (number | null)[];
   wave_height_m: (number | null)[];
   current_kn: (number | null)[];
   current_to_deg: (number | null)[];
@@ -162,7 +166,7 @@ async function fetchSeries(
 
   const atmoUrl =
     `${atmoBase}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape,cloud_cover,is_day` +
+    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape,cloud_cover,is_day,temperature_2m,precipitation` +
     `&wind_speed_unit=kn&timezone=UTC${range}${modelParam}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
@@ -201,6 +205,8 @@ async function fetchSeries(
       cape: aH.cape ?? [],
       cloud_pct: aH.cloud_cover ?? times.map(() => null),
       is_day: aH.is_day ?? times.map(() => null),
+      temperature_c: aH.temperature_2m ?? times.map(() => null),
+      precip_mm: aH.precipitation ?? times.map(() => null),
       wave_height_m: alignWave(times, mH.time, mH.wave_height),
       // Open-Meteo liefert Strömung in km/h → Knoten; Richtung = WOHIN sie setzt.
       current_kn: alignWave(times, mH.time, mH.ocean_current_velocity).map((v) =>
@@ -223,6 +229,10 @@ export interface TimelineStep {
   cloud_pct: number | null;
   /** Tag (true) / Nacht (false) — steuert das Himmels-Icon; null = unbekannt. */
   is_day: boolean | null;
+  /** 2-m-Temperatur (°C, ganzzahlig); null = keine Daten (REQ-WET-016). */
+  temperature_2m: number | null;
+  /** Niederschlag (mm/h, 0.1er-Schritte); null = keine Daten (REQ-WET-016). */
+  precipitation: number | null;
   wave_m: number | null;
   tide_m: number | null;
   gale: boolean;
@@ -283,6 +293,8 @@ export async function buildTimeline(
         wind_from_deg: Math.round(ps.wind_from_deg[i] ?? 0),
         cloud_pct: ps.cloud_pct[i] ?? null,
         is_day: ps.is_day[i] == null ? null : ps.is_day[i] === 1,
+        temperature_2m: ps.temperature_c[i] != null ? Math.round(ps.temperature_c[i]!) : null,
+        precipitation: ps.precip_mm[i] != null ? Math.round(ps.precip_mm[i]! * 10) / 10 : null,
         wave_m: ps.wave_height_m[i] != null ? Math.round(ps.wave_height_m[i]! * 10) / 10 : null,
         tide_m: ps.tide_m[i] != null ? Math.round(ps.tide_m[i]! * 100) / 100 : null,
         gale: w.sturm,
@@ -380,6 +392,8 @@ interface OpenMeteoLocation {
     cape?: number[];
     cloud_cover?: (number | null)[];
     is_day?: (number | null)[];
+    temperature_2m?: (number | null)[];
+    precipitation?: (number | null)[];
     wave_height?: (number | null)[];
     ocean_current_velocity?: (number | null)[];
     ocean_current_direction?: (number | null)[];
