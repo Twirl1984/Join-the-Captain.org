@@ -62,6 +62,36 @@ je Übernachtungs-Stopp die Bucht-Empfehlung nach Windrichtung des Abends
 (vorhandene Wetterdaten!) ranken — „Bucht Y ist bei dem vorhergesagten
 NW-Wind geschützt, 0,4 sm Umweg, Fest in Z am Samstag."
 
+## Architektur: LLM-Knowledge-Base nach Karpathy (User-Vorlage IMG_7029)
+
+Das Kurationssystem folgt der 8-Stufen-Pipeline „LLM-Powered Personal Knowledge
+Base" (basierend auf Andrej Karpathys Workflow), übersetzt auf JTC:
+
+| Stage | Karpathy | JTC-Umsetzung |
+|---|---|---|
+| 1 Ingest | Web/Papers/Repos → raw/ | Recherche-Routine sammelt Törnberichte, Hafen-/Gemeinde-Seiten, Event-Kalender je Revier → `revier_poi` (status=entwurf) mit Quellen |
+| 2 LLM-Kompilation | LLM liest, fasst, kompiliert | zentraler Anthropic-Client (`src/lib/anthropic.ts`, geloggt) verdichtet Rohfunde zu POI-Einträgen/Wiki-Artikeln |
+| 3 Wiki | ~100 Artikel | **Revier-Wiki**: je Revier ein kompilierter Artikel (Buchten, Highlights, Saison) — Quelle der Website-Inhalte |
+| 4 Q&A | LLM liest eigenen Index (kein RAG) | Ausbaustufe: „Frag das Revier" — Antworten NUR aus dem kuratierten Wiki, mit Quellenangabe |
+| 5 Output | .md/Marp/plots | Website-Seiten (/reviere/…), Törn-Vorschläge, ggf. PDF-Törnplan |
+| 6 Linting | Inkonsistenzen, Lücken, Verbindungen | der Review-Zyklus (oben): Widersprüche zwischen Quellen, fehlende Reviere/Saisons, veraltete Einträge |
+| 7 Extra Tools | CLI/Suche/Web-UI | scripts/-CLI für Kuratoren + Community-Feedback-Karte |
+| 8 Future | Fine-Tuning | offen (erst wenn Wiki-Volumen es rechtfertigt) |
+
+Self-Improving-Loop: Nutzerfragen/Votes (Stage 4/Community) fließen als
+Lücken-Signale zurück in Stage 6.
+
+## Monetarisierung (REQ-EXP-007)
+
+- Referral-/Affiliate-Links direkt an den Erlebnissen: Buchten → Buchungs-/
+  Buchten-Apps (z. B. Navily, sofern Partner-Programm — Stufenlogik aus
+  docs/research-scout.md wiederverwenden: Premium auch ohne Affiliate listen,
+  Alternative MIT Programm ergänzen), Häfen → Liegeplatz-Buchung, Events →
+  Ticket-Partner, Ausrüstung im Kontext (Landleinen, Ankerzubehör).
+- Compliance wie gehabt (README): Affiliate-Kennzeichnung Pflicht; Empfehlung
+  bleibt redaktionell — Ranking NIEMALS von Provision beeinflusst (Vertrauen
+  ist das Produkt).
+
 ## Requirements (geplant — IDs reserviert)
 
 - **REQ-EXP-001** POI-Wissensbasis mit Quellenpflicht und Lebenszyklus
@@ -70,6 +100,8 @@ NW-Wind geschützt, 0,4 sm Umweg, Fest in Z am Samstag."
 - **REQ-EXP-004** Erlebnisse entlang der Route (Korridor-Filter, Saison)
 - **REQ-EXP-005** Buchten-Ranking nach vorhergesagter Windrichtung
 - **REQ-EXP-006** Törn-Vorschläge mit Highlights (Route + Erlebnisse + Feste)
+- **REQ-EXP-007** Referral-Monetarisierung mit Kennzeichnung (Ranking provisionsfrei)
+- **REQ-EXP-008** Revier-Wiki: LLM-kompilierte Artikel + Linting-Zyklus (Karpathy Stage 3+6)
 
 ## Bewusst offen (Entscheidungen vor Umsetzung)
 

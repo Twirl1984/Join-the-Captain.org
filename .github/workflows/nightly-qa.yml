@@ -1,0 +1,31 @@
+# Nightly-QA: prüft die LIVE-Instanz jede Nacht gegen echte Wetter-/Tiefendaten.
+# Schlägt der Lauf fehl, mailt GitHub dem Repo-Owner automatisch.
+# Manuell auslösbar über "Run workflow" (workflow_dispatch).
+name: nightly-qa
+on:
+  schedule:
+    - cron: "17 3 * * *"   # 03:17 UTC taeglich
+  workflow_dispatch:
+
+jobs:
+  qa-live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: qa-weekend gegen Live (Referenz-Routen + Archiv-Validierung)
+        run: QA_BASE_URL=https://join-the-captain.org npx tsx scripts/qa-weekend.ts
+      - name: Playwright-Browser (Chromium)
+        run: npx playwright install --with-deps chromium
+      - name: Live-E2E gegen die Live-Instanz (Regler, Modell, Feedback, Redirect)
+        run: PLAYWRIGHT_BASE_URL=https://join-the-captain.org npx playwright test e2e/navigation-live.spec.ts --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nightly-qa-report
+          path: playwright-report/
+          retention-days: 7

@@ -110,3 +110,14 @@ als Merkposten sichtbar, statt still zu verschwinden.
 - Xcode/Capacitor: SPM-Projekt (`App.xcodeproj`, kein Workspace); SPM-Checkout
   braucht `GIT_CONFIG_*`-Override für `safe.bareRepository` (nur pro Build,
   nie global).
+
+## CI/CD (Stand 2026-07-10)
+
+- **agentic-gate** (PRs UND Push auf main): verify → Build → gemockte E2E über
+  die 4-Geräte-Matrix. Fast-Forward-Merges auf main laufen damit ebenfalls
+  durchs Gate.
+- **nightly-qa** (03:17 UTC, auch manuell per workflow_dispatch): qa-weekend
+  gegen die Live-Instanz + Live-E2E (echtes Open-Meteo). Fehlschlag = Mail an
+  den Repo-Owner.
+- Ergänzend außerhalb GitHub: VPS-Smoke alle 6 h (qa-smoke.sh) und der
+  So-03:30-Verify-Cron (Feedback vs. ERA5).

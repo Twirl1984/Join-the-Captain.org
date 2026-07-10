@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 48 · getaggte Zuordnungen 95.
+Stand: Requirements 50 · getaggte Zuordnungen 95.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -53,3 +53,5 @@ Stand: Requirements 48 · getaggte Zuordnungen 95.
 | REQ-EXP-004 — Erlebnisse entlang der Route | geplant | — |
 | REQ-EXP-005 — Buchten-Ranking nach Wind | geplant | — |
 | REQ-EXP-006 — Törn-Vorschläge mit Highlights | geplant | — |
+| REQ-EXP-007 — Referral-Monetarisierung | geplant | — |
+| REQ-EXP-008 — Revier-Wiki mit Linting | geplant | — |

@@ -1,3 +1,6 @@
+> Support-Kontakt für beide Stores: **support@join-the-captain.org**
+> (Postfach/Alias im Strato-Kundenmenü anlegen — MX existiert bereits.)
+
 # Store-Listing — JTC Navigation
 
 Texte für App Store (iOS) und Google Play, DE + EN. Limits beachtet:
