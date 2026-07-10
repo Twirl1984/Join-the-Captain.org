@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 57 · getaggte Zuordnungen 96.
+Stand: Requirements 57 · getaggte Zuordnungen 99.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -39,7 +39,7 @@ Stand: Requirements 57 · getaggte Zuordnungen 96.
 | REQ-NAV-018 — Karte im Vollbild | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-018] Vollbild-Schalter vergrößert die Karte und schließt wieder (Klick & Escape) |
 | REQ-NAV-019 — Routen-Profile | umgesetzt | `src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] ohne Profil: kürzester Weg durch den direkten Korridor<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Komfort: meidet 3-m-Welle im direkten Korridor (nimmt Umweg)<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Segel-schnell: meidet Flauten-Korridor, nimmt Wind-Korridor<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Motor-schnell: bleibt bei ruhiger See auf dem kürzesten Weg<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Heuristik bleibt zulässig: edgeCost >= dist/heuristicSpeed<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] profileCosts: <br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] parseRouteProfil: bekannte Werte, sonst null<br>`e2e/navigation.spec.ts`: [REQ-NAV-019] Routen-Profil: Auswahl wandert in den Request, Hinweis erscheint |
 | REQ-NAV-020 — Revier-Katalog-Integrität | umgesetzt | `src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] es gibt mindestens die Gruppen Nordsee, Ostsee, Mittelmeer und Binnen<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jede Gruppe hat Label und mindestens ein Revier<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] alle Revier- und Gruppen-IDs sind global eindeutig<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jedes Revier hat konsistente bbox, Center im Kasten und plausiblen Zoom<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jedes Revier hat >= 3 Häfen, alle innerhalb der bbox<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] getNavRevier findet per ID, unbekannte ID -> undefined<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] gruppeVon liefert die Gruppe eines Reviers<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] die bewährten /wetter-Reviere leben als Navigation-Reviere weiter<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] inBbox: Ränder zählen als innen, außerhalb nicht |
-| REQ-NAV-021 — GPX-Export | geplant | — |
+| REQ-NAV-021 — GPX-Export | umgesetzt | `src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] GPX enthält alle Punkte als rtept mit Namen/Fallback<br>`src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] Sonderzeichen werden escaped, Disclaimer enthalten<br>`src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] gültiger GPX-1.1-Rahmen |
 | REQ-NAV-022 — Törn-Stil und Tagesetappen | geplant | — |
 | REQ-NAV-023 — Zeitabhängiges Wetterfeld fürs Profil-Routing | geplant | — |
 | REQ-NAV-024 — Informationsarchitektur: Törnplaner + Detail-Tools | geplant | — |

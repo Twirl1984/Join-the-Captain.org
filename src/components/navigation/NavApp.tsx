@@ -25,6 +25,7 @@ import type { TimelinePoint } from "@/lib/weather/open-meteo";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
 import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
+import { gpxFromRoute } from "@/lib/navigation/gpx";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -1335,6 +1336,27 @@ export function NavApp() {
                 (unter Segeln kreuzend: {fmtEta(plan.eta_alternative)})
               </span>
             )}
+            <button
+              type="button"
+              data-testid="nav-gpx-export"
+              className="pill"
+              title="Route als GPX für Plotter/Apps herunterladen"
+              onClick={() => {
+                const pts = (routing?.points ?? effectiveWaypoints).map((p) => ({
+                  lat: p.lat,
+                  lon: p.lon,
+                  name: (p as { name?: string | null }).name ?? null,
+                }));
+                const blob = new Blob([gpxFromRoute(pts, plan)], { type: "application/gpx+xml" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "jtc-toern.gpx";
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}
+            >
+              GPX ↓
+            </button>
             {startAtGps && (
               <span className="tag phase-auf_dem_toern" data-testid="nav-live-badge">
                 ab eigener Position
