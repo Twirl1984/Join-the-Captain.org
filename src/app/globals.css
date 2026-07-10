@@ -364,6 +364,27 @@ p { margin: 0; }
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 .nav-map-fullscreen-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Im Vollbild (BUG-036): Bedienelemente unter der iPhone-Statusleiste/Dynamic
+   Island hervorholen — sonst ist der Exit-Knopf praktisch unklickbar. */
+[data-fullscreen="true"] .nav-map-fullscreen-btn {
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: calc(10px + env(safe-area-inset-right, 0px));
+}
+[data-fullscreen="true"] .leaflet-top { top: env(safe-area-inset-top, 0px); }
+
+/* Snap-/Hinweis-Toast AUF der Karte (BUG-037): im Vollbild war das Feedback
+   unterhalb der Karte unsichtbar — Ablehnungen wirkten "willkürlich". */
+.nav-map-toast {
+  position: absolute; z-index: 1000;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  max-width: min(92%, 480px);
+  padding: 8px 14px; font-size: 13px; line-height: 1.35;
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--accent);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
 .wetter-map-skeleton { animation: wetterShimmer 1.2s ease-in-out infinite alternate; }
 .wetter-skeleton { animation: wetterShimmer 1.2s ease-in-out infinite alternate; }
 @keyframes wetterShimmer { from { opacity: 0.45; } to { opacity: 0.85; } }

@@ -103,3 +103,13 @@ Commits mit [fix], adversariale Reviews.
 - NAV-9: Feinere Masken für Förden/Schären
 - Unit-Tests für Race-Conditions (calcRef, reqSeq) schärfen
 - Förden-Grenzfall-Test hinzufügen
+
+### Nachtrag 2026-07-10 — User-Test iPhone/Simulator (Bildschirmvideo 14:04)
+
+| BUG-ID | Titel | Ursache | Fix (Commit/Datei) | Regressionstest | Status |
+|--------|-------|--------|-------------------|-----------------|--------|
+| BUG-036 | Vollbild-Exit unter der Dynamic Island unerreichbar | Kein viewport-fit=cover + keine safe-area-insets im Vollbild — Exit-Knopf/Zoom lagen unter der iOS-Statusleiste („komme nicht mehr hoch") | layout.tsx viewport-Export, globals.css safe-area für [data-fullscreen] | e2e (Vollbild-Toggle, REQ-NAV-018); Insets visuell (Sim) | BEHOBEN |
+| BUG-037 | Snap-/Fehler-Feedback im Vollbild unsichtbar | Hinweis wurde UNTER der Karte gerendert — im Vollbild nie sichtbar; Nutzer tippte mehrfach (Punkt-Cluster), Ablehnungen wirkten willkürlich | Toast als Overlay AUF der Karte (.nav-map-toast) | [REQ-NAV-010]-E2E prüft Toast weiterhin | BEHOBEN |
+| BUG-039 | GPS in der iOS-App (Capacitor) nicht deaktivierbar | Verdacht: navigator.geolocation-Watch in der WKWebView (Capacitor braucht die Plugin-Bridge @capacitor/geolocation); Web-UI hat „GPS stoppen“ | offen — Branch feat/ios-capacitor (GPS-Bridge ohnehin geplant) | — | OFFEN (iOS) |
+| BUG-038 | Klick außerhalb des Reviers: irreführende 422 oder stille Luftlinie | snap-API kannte „außerhalb der Masken-bbox" nicht → „zu weit im Land" mitten auf dem Wasser; gesetzte Punkte erzeugten unkommentierte Luftlinien „über Inseln" | snap/route.ts outside:true + Klartext-Toast in NavApp (Klick UND Drag) | [REQ-NAV-010] neuer E2E-Fall outside | BEHOBEN |
+| BUG-040 | Liegezeit-Rückrechnung kippt um 1 Minute | ETA trägt Sekundenanteile, UI zeigt Minuten (floor) — Dauer aus Uhrzeit−ETA rundete bei Sekunden>30 auf 3 h 44 statt 3 h 45 | NavApp stayFieldsFor/departFieldFor rechnen auf Minutenbasis | [REQ-NAV-017]-E2E (deterministischer Mock-Zeitanker MOCK_T0) | BEHOBEN |

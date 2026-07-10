@@ -32,11 +32,16 @@ interface MockOpts {
   night?: boolean;
 }
 
+/** Fester Zeitanker für ALLE Mock-Antworten eines Laufs: Date.now() je
+ *  Request ließ die Ankunftszeiten zwischen zwei Berechnungen driften —
+ *  die Dauer⇄Uhrzeit-Rückrechnung (REQ-NAV-017) kippte dann um 1 Minute. */
+const MOCK_T0 = Date.now();
+
 /** Antwort von POST /api/navigation/route mit einem Zwischenpunkt (Umweg). */
 function routeResponse(opts: MockOpts = {}) {
-  const depart = new Date(Date.now() + 3600e3).toISOString();
-  const eta1 = new Date(Date.now() + 4 * 3600e3).toISOString();
-  const eta2 = new Date(Date.now() + 7 * 3600e3).toISOString();
+  const depart = new Date(MOCK_T0 + 3600e3).toISOString();
+  const eta1 = new Date(MOCK_T0 + 4 * 3600e3).toISOString();
+  const eta2 = new Date(MOCK_T0 + 7 * 3600e3).toISOString();
   const leg = (n: number, from: string, to: string, eta: string, dep: string): Record<string, unknown> => ({
     leg: n,
     from,
@@ -74,7 +79,7 @@ function routeResponse(opts: MockOpts = {}) {
   const scan = opts.scan
     ? {
         slots: [0, 3, 6].map((h) => ({
-          departure: new Date(Date.now() + (2 + h) * 3600e3).toISOString(),
+          departure: new Date(MOCK_T0 + (2 + h) * 3600e3).toISOString(),
           eta: eta2,
           duration_h: 6.2,
           warnings: h === 0 ? ["Gewitter auf Leg 1"] : [],
@@ -97,7 +102,7 @@ function routeResponse(opts: MockOpts = {}) {
       legs,
       total_nm: 24.8,
       eta: eta2,
-      eta_alternative: opts.kreuzen ? new Date(Date.now() + 9 * 3600e3).toISOString() : undefined,
+      eta_alternative: opts.kreuzen ? new Date(MOCK_T0 + 9 * 3600e3).toISOString() : undefined,
       warnings: opts.warnings ?? [],
     },
     routing: {
@@ -117,7 +122,7 @@ function routeResponse(opts: MockOpts = {}) {
 
 /** Timeline (Wolken/Wind) für das Playback-Overlay. */
 function timelineResponse(tide = false, night = false) {
-  const t0 = Date.now() + 3600e3;
+  const t0 = MOCK_T0 + 3600e3;
   const times = [0, 1, 2, 3].map((h) => new Date(t0 + h * 3600e3).toISOString());
   const step = (i: number, cloud: number) => ({
     t: times[i],
@@ -529,6 +534,22 @@ test.describe("/navigation — Boot, Abfahrt, Snap, Kreuzen, Tide", () => {
 test.describe("/navigation — Drag & Offline", () => {
   test("[REQ-NAV-013] Wegpunkt per Ziehen verschieben → Snap-Prüfung greift", async ({ page }) => {
     await mockApis(page);
+    // Deterministischer Snap (LIFO-Override): Der Standard-Mock ist an die
+    // Klick-Koordinate gekoppelt (422 bei lat>54.9) — je nach Viewport lag der
+    // Klick mal drüber, mal drunter: Punkt erschien (count=1), wurde dann von
+    // der asynchronen 422-Antwort wieder entfernt → Marker weg, Test flaky.
+    // Hier: 1. Aufruf (Klick) = "schon im Wasser" (Punkt bleibt an Ort und im
+    // Viewport), ab dem 2. (Drag-Ende) = gesnappt auf 54.600/13.600.
+    let snapCalls = 0;
+    await page.route("**/api/navigation/snap**", (r) => {
+      snapCalls++;
+      const u = new URL(r.request().url());
+      const body =
+        snapCalls === 1
+          ? { lat: Number(u.searchParams.get("lat")), lon: Number(u.searchParams.get("lon")), snapped: false }
+          : { lat: 54.6, lon: 13.6, snapped: true };
+      return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    });
     await openWithMap(page);
     const map = page.getByTestId("nav-map");
     const box = (await map.boundingBox())!;
@@ -663,5 +684,29 @@ test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", (
     await calcAndWait(page);
     await expect(page.getByTestId("nav-arrival")).toBeVisible();
     await expect(page.getByTestId("nav-depart-at")).not.toHaveValue("");
+  });
+});
+
+test.describe("/navigation — Punkt außerhalb des Reviers (BUG-038)", () => {
+  test("[REQ-NAV-010] Klick außerhalb der Revier-Maske erklärt die Luftlinie statt zu verwirren", async ({ page }) => {
+    await mockApis(page);
+    // LIFO-Override: Snap meldet "outside" (Punkt jenseits der Revier-bbox).
+    await page.route("**/api/navigation/snap**", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ lat: 57.9, lon: 7.5, snapped: false, outside: true }),
+      }),
+    );
+    await openWithMap(page);
+    const map = page.getByTestId("nav-map");
+    const box = (await map.boundingBox())!;
+    await map.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } });
+    // Punkt bleibt gesetzt, der Toast erklärt die Lage — sichtbar AUF der Karte
+    // (BUG-037: im Vollbild war Feedback unterhalb der Karte unsichtbar).
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(1);
+    const toast = page.getByTestId("nav-snap-hinweis");
+    await expect(toast).toContainText(/außerhalb des Reviers/);
+    await expect(toast).toContainText(/Luftlinie/);
   });
 });

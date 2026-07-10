@@ -35,7 +35,13 @@ export async function GET(req: NextRequest) {
   if (!mask) return ok({ lat, lon, snapped: false }); // Binnensee o. Ä.: unverändert
 
   const cell = cellOf(mask, lat, lon);
-  if (cell && cellIsWater(mask, cell.row, cell.col)) {
+  if (!cell) {
+    // Außerhalb der Revier-Maske (BUG-038): KEIN Fehler — der Client erklärt,
+    // dass dorthin nur eine Luftlinie möglich ist (statt irreführendem
+    // "zu weit im Land" mitten auf dem Wasser).
+    return ok({ lat, lon, snapped: false, outside: true });
+  }
+  if (cellIsWater(mask, cell.row, cell.col)) {
     return ok({ lat, lon, snapped: false }); // schon im Wasser
   }
   // Ringsuche wie im Routing: Meter → Ringe über die Zellhöhe (Breitengrad).

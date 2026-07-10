@@ -213,6 +213,14 @@ export function NavApp() {
           setSnapHinweis(d.error ?? "Der Punkt liegt zu weit im Land.");
           return;
         }
+        if (res.ok && (d as { outside?: boolean }).outside) {
+          // Außerhalb der Revier-Maske: erlaubt, aber ehrlich erklären, warum
+          // die Route dorthin nur eine Luftlinie sein kann (BUG-038).
+          setSnapHinweis(
+            `Der Punkt liegt außerhalb des Reviers „${revier.label}“ — dorthin gibt es nur eine Luftlinie (kein Wasserweg-Routing). Ggf. oben das passende Revier wählen.`,
+          );
+          return;
+        }
         if (res.ok && d.snapped && d.lat != null && d.lon != null) {
           setWaypoints((prev) =>
             prev.map((x) => (x.id === id ? { ...x, lat: d.lat!, lon: d.lon! } : x)),
@@ -253,7 +261,10 @@ export function NavApp() {
     }
     const arr = arrivals[w.id];
     if (w.depart_at && arr) {
-      const diffMin = Math.round((new Date(w.depart_at).getTime() - Date.parse(arr)) / 60e3);
+      // Auf MINUTEN-Basis rechnen: die ETA trägt Sekundenanteile, angezeigt
+      // wird sie aber minutengenau — sonst kippt die Dauer um 1 min (BUG-040).
+      const arrMin = Math.floor(Date.parse(arr) / 60e3) * 60e3;
+      const diffMin = Math.round((new Date(w.depart_at).getTime() - arrMin) / 60e3);
       if (diffMin >= 0) return { h: String(Math.floor(diffMin / 60)), m: String(diffMin % 60) };
     }
     return { h: "", m: "" };
@@ -262,7 +273,8 @@ export function NavApp() {
     if (w.depart_at) return toLocalInput(new Date(w.depart_at));
     const arr = arrivals[w.id];
     if (w.stay_min != null && arr) {
-      return toLocalInput(new Date(Date.parse(arr) + w.stay_min * 60e3));
+      const arrMin = Math.floor(Date.parse(arr) / 60e3) * 60e3;
+      return toLocalInput(new Date(arrMin + w.stay_min * 60e3));
     }
     return "";
   };
@@ -288,6 +300,14 @@ export function NavApp() {
         if (res.status === 422) {
           setWaypoints((prev) => prev.map((w) => (w.id === id ? { ...w, ...vorher } : w)));
           setSnapHinweis(d.error ?? "Der Punkt liegt zu weit im Land — zurückgesetzt.");
+          return;
+        }
+        if (res.ok && (d as { outside?: boolean }).outside) {
+          // Außerhalb der Revier-Maske: erlaubt, aber ehrlich erklären, warum
+          // die Route dorthin nur eine Luftlinie sein kann (BUG-038).
+          setSnapHinweis(
+            `Der Punkt liegt außerhalb des Reviers „${revier.label}“ — dorthin gibt es nur eine Luftlinie (kein Wasserweg-Routing). Ggf. oben das passende Revier wählen.`,
+          );
           return;
         }
         if (res.ok && d.snapped && d.lat != null && d.lon != null) {
@@ -1411,6 +1431,7 @@ export function NavApp() {
           {fbState === "done" ? (
             <p data-testid="feedback-thanks" className="muted" style={{ fontSize: 13 }}>
               Danke! Dein Feedback fließt in die Kalibrierung der Warnungen ein.
+              {" "}Direkter Draht: <a href="mailto:support@join-the-captain.org">support@join-the-captain.org</a>
             </p>
           ) : (
             <>

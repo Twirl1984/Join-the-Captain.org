@@ -23,6 +23,14 @@ const playfair = Playfair_Display({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://join-the-captain.org";
 
+// Safe-Area-Insets (Dynamic Island/Notch) funktionieren nur mit viewport-fit=cover
+// — ohne sie liegt der Vollbild-Exit-Knopf unter der iPhone-Statusleiste (BUG-036).
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
