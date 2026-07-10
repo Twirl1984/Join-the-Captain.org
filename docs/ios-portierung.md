@@ -215,3 +215,20 @@ Im Xcode Simulator:
 - [Capacitor Geolocation Plugin](https://capacitorjs.com/docs/apis/geolocation)
 - [Apple App Store Guidelines 4.2](https://developer.apple.com/app-store/review/guidelines/)
 - [Xcode SPM Troubleshooting](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app)
+
+
+## Build-Status (aktualisiert 2026-07-10)
+
+**BUILD SUCCEEDED** im iPhone-Simulator. Zwei Korrekturen gegenüber dem ersten Versuch:
+
+1. Capacitor 8 nutzt Swift Package Manager — es gibt KEIN `App.xcworkspace`,
+   gebaut wird gegen das Projekt:
+   ```bash
+   cd ios/App
+   GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all \
+     xcodebuild -project App.xcodeproj -scheme App -sdk iphonesimulator \
+     -configuration Debug build CODE_SIGNING_ALLOWED=NO
+   ```
+2. Xcodes SPM-Checkout kollidiert mit `safe.bareRepository=explicit` — der
+   Env-Override oben löst das NUR für diesen Build, ohne die globale
+   Git-Sicherheits-Konfiguration des Rechners zu ändern.
