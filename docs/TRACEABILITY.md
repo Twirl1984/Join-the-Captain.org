@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 41 · getaggte Zuordnungen 95.
+Stand: Requirements 42 · getaggte Zuordnungen 95.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -46,3 +46,4 @@ Stand: Requirements 41 · getaggte Zuordnungen 95.
 | REQ-PROC-001 — Traceability | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-002 — Widerspruchs-Regel | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-003 — Verifikationsschleifen | umgesetzt | ⚠ FEHLT |
+| REQ-PROC-004 — Device-Matrix | umgesetzt | ⚠ FEHLT |

@@ -205,6 +205,7 @@ export async function POST(req: NextRequest) {
     return ok({
       plan,
       routing: {
+        profil,
         engine: mask ? "wassermaske" : "keine-maske",
         points: expanded.points.map((p) => ({ lat: p.lat, lon: p.lon, name: p.name ?? null })),
         segments: expanded.segments,
