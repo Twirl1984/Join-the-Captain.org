@@ -28,6 +28,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/ios": "^8.4.1",
     "leaflet": "^1.9.4",
     "next": "15.5.19",
     "pg": "^8.13.1",
@@ -37,6 +40,7 @@
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@geo-maps/earth-coastlines-1km": "^0.6.0",
     "@geo-maps/earth-lakes-1km": "^0.6.0",
     "@playwright/test": "^1.61.1",

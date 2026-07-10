@@ -45,3 +45,11 @@ test-results/
 
 # Session-Worktrees (lokal, nie committen)
 .claude/worktrees/
+
+# iOS / Xcode
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/.build/
+ios/App/DerivedData/
+ios/App/*.xcworkspace/
+ios/App/**/*.xcworkspace/
