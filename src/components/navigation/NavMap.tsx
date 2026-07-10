@@ -28,7 +28,7 @@ import type { NavRevier } from "@/lib/navigation/reviere";
 import type { RouteSegmentInfo } from "@/lib/navigation/route-helpers";
 import type { Waypoint } from "@/lib/weather/route-forecast";
 import type { TimelineStep } from "@/lib/weather/open-meteo";
-import { windArrowRotationDeg } from "@/lib/weather/format";
+import { skyCondition, windArrowRotationDeg } from "@/lib/weather/format";
 import { beaufort } from "@/lib/weather/warnings";
 import type { GeoFix } from "./useGeolocation";
 
@@ -58,6 +58,8 @@ interface NavMapProps {
   showDepth: boolean;
   gps?: GeoFix | null;
   followGps: boolean;
+  /** Vollbild-Modus (REQ-NAV-018) — löst nach dem Layout-Wechsel invalidateSize aus. */
+  fullscreen?: boolean;
 }
 
 function waypointIcon(n: number): L.DivIcon {
@@ -91,22 +93,27 @@ function gpsIcon(headingDeg: number | null): L.DivIcon {
   });
 }
 
-// Windpfeil je Overlay-Punkt (Farbe nach Böen-Stärke, wie /wetter).
+// Windpfeil je Overlay-Punkt (Farbe nach Böen-Stärke, wie /wetter) + Himmels-Icon
+// aus dem Bedeckungsgrad (REQ-WET-014): so ist AUCH eine wolkenlose Lage sichtbar
+// „klar“/„klare Nacht“ (Sonne/Mond) und wirkt nicht leer.
 function windIcon(step: TimelineStep): L.DivIcon {
   const bft = beaufort(step.gust_kn);
   const cls = step.gale || step.thunderstorm ? "wx-danger" : bft >= 6 ? "wx-strong" : "wx-calm";
   const rot = windArrowRotationDeg(step.wind_from_deg);
   const bolt = step.thunderstorm ? '<span class="wx-bolt">⚡</span>' : "";
+  const sky = skyCondition(step.cloud_pct, step.is_day);
+  const skyGlyph = sky ? `<span class="wx-sky" title="${sky.label}">${sky.glyph}</span>` : "";
   return L.divIcon({
     className: "wp-divicon",
     html:
       `<span class="wx-marker ${cls}" title="${step.wind_kn} kn (Böen ${step.gust_kn} kn)">` +
+      skyGlyph +
       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
       `stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${rot}deg)">` +
       `<path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>` +
       `<span class="wx-kn">${step.wind_kn}</span>${bolt}</span>`,
-    iconSize: [42, 24],
-    iconAnchor: [21, 12],
+    iconSize: [54, 24],
+    iconAnchor: [27, 12],
   });
 }
 
@@ -122,6 +129,17 @@ function RevierView({ revier }: { revier: NavRevier }) {
   useEffect(() => {
     map.setView(revier.center, revier.zoom);
   }, [map, revier]);
+  return null;
+}
+
+/** Nach einem Größen-/Layout-Wechsel (Vollbild an/aus, REQ-NAV-018) muss Leaflet
+    seine Container-Maße neu messen — sonst bleiben Kacheln grau/fehlplatziert. */
+function InvalidateOnResize({ trigger }: { trigger: unknown }) {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 60);
+    return () => clearTimeout(id);
+  }, [map, trigger]);
   return null;
 }
 
@@ -179,9 +197,11 @@ export default function NavMap({
   showDepth,
   gps,
   followGps,
+  fullscreen,
 }: NavMapProps) {
   return (
     <MapContainer center={revier.center} zoom={revier.zoom} className="wetter-leaflet" scrollWheelZoom>
+      <InvalidateOnResize trigger={fullscreen} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

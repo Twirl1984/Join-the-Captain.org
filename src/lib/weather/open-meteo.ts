@@ -74,6 +74,8 @@ interface PointSeries {
   wind_from_deg: number[];
   cape: number[];
   cloud_pct: (number | null)[];
+  /** Tag/Nacht (1/0) je Stunde — für das Himmels-Icon der Zeitreise (REQ-WET-014). */
+  is_day: (number | null)[];
   wave_height_m: (number | null)[];
   current_kn: (number | null)[];
   current_to_deg: (number | null)[];
@@ -160,7 +162,7 @@ async function fetchSeries(
 
   const atmoUrl =
     `${atmoBase}?latitude=${lats}&longitude=${lons}` +
-    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape,cloud_cover` +
+    `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,cape,cloud_cover,is_day` +
     `&wind_speed_unit=kn&timezone=UTC${range}${modelParam}${key}`;
   const marineUrl =
     `${MARINE_BASE}?latitude=${lats}&longitude=${lons}` +
@@ -198,6 +200,7 @@ async function fetchSeries(
       wind_from_deg: aH.wind_direction_10m ?? [],
       cape: aH.cape ?? [],
       cloud_pct: aH.cloud_cover ?? times.map(() => null),
+      is_day: aH.is_day ?? times.map(() => null),
       wave_height_m: alignWave(times, mH.time, mH.wave_height),
       // Open-Meteo liefert Strömung in km/h → Knoten; Richtung = WOHIN sie setzt.
       current_kn: alignWave(times, mH.time, mH.ocean_current_velocity).map((v) =>
@@ -218,6 +221,8 @@ export interface TimelineStep {
   gust_kn: number;
   wind_from_deg: number;
   cloud_pct: number | null;
+  /** Tag (true) / Nacht (false) — steuert das Himmels-Icon; null = unbekannt. */
+  is_day: boolean | null;
   wave_m: number | null;
   tide_m: number | null;
   gale: boolean;
@@ -277,6 +282,7 @@ export async function buildTimeline(
         gust_kn: Math.round(gust),
         wind_from_deg: Math.round(ps.wind_from_deg[i] ?? 0),
         cloud_pct: ps.cloud_pct[i] ?? null,
+        is_day: ps.is_day[i] == null ? null : ps.is_day[i] === 1,
         wave_m: ps.wave_height_m[i] != null ? Math.round(ps.wave_height_m[i]! * 10) / 10 : null,
         tide_m: ps.tide_m[i] != null ? Math.round(ps.tide_m[i]! * 100) / 100 : null,
         gale: w.sturm,
@@ -373,6 +379,7 @@ interface OpenMeteoLocation {
     wind_direction_10m?: number[];
     cape?: number[];
     cloud_cover?: (number | null)[];
+    is_day?: (number | null)[];
     wave_height?: (number | null)[];
     ocean_current_velocity?: (number | null)[];
     ocean_current_direction?: (number | null)[];

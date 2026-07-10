@@ -28,6 +28,8 @@ interface MockOpts {
   scan?: boolean;
   /** Timeline liefert Tide (NW −0,9 m) für den Flachwasser-Check (REQ-NAV-012). */
   tide?: boolean;
+  /** Timeline-Schritte als Nacht markieren (is_day=0) → Mond-Icon (REQ-WET-014). */
+  night?: boolean;
 }
 
 /** Antwort von POST /api/navigation/route mit einem Zwischenpunkt (Umweg). */
@@ -114,7 +116,7 @@ function routeResponse(opts: MockOpts = {}) {
 }
 
 /** Timeline (Wolken/Wind) für das Playback-Overlay. */
-function timelineResponse(tide = false) {
+function timelineResponse(tide = false, night = false) {
   const t0 = Date.now() + 3600e3;
   const times = [0, 1, 2, 3].map((h) => new Date(t0 + h * 3600e3).toISOString());
   const step = (i: number, cloud: number) => ({
@@ -123,6 +125,7 @@ function timelineResponse(tide = false) {
     gust_kn: 15 + i,
     wind_from_deg: 240,
     cloud_pct: cloud,
+    is_day: night ? false : true,
     wave_m: 0.5,
     tide_m: tide ? -0.9 : null,
     gale: false,
@@ -137,7 +140,8 @@ function timelineResponse(tide = false) {
   return {
     times,
     points: [
-      point(54.512, 13.643, [80, 90, 70, 60]),
+      // Nacht-Szenario (REQ-WET-014): ein wolkenloser Punkt (5 %) → Mond-Icon.
+      point(54.512, 13.643, night ? [5, 8, 10, 12] : [80, 90, 70, 60]),
       point(54.7, 13.2, [40, 55, 65, 30]),
       point(54.952, 12.464, [20, 25, 45, 90]),
     ],
@@ -163,7 +167,7 @@ async function mockApis(page: Page, opts: MockOpts & { routeStatus?: number; rou
     r.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(timelineResponse(opts.tide)),
+      body: JSON.stringify(timelineResponse(opts.tide, opts.night)),
     }),
   );
   // Snap (REQ-NAV-010): freie Klicks landen sichtbar an der Küste.
@@ -363,6 +367,49 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     // Wolkenfelder: Leaflet-Circles mit unserer Klasse (Opazität = Bedeckung).
     const clouds = page.locator("path.nav-cloud-patch");
     expect(await clouds.count()).toBeGreaterThan(0);
+  });
+
+  test("[REQ-WET-014] Zeitreise zeigt Himmels-Icons; wolkenlose Nacht ergibt einen Mond", async ({ page }) => {
+    await mockApis(page, { night: true });
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+    // Jeder Overlay-Punkt trägt ein Himmels-Icon — auch ohne Wolken ist etwas zu sehen.
+    const sky = page.locator(".wx-sky");
+    expect(await sky.count()).toBeGreaterThan(0);
+    // Der wolkenlose Punkt (5 %) bei Nacht zeigt einen Mond statt leer zu wirken.
+    await expect(page.locator(".wx-sky", { hasText: "🌙" }).first()).toBeVisible();
+  });
+});
+
+test.describe("/navigation — Karte im Vollbild (REQ-NAV-018)", () => {
+  test("[REQ-NAV-018] Vollbild-Schalter vergrößert die Karte und schließt wieder (Klick & Escape)", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    const frame = page.getByTestId("nav-map");
+    const toggle = page.getByTestId("nav-map-fullscreen");
+    await expect(frame).toHaveAttribute("data-fullscreen", "false");
+
+    // Vollbild an: Frame-Klasse greift, Karte bleibt sichtbar/interaktiv.
+    await toggle.click();
+    await expect(frame).toHaveAttribute("data-fullscreen", "true");
+    await expect(frame).toHaveClass(/wetter-map-frame--full/);
+    await expect(frame.locator(".leaflet-container")).toBeVisible();
+    // Karten-Interaktion im Vollbild: Klick setzt weiterhin einen Wegpunkt.
+    const box = (await frame.boundingBox())!;
+    await frame.click({ position: { x: box.width * 0.5, y: box.height * 0.5 } });
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(1);
+
+    // Zweiter Klick auf den Schalter verkleinert wieder.
+    await toggle.click();
+    await expect(frame).toHaveAttribute("data-fullscreen", "false");
+
+    // Escape schließt das Vollbild ebenfalls.
+    await toggle.click();
+    await expect(frame).toHaveAttribute("data-fullscreen", "true");
+    await page.keyboard.press("Escape");
+    await expect(frame).toHaveAttribute("data-fullscreen", "false");
   });
 });
 

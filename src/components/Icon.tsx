@@ -9,7 +9,7 @@ type IconName =
   | "ruler" | "external-link" | "arrow-right" | "heart" | "info-circle"
   | "inbox" | "checklist" | "cloud" | "map-2" | "photo" | "apps" | "star"
   | "check" | "x" | "shield" | "wallet" | "users" | "play" | "rss" | "menu"
-  | "sun" | "moon" | "map-pin";
+  | "sun" | "moon" | "map-pin" | "maximize" | "minimize";
 
 // icon_key aus der DB → Icon-Name.
 export function iconForKey(key: string | null | undefined): IconName {
@@ -57,6 +57,8 @@ const PATHS: Record<IconName, string> = {
   sun: "M12 4V2M12 22v-2M4 12H2M22 12h-2M6 6L4.5 4.5M19.5 19.5L18 18M6 18l-1.5 1.5M19.5 4.5L18 6M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
   "map-pin": "M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  maximize: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+  minimize: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
 };
 
 export function Icon({

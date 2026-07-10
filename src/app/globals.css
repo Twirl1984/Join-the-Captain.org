@@ -348,8 +348,22 @@ p { margin: 0; }
    Wetter & Routen-Planer (/wetter)
    ════════════════════════════════════════════════════════════════════ */
 .wetter-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 20px; }
-.wetter-map-frame { border: 1px solid var(--border); }
+.wetter-map-frame { border: 1px solid var(--border); position: relative; }
 .wetter-leaflet { height: 480px; width: 100%; background: var(--surface-2); }
+
+/* Karte im Vollbild (REQ-NAV-018): ganzer Bildschirm, alle Interaktionen bleiben. */
+.wetter-map-frame--full {
+  position: fixed; inset: 0; z-index: 1100; border: none; background: var(--surface-2);
+}
+.wetter-map-frame--full .wetter-leaflet { height: 100vh; height: 100dvh; }
+.nav-map-fullscreen-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 1000;
+  display: grid; place-items: center; width: 44px; height: 44px; /* Touch ≥44px */
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--border); cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.nav-map-fullscreen-btn:hover { border-color: var(--accent); color: var(--accent); }
 .wetter-map-skeleton { animation: wetterShimmer 1.2s ease-in-out infinite alternate; }
 .wetter-skeleton { animation: wetterShimmer 1.2s ease-in-out infinite alternate; }
 @keyframes wetterShimmer { from { opacity: 0.45; } to { opacity: 0.85; } }
@@ -441,6 +455,7 @@ p { margin: 0; }
 .wx-marker.wx-danger { color: #ff9e6b; border-color: #ff9e6b; }
 .wx-kn { font-size: 10px; }
 .wx-cloud { font-size: 11px; }
+.wx-sky { font-size: 12px; line-height: 1; }
 .wx-bolt { font-size: 11px; }
 .wx-boat {
   display: grid; place-items: center; width: 28px; height: 28px; font-size: 20px;

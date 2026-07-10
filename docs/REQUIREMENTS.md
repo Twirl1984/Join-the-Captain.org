@@ -28,6 +28,7 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-WET-011** Modell-Transparenz & -Wahl (Status: umgesetzt) — Wettermodell wählbar (best_match/ICON/ECMWF/GFS) mit sichtbarer Begründung; gemessene Revier-Empfehlung aus dem Feedback-Loop wird angeboten. Quelle: User 2026-07-02/03.
 - **REQ-WET-012** Feedback-Loop (Status: umgesetzt) — Feedback speichert die komplette bewertete Abfrage (Route/Zeit/Regler/Modell/Boot/Plan) + strukturierte Abweichungen; Verify-Lauf misst alle Modelle gegen ERA5 und schreibt das Revier-Ranking. Quelle: User 2026-07-02/03.
 - **REQ-WET-013** FP/FN-Backtest (Status: umgesetzt) — Warnqualität wird gegen historische Wahrheit (ERA5) je Reglerstufe gemessen (FPR/FNR, windstärke-gewichtete Empfehlung). Quelle: User 2026-07-02 (ISTQB-Auftrag).
+- **REQ-WET-014** Himmels-Zustand in der Zeitreise (Status: umgesetzt) — Jeder Zeitschritt zeigt neben dem Wind ein Himmels-Icon aus dem Bedeckungsgrad (klar/heiter/wolkig/bedeckt); bei klarem/heiterem Himmel ist es tag-/nachtabhängig (Sonne bzw. Mond), damit auch eine wolkenlose Lage sichtbar „klar“/„klare Nacht“ ist statt leer zu wirken. Reine Ableitung `skyCondition`, injizierbares `is_day` aus Open-Meteo. Quelle: Nutzer-Feedback 2026-07-10 („keine Wolken … Icons für kein Regen / klare Sicht bei Nacht“).
 
 ## NAV — Navigations-App
 
@@ -50,6 +51,7 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-NAV-015** Warn-Empfindlichkeit in Navigation (Status: umgesetzt) — Der Risiko-Regler (REQ-WET-002) ist in /navigation bedienbar und wirkt auf Route, Abfahrts-Scan und Zeitreise. Quelle: User 2026-07-08.
 - **REQ-NAV-016** Eine App: Navigation & Wetter (Status: umgesetzt) — /navigation ist die einzige App (inkl. Modell-Wahl mit Revier-Empfehlung, Feedback-Karte, Liegezeiten, Archiv-Badge aus /wetter); /wetter leitet dauerhaft auf /navigation um (bestehende Links bleiben gültig). REVIDIERT den Entscheid „/wetter bleibt" vom 2026-07-06. Quelle: User-Entscheid 2026-07-08.
 - **REQ-NAV-017** Liegezeit als Dauer und Uhrzeit (Status: umgesetzt) — An Zwischenstopps kann die Liegezeit als Dauer (Stunden/Minuten) ODER als Weiterfahrt-Uhrzeit eingegeben werden; beide Eingaben sind über die berechnete Ankunft bidirektional gekoppelt. Der Server versteht stay_min (Weiterfahrt = Ankunft + Dauer; ist zusätzlich depart_at gesetzt, gilt der spätere Zeitpunkt). Quelle: User 2026-07-08.
+- **REQ-NAV-018** Karte im Vollbild (Status: umgesetzt) — Die Navigationskarte lässt sich per Schalter auf den ganzen (Smartphone-)Bildschirm vergrößern und wieder verkleinern; im Vollbild bleiben alle Karten-Interaktionen (Wegpunkt setzen/ziehen, Zeitreise) erhalten, Leaflet misst seine Größe nach dem Wechsel neu. Quelle: Nutzer-Feedback 2026-07-10 („Maps-Fenster auf den ganzen Smartphonebildschirm vergrößern“).
 
 ## SAFE — Sicherheit & Recht
 

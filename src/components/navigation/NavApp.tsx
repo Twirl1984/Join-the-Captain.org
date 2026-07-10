@@ -104,6 +104,8 @@ export function NavApp() {
   const [waypoints, setWaypoints] = useState<NavUiWaypoint[]>([]);
   const nextId = useRef(1);
   const [showDepth, setShowDepth] = useState(true);
+  // Karte im Vollbild (REQ-NAV-018): auf dem Handy den ganzen Bildschirm nutzen.
+  const [mapFull, setMapFull] = useState(false);
   const [mode, setMode] = useState<"sail" | "motor">("sail");
   const [startTime, setStartTime] = useState(() => toLocalInput(new Date(Date.now() + 3600e3)));
   // Tiefgang als Roh-String: "0.5" darf beim Tippen nicht zu 1.8 springen
@@ -583,6 +585,22 @@ export function NavApp() {
     };
   }, [revierId]);
 
+  // Vollbild-Karte (REQ-NAV-018): Escape schließt, Body-Scroll wird gesperrt,
+  // damit der Hintergrund nicht mitscrollt.
+  useEffect(() => {
+    if (!mapFull) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMapFull(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mapFull]);
+
   // Auto-Update: mit GPS-Start alle 60 s still neu rechnen → echte Live-ETA.
   // Über calcRef, damit jeder Tick die AKTUELLE Position/Route nutzt.
   const planVorhanden = plan != null;
@@ -732,7 +750,22 @@ export function NavApp() {
             </div>
           )}
 
-          <div data-testid="nav-map" className="wetter-map-frame">
+          <div
+            data-testid="nav-map"
+            className={`wetter-map-frame${mapFull ? " wetter-map-frame--full" : ""}`}
+            data-fullscreen={mapFull ? "true" : "false"}
+          >
+            <button
+              type="button"
+              data-testid="nav-map-fullscreen"
+              className="nav-map-fullscreen-btn"
+              aria-pressed={mapFull}
+              aria-label={mapFull ? "Karte verkleinern" : "Karte im Vollbild anzeigen"}
+              title={mapFull ? "Karte verkleinern" : "Karte im Vollbild anzeigen"}
+              onClick={() => setMapFull((v) => !v)}
+            >
+              <Icon name={mapFull ? "minimize" : "maximize"} size={18} />
+            </button>
             <NavMap
               revier={revier}
               waypoints={waypoints}
@@ -743,6 +776,7 @@ export function NavApp() {
               showDepth={showDepth}
               gps={gps.fix}
               followGps={followGps}
+              fullscreen={mapFull}
             />
           </div>
 
@@ -802,7 +836,8 @@ export function NavApp() {
               </div>
               <p className="caption">
                 Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Pfeile = Wind ·
-                ⚡ Gewitter · ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
+                ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
+                ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
               </p>
             </div>
           )}

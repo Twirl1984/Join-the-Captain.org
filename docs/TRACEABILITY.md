@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 37 · getaggte Zuordnungen 55.
+Stand: Requirements 39 · getaggte Zuordnungen 60.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -18,6 +18,7 @@ Stand: Requirements 37 · getaggte Zuordnungen 55.
 | REQ-WET-011 — Modell-Transparenz & -Wahl | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-WET-011] Modell-Wahl zeigt eine Begründung |
 | REQ-WET-012 — Feedback-Loop | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-WET-012] Feedback-Flow inkl. Abweichungs-Chips und Kontakt (API gemockt) |
 | REQ-WET-013 — FP/FN-Backtest | umgesetzt | `src/lib/weather/__tests__/backtest.test.ts`: [REQ-WET-013] Sweep: FNR fällt monoton, FPR steigt monoton mit der Sensitivität |
+| REQ-WET-014 — Himmels-Zustand in der Zeitreise | umgesetzt | `src/lib/weather/__tests__/format.test.ts`: [REQ-WET-014] skyCondition: Bänder klar/heiter/wolkig/bedeckt aus dem Bedeckungsgrad<br>`src/lib/weather/__tests__/format.test.ts`: [REQ-WET-014] skyCondition: klar/heiter sind nachtabhängig (Sonne am Tag, Mond nachts)<br>`src/lib/weather/__tests__/format.test.ts`: [REQ-WET-014] skyCondition: ohne Bedeckungsdaten kein Icon; is_day-Default = Tag<br>`e2e/navigation.spec.ts`: [REQ-WET-014] Zeitreise zeigt Himmels-Icons; wolkenlose Nacht ergibt einen Mond |
 | REQ-NAV-001 — Wasserweg-Routing | umgesetzt | `src/lib/navigation/__tests__/searoute.test.ts`: [REQ-NAV-001] Insel im Weg: Route führt außen herum<br>`e2e/navigation-live.spec.ts`: [REQ-WET-001] [REQ-NAV-001] Route live berechnen → Legs erscheinen<br>`e2e/navigation.spec.ts`: [REQ-NAV-001] zwei Wegpunkte → Wasserweg-Route mit Umweg-Punkt, ETA und Legs |
 | REQ-NAV-002 — Server-Snap & Unreachable | umgesetzt | `src/lib/navigation/__tests__/searoute.test.ts`: [REQ-NAV-002] Wegpunkt knapp an Land (Hafen!): wird auf nächste Wasserzelle gesnappt<br>`src/lib/navigation/__tests__/searoute.test.ts`: [REQ-NAV-002] Start tief im Landesinneren: unreachable (kein wildes Snappen) |
 | REQ-NAV-003 — Tiefen & Flachwasser-Check | umgesetzt | `src/lib/navigation/__tests__/depth.test.ts`: [REQ-NAV-003] flachwasserCheck: gefahr / knapp / ok / unbekannt<br>`e2e/navigation.spec.ts`: [REQ-NAV-003] Flachwasser-Check läuft AUTOMATISCH nach der Berechnung und markiert die kri |
@@ -35,6 +36,7 @@ Stand: Requirements 37 · getaggte Zuordnungen 55.
 | REQ-NAV-015 — Warn-Empfindlichkeit in Navigation | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-WET-002] [REQ-NAV-015] Regler ↑ erhöht (oder hält) die Warnungszahl |
 | REQ-NAV-016 — Eine App: Navigation & Wetter | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-NAV-016] /wetter leitet dauerhaft auf /navigation um |
 | REQ-NAV-017 — Liegezeit als Dauer und Uhrzeit | umgesetzt | `src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: stay_min wird übernommen und gerundet<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: stay_min 0 wird zu undefined (keine Liegezeit)<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] parseWaypoints: ungültige stay_min werden abgelehnt<br>`src/lib/weather/__tests__/api-helpers.test.ts`: [REQ-NAV-017] staySumError: Summe der Liegezeiten über 7 Tage wird abgelehnt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min: Weiterfahrt = Ankunft + Dauer, layover_h gesetzt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min + depart_at: der spätere Zeitpunkt gewinnt (konservativ)<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-017] stay_min 0/undefined: kein Layover, ETA unverändert<br>`e2e/navigation.spec.ts`: [REQ-NAV-017] Dauer ergibt Uhrzeit, Uhrzeit ergibt Dauer, stay_min/depart_at im Request<br>`e2e/navigation.spec.ts`: [REQ-NAV-017] vor der ersten Berechnung: Eingabe wird angenommen, Kopplung angekündigt |
+| REQ-NAV-018 — Karte im Vollbild | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-018] Vollbild-Schalter vergrößert die Karte und schließt wieder (Klick & Escape) |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-SAFE-002] Seite lädt mit Karte, Regler und Attribution<br>`e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |
