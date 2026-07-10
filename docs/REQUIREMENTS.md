@@ -71,3 +71,12 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-PROC-002** Widerspruchs-Regel (Status: umgesetzt) — Bei widersprüchlichen oder unklaren Anforderungen wird die Arbeit gestoppt und der User konkret gefragt; keine stillen Entscheidungen. Verankert im Skill. Quelle: User 2026-07-06.
 - **REQ-PROC-003** Verifikationsschleifen (Status: umgesetzt) — Vor Push/Staging: `npm run verify` (Lint, Typecheck, Unit, Trace) + E2E grün; bei größeren Diffs adversarialer Multi-Agent-Review. Quelle: Projektkonvention seit 2026-07-02.
 - **REQ-PROC-004** Device-Matrix (Status: umgesetzt) — E2E-Tests laufen auf Desktop Chrome, Desktop Safari (WebKit), Android Chrome (Pixel 7) und iOS Safari (iPhone 14); die Matrix ist in playwright.config.ts verankert. Quelle: User 2026-07-10.
+
+## Erlebnis-System (geplant, docs/erlebnis-system.md)
+
+- **REQ-EXP-001** POI-Wissensbasis (Status: geplant) — Buchten, Sehenswürdigkeiten, Events und Versorgung je Revier mit Quellenpflicht (URL + Abrufdatum), Stand-Datum, Confidence und Lebenszyklus entwurf→live→prüfen→archiviert. Quelle: User + Kollege 2026-07-10.
+- **REQ-EXP-002** Kurations-Routine (Status: geplant) — Append-and-Review: Neues nur in die Inbox, wiederkehrender Review der ältesten Live-Einträge, kein Eintrag bleibt länger als 6 Monate ungereviewt; abgelaufene Events werden automatisch archiviert. Quelle: User 2026-07-10.
+- **REQ-EXP-003** Community-Bewertung (Status: geplant) — Nutzer bewerten je Eintrag „stimmt noch / stimmt nicht mehr"; ab 2 Negativ-Meldungen ohne Gegenstimme wird der Eintrag zurückgestuft und aus Empfehlungen genommen. Quelle: User 2026-07-10.
+- **REQ-EXP-004** Erlebnisse entlang der Route (Status: geplant) — Zur geplanten Route werden live-POIs im Korridor gefiltert nach Saison/Gültigkeit angezeigt. Quelle: User 2026-07-10.
+- **REQ-EXP-005** Buchten-Ranking nach Wind (Status: geplant) — Übernachtungs-Buchten werden nach der vorhergesagten Windrichtung des Abends gerankt (Windschutz-Sektoren als Info, keine Ankerplatz-Freigabe — Sicherheits-Wording). Quelle: User 2026-07-10.
+- **REQ-EXP-006** Törn-Vorschläge mit Highlights (Status: geplant) — Automatische Routen-Vorschläge je Revier/Zeitraum inkl. Erlebnissen und Festen. Quelle: User 2026-07-10.

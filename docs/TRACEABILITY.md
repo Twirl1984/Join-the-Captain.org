@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 42 · getaggte Zuordnungen 95.
+Stand: Requirements 48 · getaggte Zuordnungen 95.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -47,3 +47,9 @@ Stand: Requirements 42 · getaggte Zuordnungen 95.
 | REQ-PROC-002 — Widerspruchs-Regel | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-003 — Verifikationsschleifen | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-004 — Device-Matrix | umgesetzt | ⚠ FEHLT |
+| REQ-EXP-001 — POI-Wissensbasis | geplant | — |
+| REQ-EXP-002 — Kurations-Routine | geplant | — |
+| REQ-EXP-003 — Community-Bewertung | geplant | — |
+| REQ-EXP-004 — Erlebnisse entlang der Route | geplant | — |
+| REQ-EXP-005 — Buchten-Ranking nach Wind | geplant | — |
+| REQ-EXP-006 — Törn-Vorschläge mit Highlights | geplant | — |

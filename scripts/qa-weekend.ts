@@ -25,6 +25,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const BASE = process.env.QA_BASE_URL ?? "http://localhost:3000";
+// Basic-Auth fürs Staging-Gate: QA_BASIC_AUTH="user:pass" (fetch erlaubt keine
+// Credentials in der URL).
+const AUTH = process.env.QA_BASIC_AUTH
+  ? { authorization: `Basic ${Buffer.from(process.env.QA_BASIC_AUTH).toString("base64")}` }
+  : ({} as Record<string, string>);
 const FIXTURE = resolve(process.cwd(), "fixtures/qa-routes.json");
 
 type Check = { route: string; check: string; status: "OK" | "WARN" | "FAIL"; detail: string };
@@ -43,7 +48,7 @@ async function post(path: string, body: unknown): Promise<{ status: number; json
     await sleep(1500);
     const res = await fetch(`${BASE}${path}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...AUTH },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(30_000),
     });
@@ -132,7 +137,7 @@ async function checkRoute(r: FixtureRoute): Promise<void> {
 
   for (const dp of r.checks.depth_points ?? []) {
     try {
-      const dres = await fetch(`${BASE}/api/navigation/depth?revier=${revier}&lat=${dp.lat}&lon=${dp.lon}&tiefgang=2`, { signal: AbortSignal.timeout(15_000) });
+      const dres = await fetch(`${BASE}/api/navigation/depth?revier=${revier}&lat=${dp.lat}&lon=${dp.lon}&tiefgang=2`, { headers: AUTH, signal: AbortSignal.timeout(15_000) });
       const dj: any = await dres.json();
       if (dres.status !== 200 || dj.depth_m == null) {
         report({ route: r.id, check: `R5-tiefe:${dp.desc}`, status: "WARN", detail: `HTTP ${dres.status}` });

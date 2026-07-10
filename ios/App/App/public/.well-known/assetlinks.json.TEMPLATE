@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.jointhecaptain.navigation",
+      "sha256_cert_fingerprints": ["ERSETZEN: SHA-256 aus der Play Console → App-Signatur (nach Konto-Anlage)"]
+    }
+  }
+]

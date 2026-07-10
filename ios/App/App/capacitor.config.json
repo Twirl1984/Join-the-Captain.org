@@ -1,0 +1,15 @@
+{
+	"appId": "org.jointhecaptain.navigation",
+	"appName": "JTC Navigation",
+	"webDir": "public",
+	"plugins": {
+		"Geolocation": {}
+	},
+	"server": {
+		"url": "https://join-the-captain.org/navigation",
+		"cleartext": false
+	},
+	"packageClassList": [
+		"GeolocationPlugin"
+	]
+}

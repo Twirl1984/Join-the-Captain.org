@@ -54,3 +54,59 @@ Anforderungskatalog: `docs/REQUIREMENTS.md` · Matrix: `docs/TRACEABILITY.md` (g
 - Warnlogik-Änderungen: FN (verpasste Warnung) wiegt schwerer als FP —
   Änderungen gegen den Backtest (REQ-WET-013) prüfen.
 - Externe Fetches: Timeout + kein Fehlertext-Leak (REQ-SAFE-003).
+
+## Device-Matrix (REQ-PROC-004, seit 2026-07-10)
+
+E2E laufen über **vier Projekte**: `chromium`, `mobile` (Pixel 7), `safari`
+(Desktop Safari), `iphone` (iPhone 14). WebKit-Fallstricke, die uns real
+getroffen haben:
+
+- **`page.route()` greift NICHT bei Service-Worker-kontrollierten Requests** —
+  die WebKit-Projekte laufen mit `serviceWorkers: "block"`; der SW-Offline-Test
+  ist per `test.skip(browserName !== "chromium")` begrenzt. Symptom, wenn man
+  es vergisst: Tests laufen unbemerkt gegen die ECHTE API (echte Wetterwerte
+  statt Mock-Daten im Snapshot).
+- iOS-Safari zoomt in Inputs mit `fontSize < 16px` — alle Eingabefelder
+  mindestens 16 px / 44 px Touch-Ziel.
+
+## Validierung gegen echte Daten (scripts/qa-weekend.ts)
+
+- Referenz-Routen in `fixtures/qa-routes.json`: Erwartungs-Korridore werden
+  beim ersten Lauf **kalibriert** (Golden-Werte), nie frei geschätzt.
+- **Keine unverifizierbaren Fakten** in Fixtures (z. B. benannte Stürme aus
+  Agenten-Gedächtnis): Archiv-Checks kalibrieren sich selbst aus derselben
+  Messquelle (windigster Tag aus dem Open-Meteo-Archiv → Warnungen erwartet).
+- QA-Läufe drosseln (Rate-Limit der eigenen App respektieren, 429-Backoff).
+- Läufe gegen Staging (`:3200`, Basic-Auth) UND Live; Exit-Code 1 bei FAIL.
+
+## Bug-Historie (ASPICE SUP.9)
+
+`docs/BUGLOG.md` ist die Problem-Resolution-Liste: Jeder neue Bug bekommt die
+nächste BUG-ID, Ursache, Fix-Verweis und einen **Regressionstest mit
+[REQ-…]-Tag**; Status BEHOBEN erst nach grünem `verify`. Test-Lücken bleiben
+als Merkposten sichtbar, statt still zu verschwinden.
+
+## Multi-Agent-Arbeit (Workflows/Subagenten)
+
+- Audit-/Review-Agenten arbeiten **read-only**: keine Dateien im Repo anlegen
+  (Scratch nur unter /tmp) — hinterlassene `test-*.ts`/`QA_*.md` haben schon
+  Builds gebrochen.
+- Review-Findings werden **adversarial verifiziert** (mehrere Skeptiker-Lenses,
+  Mehrheit) — und selbst dann gegengelesen: Closure-Semantik-Fehlurteile kamen
+  vor. Defensiv fixen ist ok, Begründung dokumentieren.
+- Ergebnisse von Agenten mit Faktenanspruch (Zahlen, Stürme, Fristen) gelten
+  als unverifiziert, bis eine Primärquelle sie bestätigt.
+
+## Betriebs-Regeln (hart erarbeitet)
+
+- **Jeder Bash-Call beginnt mit `builtin cd <arbeitsverzeichnis> && pwd`** —
+  das CWD resettet nach Hintergrund-Notifications; ein Fix-Lauf landete schon
+  im falschen Repo.
+- git-Binary bei Xcode-Lizenz-Prompts: `/Library/Developer/CommandLineTools/usr/bin/git`.
+- `grep -c` mit 0 Treffern = Exit 1 → bricht `&&`-Ketten (`|| true`).
+- Reihenfolge: Feature-Branch → verify + Matrix grün → **Staging** (`:3200`,
+  eigenes Compose-Projekt) → QA-Lauf → **User-Freigabe** → main → Public.
+  Ohne Freigabe niemals: main-Push, Public-Deploy, Server-Credentials/nginx.
+- Xcode/Capacitor: SPM-Projekt (`App.xcodeproj`, kein Workspace); SPM-Checkout
+  braucht `GIT_CONFIG_*`-Override für `safe.bareRepository` (nur pro Build,
+  nie global).
