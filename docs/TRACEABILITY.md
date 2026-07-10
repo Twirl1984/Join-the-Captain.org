@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 54 · getaggte Zuordnungen 96.
+Stand: Requirements 55 · getaggte Zuordnungen 96.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -42,6 +42,7 @@ Stand: Requirements 54 · getaggte Zuordnungen 96.
 | REQ-NAV-021 — GPX-Export | geplant | — |
 | REQ-NAV-022 — Törn-Stil und Tagesetappen | geplant | — |
 | REQ-NAV-023 — Zeitabhängiges Wetterfeld fürs Profil-Routing | geplant | — |
+| REQ-NAV-024 — Informationsarchitektur: Törnplaner + Detail-Tools | geplant | — |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-SAFE-002] Seite lädt mit Karte, Regler und Attribution<br>`e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |

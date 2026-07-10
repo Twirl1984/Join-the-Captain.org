@@ -272,9 +272,12 @@ export function NavApp() {
   const departFieldFor = (w: NavUiWaypoint): string => {
     if (w.depart_at) return toLocalInput(new Date(w.depart_at));
     const arr = arrivals[w.id];
-    if (w.stay_min != null && arr) {
+    if (arr) {
+      // Auch ohne Eingabe befüllen: Weiterfahrt = Ankunft (+ Liegezeit).
+      // Erst eine ECHTE Eingabe (Uhrzeit anfassen / Dauer > 0) wandert in den
+      // Request — die Anzeige ist ein abgeleiteter Default (User-Wunsch).
       const arrMin = Math.floor(Date.parse(arr) / 60e3) * 60e3;
-      return toLocalInput(new Date(arrMin + w.stay_min * 60e3));
+      return toLocalInput(new Date(arrMin + (w.stay_min ?? 0) * 60e3));
     }
     return "";
   };
@@ -1059,8 +1062,9 @@ export function NavApp() {
                 className={`pill ${mode === "sail" ? "active" : ""}`}
                 aria-checked={mode === "sail"}
                 onClick={() => setMode("sail")}
+                title="So viel wie möglich segeln — Motor nur bei Flaute oder hart am Wind"
               >
-                Segeln
+                Segeln (Motor wenn nötig)
               </button>
               <button
                 type="button"
@@ -1321,6 +1325,10 @@ export function NavApp() {
             <strong>{plan.total_nm} sm</strong>
             <span className="muted" data-testid="nav-eta">
               Ankunft {fmtEta(plan.eta)}
+              {(() => {
+                const fahrtH = plan.legs.reduce((a, l) => a + (l.duration_h ?? 0), 0);
+                return fahrtH > 0 ? ` · Ø ${(plan.total_nm / fahrtH).toFixed(1)} kn` : "";
+              })()}
             </span>
             {plan.eta_alternative && (
               <span className="caption" data-testid="nav-eta-alternative">
@@ -1595,7 +1603,7 @@ function NavLegCard({ leg }: { leg: RouteLeg }) {
         </span>
         {leg.current_kn != null && leg.current_kn > 0.1 && (
           <span title={`Strömung setzt nach ${leg.current_to_deg}°`}>
-            Strom {leg.current_kn} kn → {leg.sog_kn} kn üG
+            Strom {leg.current_kn} kn → Fahrt {leg.sog_kn} kn über Grund
           </span>
         )}
         {leg.wave_m != null && <span>Welle {leg.wave_m} m</span>}
