@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 50 · getaggte Zuordnungen 95.
+Stand: Requirements 54 · getaggte Zuordnungen 96.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -28,7 +28,7 @@ Stand: Requirements 50 · getaggte Zuordnungen 95.
 | REQ-NAV-007 — Nav-Playback | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-007] Playback: Zeit-Slider bewegt die Zeit, Wolkenfelder liegen auf der Karte |
 | REQ-NAV-008 — Boots-Presets in Navigation | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-008] Boots-Preset Jolle übernimmt Parameter und setzt den Tiefgang |
 | REQ-NAV-009 — Abfahrts-Scan über Wasserweg | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-009] Abfahrts-Scan über den Wasserweg liefert Slots mit Empfehlung |
-| REQ-NAV-010 — Sichtbares Land-Snapping | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-010] Land-Klick snappt den Marker sichtbar an die Küste<br>`e2e/navigation.spec.ts`: [REQ-NAV-010] Klick zu weit im Land wird abgelehnt (Punkt verschwindet) |
+| REQ-NAV-010 — Sichtbares Land-Snapping | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-010] Land-Klick snappt den Marker sichtbar an die Küste<br>`e2e/navigation.spec.ts`: [REQ-NAV-010] Klick zu weit im Land wird abgelehnt (Punkt verschwindet)<br>`e2e/navigation.spec.ts`: [REQ-NAV-010] Klick außerhalb der Revier-Maske erklärt die Luftlinie statt zu verwirren |
 | REQ-NAV-011 — Kreuz-ETA | umgesetzt | `src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternati<br>`src/lib/weather/__tests__/route-forecast.test.ts`: [REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative<br>`e2e/navigation.spec.ts`: [REQ-NAV-011] Am-Wind-Leg zeigt Kreuz-Alternative und Gesamt-Alternative |
 | REQ-NAV-012 — Tide im Tiefen-Check | umgesetzt | `src/lib/navigation/__tests__/depth.test.ts`: [REQ-NAV-012] Tide-Verrechnung: Niedrigwasser kippt den Flachwasser-Status<br>`e2e/navigation.spec.ts`: [REQ-NAV-012] Tidenrevier zeigt Gezeiten-Warnband, Ostsee-Revier nicht<br>`e2e/navigation.spec.ts`: [REQ-NAV-012] Flachwasser-Check rechnet die Tide ein und weist sie aus |
 | REQ-NAV-013 — Wegpunkt-Verschieben | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-013] Wegpunkt per Ziehen verschieben → Snap-Prüfung greift |
@@ -39,6 +39,9 @@ Stand: Requirements 50 · getaggte Zuordnungen 95.
 | REQ-NAV-018 — Karte im Vollbild | umgesetzt | `e2e/navigation.spec.ts`: [REQ-NAV-018] Vollbild-Schalter vergrößert die Karte und schließt wieder (Klick & Escape) |
 | REQ-NAV-019 — Routen-Profile | umgesetzt | `src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] ohne Profil: kürzester Weg durch den direkten Korridor<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Komfort: meidet 3-m-Welle im direkten Korridor (nimmt Umweg)<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Segel-schnell: meidet Flauten-Korridor, nimmt Wind-Korridor<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Motor-schnell: bleibt bei ruhiger See auf dem kürzesten Weg<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] Heuristik bleibt zulässig: edgeCost >= dist/heuristicSpeed<br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] profileCosts: <br>`src/lib/navigation/__tests__/route-profiles.test.ts`: [REQ-NAV-019] parseRouteProfil: bekannte Werte, sonst null<br>`e2e/navigation.spec.ts`: [REQ-NAV-019] Routen-Profil: Auswahl wandert in den Request, Hinweis erscheint |
 | REQ-NAV-020 — Revier-Katalog-Integrität | umgesetzt | `src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] es gibt mindestens die Gruppen Nordsee, Ostsee, Mittelmeer und Binnen<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jede Gruppe hat Label und mindestens ein Revier<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] alle Revier- und Gruppen-IDs sind global eindeutig<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jedes Revier hat konsistente bbox, Center im Kasten und plausiblen Zoom<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] jedes Revier hat >= 3 Häfen, alle innerhalb der bbox<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] getNavRevier findet per ID, unbekannte ID -> undefined<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] gruppeVon liefert die Gruppe eines Reviers<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] die bewährten /wetter-Reviere leben als Navigation-Reviere weiter<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis<br>`src/lib/navigation/__tests__/reviere.test.ts`: [REQ-NAV-020] inBbox: Ränder zählen als innen, außerhalb nicht |
+| REQ-NAV-021 — GPX-Export | geplant | — |
+| REQ-NAV-022 — Törn-Stil und Tagesetappen | geplant | — |
+| REQ-NAV-023 — Zeitabhängiges Wetterfeld fürs Profil-Routing | geplant | — |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
 | REQ-SAFE-002 — Durchgängige Haftungshinweise | umgesetzt | `e2e/navigation-live.spec.ts`: [REQ-SAFE-002] Seite lädt mit Karte, Regler und Attribution<br>`e2e/navigation.spec.ts`: [REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution |
 | REQ-SAFE-003 — Upstream-Härtung | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-003] Wetterdienst down (502) → freundliche Meldung statt Absturz |
@@ -55,3 +58,4 @@ Stand: Requirements 50 · getaggte Zuordnungen 95.
 | REQ-EXP-006 — Törn-Vorschläge mit Highlights | geplant | — |
 | REQ-EXP-007 — Referral-Monetarisierung | geplant | — |
 | REQ-EXP-008 — Revier-Wiki mit Linting | geplant | — |
+| REQ-EXP-009 — Teilbarer Törn-Link | geplant | — |

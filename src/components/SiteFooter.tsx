@@ -26,6 +26,7 @@ export function SiteFooter() {
             <ul>
               <li><Link href="/tools">Tools</Link></li>
               <li><Link href="/navigation">Navigation &amp; Wetter</Link></li>
+              <li><a href="mailto:support@join-the-captain.org">Support</a></li>
               <li><Link href="/podcast">Podcast</Link></li>
               <li><Link href="/community">Community</Link></li>
               <li><Link href="/entrepreneurs">Entrepreneurs</Link></li>

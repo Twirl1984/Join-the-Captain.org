@@ -33,6 +33,17 @@ bleibt** statt zu verrotten. Designdokument: `docs/erlebnis-system.md`.
 - Sicherheits-Wording: Buchten-Empfehlungen sind KEINE Ankerplatz-Freigabe —
   Windschutz-Sektoren als Info, Verweis auf Seemannschaft (REQ-SAFE-Wording).
 
+## Rechts-Leitplanken für Community-/Foren-Quellen (verbindlich)
+
+1. **Lizenz vor Eigenbau:** Erst prüfen, ob eine Partner-/API-Quelle existiert
+   (Navily & Co. über die Research-Scout-Stufenlogik) — eine eigene
+   Bewertungs-Community ist die größte Hürde und NICHT unser Weg.
+2. **Eigene Auswertung nur aggregiert:** Scores aus Anzahl/Stimmung von
+   Nennungen — niemals wörtliche Zitate, niemals Nicknames/personenbezogene
+   Daten übernehmen (DSGVO), Urheberrecht an Beiträgen respektieren.
+3. **ToS der Quellen beachten:** Kein pauschales Scraping fremder Foren;
+   Zugriffe dokumentieren (research_log-Muster).
+
 ## Anbindung
 
 - Datenmodell + Zyklen: `docs/erlebnis-system.md`; Requirements REQ-EXP-*.

@@ -1,5 +1,4 @@
-> Support-Kontakt für beide Stores: **support@join-the-captain.org**
-> (Postfach/Alias im Strato-Kundenmenü anlegen — MX existiert bereits.)
+> Support-Kontakt für beide Stores: **support@join-the-captain.org** (aktiv).
 
 # Store-Listing — JTC Navigation
 
