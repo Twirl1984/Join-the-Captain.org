@@ -496,7 +496,9 @@ test.describe("/navigation — GPS verweigert", () => {
     await openWithMap(page);
     await page.getByTestId("nav-tool-gps").click();
     await page.getByTestId("nav-gps-start").click();
-    await expect(page.getByTestId("nav-gps-status")).toContainText(/verweigert|nicht verfügbar/);
+    await expect(page.getByTestId("nav-gps-status")).toContainText(/blockiert|verweigert|nicht verfügbar/);
+    // Handlungsleitender Hilfe-Ausklapper erscheint bei blockiertem GPS.
+    await expect(page.getByTestId("nav-gps-help")).toBeVisible();
   });
 });
 

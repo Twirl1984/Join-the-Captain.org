@@ -203,6 +203,10 @@ export function NavApp() {
   const [missweisung, setMissweisung] = useState<string>("");
   // Karten-Auswahlmodus: welche Peilzeile wartet auf einen Objekt-Klick?
   const [peilPickRow, setPeilPickRow] = useState<number | null>(null);
+  // Welche Peilzeile liest gerade den Kompass (für die "…"-Anzeige am Knopf)?
+  const [peilCapturing, setPeilCapturing] = useState<number | null>(null);
+  // Zeile, deren Kompass kein gültiges Signal lieferte (statt falscher 0).
+  const [peilNoSignal, setPeilNoSignal] = useState<number | null>(null);
   // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
   // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
   // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
@@ -299,18 +303,45 @@ export function NavApp() {
       if (DOE && typeof DOE.requestPermission === "function") {
         if ((await DOE.requestPermission()) !== "granted") return;
       }
-      const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
-        const heading = e.webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) % 360 : null);
-        if (heading != null) {
+      setPeilCapturing(rowIdx);
+      setPeilNoSignal((s) => (s === rowIdx ? null : s));
+      let done = false;
+      const finish = (val: number | null) => {
+        if (done) return;
+        done = true;
+        window.removeEventListener("deviceorientation", handler as EventListener);
+        setPeilCapturing((c) => (c === rowIdx ? null : c));
+        if (val != null) {
           setPeilRows((rows) =>
-            rows.map((r, i) => (i === rowIdx ? { ...r, magnetic: String(Math.round(heading)) } : r)),
+            rows.map((r, i) => (i === rowIdx ? { ...r, magnetic: String(Math.round(val)) } : r)),
           );
-          window.removeEventListener("deviceorientation", handler as EventListener);
+        } else {
+          // Kein gültiges Kompass-Signal → NICHT die falsche 0 schreiben,
+          // sondern sichtbar melden (User-Feedback).
+          setPeilNoSignal(rowIdx);
+        }
+      };
+      const handler = (
+        e: DeviceOrientationEvent & { webkitCompassHeading?: number; webkitCompassAccuracy?: number },
+      ) => {
+        // Nur GÜLTIGE Messungen übernehmen — sonst schrieb der Kompass eine
+        // irreführende 0, wenn er (noch) keinen Fix hatte (User-Feedback).
+        // iOS: webkitCompassAccuracy < 0 bedeutet ungültig.
+        if (typeof e.webkitCompassHeading === "number" && Number.isFinite(e.webkitCompassHeading)) {
+          if (e.webkitCompassAccuracy != null && e.webkitCompassAccuracy < 0) return;
+          finish(e.webkitCompassHeading);
+          return;
+        }
+        // Android: nur absolute Orientierung mit vorhandenem alpha ist brauchbar.
+        if (e.absolute === true && e.alpha != null && Number.isFinite(e.alpha)) {
+          finish((360 - e.alpha) % 360);
         }
       };
       window.addEventListener("deviceorientation", handler as EventListener);
+      // Nach 4 s ohne gültige Messung aufgeben (kein Wert, kein Listener-Leak).
+      window.setTimeout(() => finish(null), 4000);
     } catch {
-      /* Kompass nicht verfügbar */
+      setPeilCapturing((c) => (c === rowIdx ? null : c));
     }
   }
 
@@ -1066,10 +1097,32 @@ export function NavApp() {
                   (gps.fix
                     ? `aktiv · ±${Math.round(gps.fix.accuracy_m)} m${gps.fix.speed_kn != null ? ` · ${gps.fix.speed_kn} kn` : ""}`
                     : "suche Satelliten …")}
-                {gps.status === "denied" && "Berechtigung verweigert — in den Browser-/App-Einstellungen erlauben."}
+                {gps.status === "denied" && "Standort ist für diese Seite/den Browser blockiert."}
                 {gps.status === "unavailable" && "GPS hier nicht verfügbar."}
               </span>
             </div>
+            {(gps.status === "denied" || gps.status === "unavailable") && (
+              <details className="nav-subtool" data-testid="nav-gps-help">
+                <summary className="caption" style={{ cursor: "pointer" }}>
+                  GPS klemmt? So schaltest du es frei
+                </summary>
+                <div className="caption stack" style={{ gap: 4, marginTop: 6 }}>
+                  <span>
+                    <strong>iPhone (Safari):</strong> Einstellungen → Datenschutz &amp; Sicherheit →
+                    Ortungsdienste <em>an</em> → Safari-Websites → „Beim Verwenden“.
+                  </span>
+                  <span>
+                    <strong>iPhone (Chrome/Firefox):</strong> zusätzlich Einstellungen → dein Browser →
+                    Standort → „Beim Verwenden der App“.
+                  </span>
+                  <span>
+                    <strong>Android (Chrome):</strong> Schloss-Symbol in der Adresszeile →
+                    Berechtigungen → Standort → Zulassen.
+                  </span>
+                  <span>Danach Seite neu laden und „GPS aktivieren“ erneut tippen.</span>
+                </div>
+              </details>
+            )}
             {gps.fix && (
               <>
                 <label className="row" style={{ gap: 6 }}>
@@ -1310,13 +1363,20 @@ export function NavApp() {
                         <button
                           type="button"
                           data-testid={`nav-peil-capture-${i}`}
-                          className="pill"
+                          className={`pill ${peilCapturing === i ? "active" : ""}`}
                           title="Kompass-Peilung vom Handy übernehmen"
+                          disabled={peilCapturing === i}
                           onClick={() => void captureHeading(i)}
                         >
-                          Kompass
+                          {peilCapturing === i ? "Kompass …" : "Kompass"}
                         </button>
                       </div>
+                      {peilNoSignal === i && (
+                        <span className="caption" data-testid={`nav-peil-nosignal-${i}`} style={{ color: "var(--warn, #d9534f)" }}>
+                          ⚠ Kein gültiges Kompass-Signal — bitte manuell eintragen oder Handy in einer
+                          8 bewegen (kalibrieren) und erneut „Kompass“ tippen.
+                        </span>
+                      )}
                     </div>
                   ))}
                   {peilRows.length < 3 && (

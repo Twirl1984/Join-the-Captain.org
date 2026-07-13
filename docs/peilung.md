@@ -37,3 +37,20 @@ Backup, wenn GPS unplausibel ist (real erlebt: GPS-Daten stimmen teils nicht).
 Gehört in die „Jetzt & hier“-Detailansicht (REQ-NAV-024, MVP 1) als eigenes
 kleines Sub-Tool — technisch unabhängig vom Routing, gut isoliert baubar
 (reine Client-Geometrie + Kompass-API; testbar mit injizierten Headings).
+
+
+## AR-Kamera-Peilung (REQ-NAV-027, geplant — Premium-Option)
+
+Zusätzliche, optionale Variante (die vereinfachte Peilung bleibt Standard):
+1. Kamerabild per `getUserMedia` öffnen; Kompass-Heading (DeviceOrientation) als
+   Nadel/Peilstrahl über das Bild legen.
+2. Nutzer tippt das anvisierte Objekt IM KAMERABILD an. Der Tap liefert primär
+   die BLICKRICHTUNG (= aktuelles Kompass-Heading, ggf. um den horizontalen
+   Tap-Offset korrigiert), nicht die Distanz.
+3. Aus GPS-Position + rechtweisender Blickrichtung wird ein Strahl gecastet und
+   das NÄCHSTE kartierte Objekt entlang des Strahls (Hafen/Seezeichen, später
+   POIs aus REQ-EXP-001) gesucht und als Peilung-Referenz vorgeschlagen —
+   Bestätigen übernimmt es in die Kreuzpeilung.
+Ehrliche Grenzen wie gehabt (Kompass ±5–10°, Missweisung, Fehlerband) plus:
+Kamera-Tap-Genauigkeit, Blickfeld/Neigung. Aufwendig (Kamera + Ray-Cast) →
+bewusst als Premium-Ausbaustufe, nach MVP 1.
