@@ -874,9 +874,13 @@ export function NavApp() {
 
         {/* ── rechte Spalte: GPS, Route, Abfahrt ── */}
         <div className="stack" style={{ gap: 16 }}>
-          {/* GPS */}
-          <div className="card stack" style={{ gap: 10 }}>
-            <span className="section-label">GPS — eigene Position</span>
+          {/* GPS — Sub-Tool (REQ-NAV-024): eingeklappt, für die reine Planung
+              nicht nötig; wer die Live-Position will, klappt es auf. */}
+          <details className="card nav-subtool">
+            <summary className="section-label" data-testid="nav-tool-gps">
+              Meine Position (GPS)
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               {gps.status !== "watching" ? (
                 <button
@@ -937,7 +941,8 @@ export function NavApp() {
                 )}
               </>
             )}
-          </div>
+            </div>
+          </details>
 
           {/* Wegpunkte */}
           <div className="card stack" style={{ gap: 8 }}>
@@ -1093,8 +1098,8 @@ export function NavApp() {
           </div>
 
           {/* Boot (REQ-NAV-008): Presets + Ableitung — fließt in die ETA ein */}
-          <details className="card wetter-details">
-            <summary className="section-label" style={{ cursor: "pointer" }}>
+          <details className="card nav-subtool">
+            <summary className="section-label" data-testid="nav-tool-boot">
               Boot anpassen (optional)
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
@@ -1213,9 +1218,12 @@ export function NavApp() {
             )}
           </div>
 
-          {/* Abfahrts-Scan (REQ-NAV-009): über den gerouteten Wasserweg */}
-          <div className="card stack" style={{ gap: 10 }}>
-            <span className="section-label">Beste Abfahrt finden</span>
+          {/* Abfahrts-Scan (REQ-NAV-009) — Sub-Tool (REQ-NAV-024), eingeklappt */}
+          <details className="card nav-subtool">
+            <summary className="section-label" data-testid="nav-tool-scan">
+              Beste Abfahrt finden
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
             <label className="stack" style={{ gap: 4 }}>
               <span className="caption">spätester Start</span>
               <input
@@ -1273,7 +1281,8 @@ export function NavApp() {
                 </ol>
               </div>
             )}
-          </div>
+            </div>
+          </details>
 
           <button
             data-testid="nav-calc"

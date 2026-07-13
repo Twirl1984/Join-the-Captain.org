@@ -502,3 +502,15 @@ p { margin: 0; }
   display: grid; place-items: center; padding: 20px;
 }
 .nav-disclaimer { max-width: 520px; }
+
+/* Sub-Tools der Navigation (REQ-NAV-024): einklappbare Werkzeuge, damit der
+   Törnplaner schlank bleibt. Zusammenklappen entlastet die Planungsansicht. */
+.nav-subtool > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+  min-height: 44px;
+}
+.nav-subtool > summary::-webkit-details-marker { display: none; }
+.nav-subtool > summary::before {
+  content: "▸"; color: var(--accent); font-size: 12px; transition: transform 0.15s;
+}
+.nav-subtool[open] > summary::before { transform: rotate(90deg); }
