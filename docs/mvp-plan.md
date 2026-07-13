@@ -8,16 +8,26 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 
 ## Arbeitsregeln (für die Routine)
 
+**Modell seit 2026-07-13: Staging-Automation.** Die autonome Routine arbeitet
+NUR auf Feature-Branches + Staging. Merge auf main und Public-Deploy macht der
+User gebündelt nach Review (die erste Routine lief leer, weil headless-Sessions
+die dafür nötigen Freigaben nicht erteilen können).
+
 - Je Etappe ein Feature-Branch `mvp/<etappe>`; Definition of Done: verify grün,
-  gemockte Playwright-Matrix grün, `qa-weekend` gegen Staging grün, REQ auf
-  „umgesetzt" + Tests getaggt, BUGLOG bei Bugfixes gepflegt.
-- **Staging zuerst** (`:3200`, rsync + compose jtc-org-staging).
-- **Merge auf main + Public-Deploy sind ERLAUBT** (User-Freigabe 2026-07-10
-  „übers WE fertig machen"), aber NUR bei 100 % grünem DoD; im Zweifel Branch
-  stehen lassen und im Report übergeben. Nie: nginx/Credentials/andere Server-
-  Dienste anfassen. Das CI-Gate auf main ist das letzte Netz.
-- Etappen strikt in Reihenfolge; halbfertige Etappen NICHT mergen.
-- Jeder Report nennt: erledigte Etappen, Bugs (BUG-IDs), was als Nächstes.
+  gemockte Playwright-Matrix grün, REQ auf „umgesetzt" + Tests getaggt, BUGLOG
+  bei Bugfixes gepflegt. **Branch immer `git push origin mvp/<etappe>`** (Push
+  auf Nicht-main ist ungated) — so ist die Arbeit gesichert, auch wenn der
+  Staging-Deploy scheitert.
+- **Staging-Deploy versuchen, aber NICHT-fatal** (`:3200`, rsync + compose
+  jtc-org-staging). Wird er blockiert/scheitert er: im Report vermerken
+  („Branch X bereit, Staging-Deploy offen"), NICHT endlos retryen.
+- **NIEMALS: Merge/Push auf main, Public-Deploy (jtc-org-test), nginx/
+  Credentials/fremde Dienste, Store-Submissions.** Das macht der User.
+- Etappen strikt in Reihenfolge; halbfertige Etappen bleiben auf ihrem Branch.
+- **Bei Blockern NICHT stumm sterben:** Wenn Setup (clone/npm/git push) scheitert,
+  den EXAKTEN Fehler in den Report schreiben und beenden — kein Silent-Retry.
+- Jeder Report nennt: erledigte Etappen (Branch-Name), Testzahlen, Bugs
+  (BUG-IDs), Blocker, was als Nächstes. Statustafel unten pflegen + committen.
 
 ## MVP 1 — Web („Appetit machen")
 
@@ -45,7 +55,11 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 
 ## Statustafel (von der Routine pflegen!)
 
-- [x] 1.1 GPX-Export — erledigt 2026-07-10 (Session Fr)
+> Historie: Die erste (autonome) Wochenend-Routine 11./12.07. lief LEER — headless-
+> Sessions können die für Merge/Public-Deploy nötigen Freigaben nicht erteilen.
+> Seit 13.07. läuft das Staging-Automation-Modell (siehe Arbeitsregeln oben).
+
+- [x] 1.1 GPX-Export — erledigt 2026-07-10 (Session Fr), auf main + live
 - [ ] 1.2 IA-Split
 - [ ] 1.3 Jetzt & hier
 - [ ] 1.4 Peilung
