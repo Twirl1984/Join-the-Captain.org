@@ -27,6 +27,13 @@ import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
 import { gpxFromRoute } from "@/lib/navigation/gpx";
 import { nearestHarborsGlobal, nearestRevier } from "@/lib/navigation/nearby";
+import {
+  magneticToTrue,
+  crossBearingFix,
+  gpsPlausibility,
+  missweisungForRevier,
+  type Bearing,
+} from "@/lib/navigation/peilung";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -185,6 +192,12 @@ export function NavApp() {
   const [jetztDepth, setJetztDepth] = useState<{ depth_m: number; check?: FlachwasserStatus } | null>(null);
   const [jetztState, setJetztState] = useState<"idle" | "laden" | "fehler">("idle");
   const jetztSeq = useRef(0);
+  // Kreuzpeilung (REQ-NAV-025): bis zu 3 Peilzeilen + editierbare Missweisung.
+  const [peilRows, setPeilRows] = useState<Array<{ refName: string; magnetic: string }>>([
+    { refName: "", magnetic: "" },
+    { refName: "", magnetic: "" },
+  ]);
+  const [missweisung, setMissweisung] = useState<string>("");
   // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
   // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
   // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
@@ -225,6 +238,56 @@ export function NavApp() {
     const nr = nearestRevier(gps.fix, alleReviere());
     return nr && nr.id !== revierId ? nr : null;
   }, [gps.fix, revierId]);
+
+  // Kreuzpeilung (REQ-NAV-025): kartierte Referenzpunkte in der Nähe (Häfen).
+  const peilRefs = useMemo(
+    () => nearestHarborsGlobal(gps.fix ?? { lat: revier.center[0], lon: revier.center[1] }, alleReviere(), 8),
+    [gps.fix, revier],
+  );
+  const effMissweisung =
+    missweisung.trim() !== "" && Number.isFinite(Number(missweisung))
+      ? Number(missweisung)
+      : missweisungForRevier(revierId);
+  const peilFix = useMemo(() => {
+    const bearings: Bearing[] = peilRows
+      .map((row) => {
+        const ref = peilRefs.find((h) => `${h.revier}::${h.name}` === row.refName);
+        const mag = Number(row.magnetic);
+        if (!ref || row.magnetic.trim() === "" || !Number.isFinite(mag)) return null;
+        return { ref: { lat: ref.lat, lon: ref.lon }, trueBearingDeg: magneticToTrue(mag, effMissweisung) };
+      })
+      .filter((b): b is Bearing => b !== null);
+    return bearings.length >= 2 ? crossBearingFix(bearings) : null;
+  }, [peilRows, peilRefs, effMissweisung]);
+  const peilPlaus = useMemo(
+    () => (peilFix && gps.fix ? gpsPlausibility(gps.fix, peilFix, gps.fix.accuracy_m / 1852) : null),
+    [peilFix, gps.fix],
+  );
+
+  // Kompass-Heading in eine Peilzeile übernehmen (Best-Effort; iOS braucht die
+  // Berechtigung, sonst trägt der Nutzer die Peilung manuell ein).
+  async function captureHeading(rowIdx: number) {
+    try {
+      const DOE = window.DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<"granted" | "denied">;
+      };
+      if (DOE && typeof DOE.requestPermission === "function") {
+        if ((await DOE.requestPermission()) !== "granted") return;
+      }
+      const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+        const heading = e.webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) % 360 : null);
+        if (heading != null) {
+          setPeilRows((rows) =>
+            rows.map((r, i) => (i === rowIdx ? { ...r, magnetic: String(Math.round(heading)) } : r)),
+          );
+          window.removeEventListener("deviceorientation", handler as EventListener);
+        }
+      };
+      window.addEventListener("deviceorientation", handler as EventListener);
+    } catch {
+      /* Kompass nicht verfügbar */
+    }
+  }
 
   // „Jetzt & hier": aktuelles Wetter + Tiefe unterm Kiel an der eigenen Position.
   async function loadJetzt() {
@@ -1094,6 +1157,128 @@ export function NavApp() {
                         </span>
                       ))}
                     </div>
+                  )}
+                </>
+              )}
+            </div>
+          </details>
+
+          {/* Peilung — Kreuzpeilung als GPS-Backup (REQ-NAV-025/026) */}
+          <details className="card nav-subtool" data-testid="nav-peilung">
+            <summary className="section-label" data-testid="nav-tool-peilung">
+              Peilung — Standort-Backup (wenn GPS spinnt)
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              <p className="caption">
+                Peile 2–3 markante, kartierte Objekte (Häfen, Leuchttürme) mit dem Handy-Kompass an
+                — der Schnitt der Peilungen ergibt deinen Standort. Klassische Seemannschaft als
+                Rückfall, wenn die GPS-Position unplausibel wirkt. <strong>Planungshilfe</strong>,
+                ersetzt keinen Handpeilkompass und keine amtliche Seekarte.
+              </p>
+              {peilRefs.length < 2 ? (
+                <p className="caption" data-testid="nav-peil-hint">
+                  Keine Referenzpunkte in der Nähe — wähle ein passendes Revier oder aktiviere GPS.
+                </p>
+              ) : (
+                <>
+                  <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                    <span className="caption">Missweisung (° Ost, grobe Näherung)</span>
+                    <input
+                      data-testid="nav-peil-missweisung"
+                      type="number"
+                      step={1}
+                      className="wetter-select"
+                      style={{ width: 76, minHeight: 44, fontSize: 16 }}
+                      value={missweisung !== "" ? missweisung : String(missweisungForRevier(revierId))}
+                      onChange={(e) => setMissweisung(e.target.value)}
+                      aria-label="Missweisung in Grad Ost"
+                    />
+                  </label>
+                  {peilRows.map((row, i) => (
+                    <div key={i} className="stack" style={{ gap: 4 }}>
+                      <span className="caption">Peilung {i + 1}</span>
+                      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                        <select
+                          data-testid={`nav-peil-ref-${i}`}
+                          className="wetter-select"
+                          style={{ flex: 1, minWidth: 140, minHeight: 44, fontSize: 16 }}
+                          value={row.refName}
+                          onChange={(e) =>
+                            setPeilRows((rows) =>
+                              rows.map((r, j) => (j === i ? { ...r, refName: e.target.value } : r)),
+                            )
+                          }
+                        >
+                          <option value="">Objekt wählen …</option>
+                          {peilRefs.map((h) => (
+                            <option key={`${h.revier}::${h.name}`} value={`${h.revier}::${h.name}`}>
+                              {h.name} ({h.revier}) — {h.distance_nm} sm {h.kompass}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          data-testid={`nav-peil-mag-${i}`}
+                          type="number"
+                          min={0}
+                          max={359}
+                          inputMode="numeric"
+                          className="wetter-select"
+                          style={{ width: 84, minHeight: 44, fontSize: 16 }}
+                          placeholder="° mag"
+                          value={row.magnetic}
+                          onChange={(e) =>
+                            setPeilRows((rows) =>
+                              rows.map((r, j) => (j === i ? { ...r, magnetic: e.target.value } : r)),
+                            )
+                          }
+                          aria-label={`Magnetische Peilung ${i + 1} in Grad`}
+                        />
+                        <button
+                          type="button"
+                          data-testid={`nav-peil-capture-${i}`}
+                          className="pill"
+                          title="Kompass-Peilung vom Handy übernehmen"
+                          onClick={() => void captureHeading(i)}
+                        >
+                          Kompass
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {peilRows.length < 3 && (
+                    <button
+                      type="button"
+                      data-testid="nav-peil-add"
+                      className="pill"
+                      onClick={() => setPeilRows((rows) => [...rows, { refName: "", magnetic: "" }])}
+                    >
+                      + 3. Peilung (genauer)
+                    </button>
+                  )}
+                  {peilFix ? (
+                    <div className="stack" style={{ gap: 4 }} data-testid="nav-peil-fix">
+                      <p className="caption">
+                        <strong>Geschätzter Standort:</strong> {peilFix.lat.toFixed(4)},{" "}
+                        {peilFix.lon.toFixed(4)}
+                        {peilFix.n >= 3 ? ` · Fehlerdreieck ± ${peilFix.error_nm} sm` : ""}
+                      </p>
+                      {peilPlaus && (
+                        <p
+                          className={peilPlaus.plausibel ? "caption" : "wetter-warnband"}
+                          style={{ fontSize: 12 }}
+                          data-testid="nav-peil-plaus"
+                          role={peilPlaus.plausibel ? undefined : "alert"}
+                        >
+                          {peilPlaus.plausibel
+                            ? `GPS deckt sich mit der Peilung (Abweichung ${peilPlaus.deviation_nm} sm).`
+                            : `⚠ GPS weicht ${peilPlaus.deviation_nm} sm von der Peilung ab — Position prüfen, Kompass kalibrieren.`}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="caption" data-testid="nav-peil-need">
+                      Mindestens 2 Objekte mit Peilung eingeben.
+                    </p>
                   )}
                 </>
               )}

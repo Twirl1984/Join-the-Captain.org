@@ -789,3 +789,22 @@ test.describe("/navigation — Schlanker Törnplaner (IA-Split, REQ-NAV-024)", (
     await expect(page.getByTestId("nav-gps-start")).toBeVisible();
   });
 });
+
+test.describe("/navigation — Kreuzpeilung (REQ-NAV-025/026)", () => {
+  test("[REQ-NAV-025] Zwei Objekte + Peilungen ergeben einen Standort, drittes ein Fehlerdreieck", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await page.getByTestId("nav-tool-peilung").click();
+    // Zwei Referenzpunkte + zwei (nicht parallele) Peilungen → Standort.
+    await page.getByTestId("nav-peil-ref-0").selectOption({ index: 1 });
+    await page.getByTestId("nav-peil-mag-0").fill("45");
+    await page.getByTestId("nav-peil-ref-1").selectOption({ index: 2 });
+    await page.getByTestId("nav-peil-mag-1").fill("135");
+    await expect(page.getByTestId("nav-peil-fix")).toBeVisible();
+    // Dritte Peilung → Fehlerdreieck wird ausgewiesen (n≥3).
+    await page.getByTestId("nav-peil-add").click();
+    await page.getByTestId("nav-peil-ref-2").selectOption({ index: 3 });
+    await page.getByTestId("nav-peil-mag-2").fill("200");
+    await expect(page.getByTestId("nav-peil-fix")).toContainText(/Fehlerdreieck/);
+  });
+});

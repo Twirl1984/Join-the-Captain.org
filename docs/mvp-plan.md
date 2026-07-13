@@ -48,7 +48,7 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 - [x] 1.1 GPX-Export — erledigt 2026-07-10 (Session Fr)
 - [x] 1.2 IA-Split — GPS/Boot/Abfahrts-Scan als einklappbare Sub-Tools; Branch mvp/ia-split (Zeitreise/Feedback bleiben kontextuelle Ergebnis-Karten)
 - [x] 1.3 Jetzt & hier — Sub-Tool ab GPS-Position: aktuelles Wetter (/api/weather/now), Tiefe unterm Kiel, 3 nächste Häfen; Branch mvp/jetzt-hier
-- [ ] 1.4 Peilung
+- [x] 1.4 Peilung — Kreuzpeilung (2–3 kartierte Objekte, Kompass-Capture, Missweisung editierbar) + GPS-Plausibilitätswarnung; Branch mvp/peilung
 - [ ] 1.5 Profil-Feld zeitabhängig
 - [ ] 2.1 POI-Wissensbasis
 - [ ] 2.2 Kurations-Routine
