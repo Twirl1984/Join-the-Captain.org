@@ -445,6 +445,40 @@ test.describe("/navigation — GPS", () => {
     await expect(page.getByTestId("nav-result")).toBeVisible();
     await expect(page.getByTestId("nav-live-badge")).toContainText(/ab eigener Position/);
   });
+
+  test("[REQ-NAV-024] Jetzt & hier: aktuelle Bedingungen + nächste Häfen an der Position", async ({ page }) => {
+    await mockApis(page);
+    await page.route("**/api/weather/now**", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          at: new Date().toISOString(),
+          wind_kn: 14, gust_kn: 20, wind_from_deg: 270, wave_m: 0.6,
+          current_kn: 0.3, current_to_deg: 90, tide_m: -0.4,
+          gale: false, thunderstorm: false, high_wave: false,
+        }),
+      }),
+    );
+    await page.route("**/api/navigation/depth**", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ depth_m: 12.4, source: "emodnet", check: "ok" }),
+      }),
+    );
+    await openWithMap(page);
+    await page.getByTestId("nav-tool-gps").click();
+    await page.getByTestId("nav-gps-start").click();
+    await expect(page.getByTestId("nav-gps-status")).toContainText(/aktiv/);
+    // Sub-Tool "Jetzt & hier" aufklappen — nächste Häfen erscheinen sofort (clientseitig).
+    await page.getByTestId("nav-tool-jetzt").click();
+    await expect(page.getByTestId("nav-jetzt-haefen")).toBeVisible();
+    // Bedingungen laden → Wetter + Tiefe.
+    await page.getByTestId("nav-jetzt-load").click();
+    await expect(page.getByTestId("nav-jetzt-result")).toContainText(/14 kn aus W/);
+    await expect(page.getByTestId("nav-jetzt-depth")).toContainText(/12.4 m/);
+  });
 });
 
 test.describe("/navigation — GPS verweigert", () => {
@@ -605,6 +639,7 @@ test.describe("/navigation — Drag & Offline", () => {
 
 test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", () => {
   test("[REQ-NAV-017] Dauer ergibt Uhrzeit, Uhrzeit ergibt Dauer, stay_min/depart_at im Request", async ({ page }) => {
+    test.setTimeout(60_000); // 4 Berechnungen nacheinander — auf WebKit unter Parallellast eng
     await mockApis(page);
     await openWithMap(page);
     const map = page.getByTestId("nav-map");
@@ -630,6 +665,7 @@ test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", (
     expect(new Date(v2).getTime() - new Date(v1).getTime()).toBe(3600e3);
 
     // Die Liegedauer wird auch wirklich MITGESENDET (Bugfix: ging vorher verloren).
+    await expect(page.getByTestId("nav-calc")).toBeEnabled();
     const resp1 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
     await page.getByTestId("nav-calc").click();
     const body1 = JSON.parse((await resp1).request().postData() ?? "{}") as {
@@ -647,6 +683,7 @@ test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", (
     await expect(page.getByTestId("nav-stay-min")).toHaveValue("45");
 
     // Jetzt führt die Uhrzeit: Request trägt depart_at, keine stay_min.
+    await expect(page.getByTestId("nav-calc")).toBeEnabled();
     const resp2 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
     await page.getByTestId("nav-calc").click();
     const body2 = JSON.parse((await resp2).request().postData() ?? "{}") as {
@@ -658,6 +695,7 @@ test.describe("/navigation — Liegezeit als Dauer ⇄ Uhrzeit (REQ-NAV-017)", (
     // Dauer-Felder leeren ⇒ keine Liegezeit mehr im Request.
     await page.getByTestId("nav-stay-h").fill("0");
     await page.getByTestId("nav-stay-min").fill("0");
+    await expect(page.getByTestId("nav-calc")).toBeEnabled();
     const resp3 = page.waitForResponse((r) => r.url().includes("/api/navigation/route"));
     await page.getByTestId("nav-calc").click();
     const body3 = JSON.parse((await resp3).request().postData() ?? "{}") as {

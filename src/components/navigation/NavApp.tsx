@@ -26,6 +26,7 @@ import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast
 import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
 import { gpxFromRoute } from "@/lib/navigation/gpx";
+import { nearestHarbors } from "@/lib/navigation/nearby";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -53,6 +54,20 @@ interface DepthPoint {
   /** Effektive Tiefe = Kartentiefe + Niedrigstwasser (REQ-NAV-012). */
   depth_eff_m?: number | null;
   check?: FlachwasserStatus;
+}
+
+/** Antwort von GET /api/weather/now — aktuelle Bedingungen am Ort (REQ-NAV-024). */
+interface JetztWetter {
+  wind_kn: number;
+  gust_kn: number;
+  wind_from_deg: number;
+  wave_m: number | null;
+  current_kn: number | null;
+  current_to_deg: number | null;
+  tide_m: number | null;
+  gale: boolean;
+  thunderstorm: boolean;
+  high_wave: boolean;
 }
 
 const FEEDBACK_ISSUES = [
@@ -165,6 +180,11 @@ export function NavApp() {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // „Jetzt & hier" (REQ-NAV-024): aktuelle Bedingungen an der eigenen Position.
+  const [jetztWx, setJetztWx] = useState<JetztWetter | null>(null);
+  const [jetztDepth, setJetztDepth] = useState<{ depth_m: number; check?: FlachwasserStatus } | null>(null);
+  const [jetztState, setJetztState] = useState<"idle" | "laden" | "fehler">("idle");
+  const jetztSeq = useRef(0);
   // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
   // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
   // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
@@ -191,6 +211,37 @@ export function NavApp() {
   }, [waypoints, startAtGps, gps.fix]);
 
   const canCalc = effectiveWaypoints.length >= 2;
+
+  // Nächste Häfen des Reviers zur GPS-Position (rein clientseitig, REQ-NAV-024).
+  const jetztHaefen = useMemo(
+    () => (gps.fix ? nearestHarbors(gps.fix, revier.haefen, 3) : []),
+    [gps.fix, revier],
+  );
+
+  // „Jetzt & hier": aktuelles Wetter + Tiefe unterm Kiel an der eigenen Position.
+  async function loadJetzt() {
+    if (!gps.fix) return;
+    const { lat, lon } = gps.fix;
+    const myId = ++jetztSeq.current;
+    setJetztState("laden");
+    const tg = Number(tiefgangStr) > 0 ? Number(tiefgangStr) : null;
+    try {
+      const [wxRes, depthRes] = await Promise.all([
+        fetch(`/api/weather/now?lat=${lat}&lon=${lon}&model=${model}&sensitivity=${sensitivity}`),
+        fetch(`/api/navigation/depth?lat=${lat}&lon=${lon}${tg != null ? `&tiefgang=${tg}` : ""}`),
+      ]);
+      if (myId !== jetztSeq.current) return; // veraltete Antwort verwerfen
+      if (!wxRes.ok) {
+        setJetztState("fehler");
+        return;
+      }
+      setJetztWx((await wxRes.json()) as JetztWetter);
+      setJetztDepth(depthRes.ok ? ((await depthRes.json()) as { depth_m: number; check?: FlachwasserStatus }) : null);
+      setJetztState("idle");
+    } catch {
+      if (myId === jetztSeq.current) setJetztState("fehler");
+    }
+  }
 
   const addWaypoint = (w: Waypoint) => {
     const id = `nwp-${nextId.current++}`;
@@ -941,6 +992,85 @@ export function NavApp() {
                 )}
               </>
             )}
+            </div>
+          </details>
+
+          {/* Jetzt & hier (REQ-NAV-024): aktuelle Bedingungen an der Position */}
+          <details className="card nav-subtool" data-testid="nav-jetzt">
+            <summary className="section-label" data-testid="nav-tool-jetzt">
+              Jetzt &amp; hier — Position, Wetter, Häfen
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              {!gps.fix ? (
+                <p className="caption" data-testid="nav-jetzt-hint">
+                  Aktiviere oben „Meine Position (GPS)“, um aktuelles Wetter, die Tiefe unter dem
+                  Kiel und die nächsten Häfen an deiner Position zu sehen.
+                </p>
+              ) : (
+                <>
+                  <div className="row-between">
+                    <span className="caption">
+                      Position {gps.fix.lat.toFixed(3)}, {gps.fix.lon.toFixed(3)}
+                    </span>
+                    <button
+                      type="button"
+                      data-testid="nav-jetzt-load"
+                      className="pill"
+                      disabled={jetztState === "laden"}
+                      onClick={() => void loadJetzt()}
+                    >
+                      {jetztState === "laden" ? "Lade …" : jetztWx ? "Aktualisieren" : "Bedingungen laden"}
+                    </button>
+                  </div>
+                  {jetztState === "fehler" && (
+                    <p className="caption" data-testid="nav-jetzt-error" role="alert">
+                      Bedingungen gerade nicht verfügbar — bitte später erneut.
+                    </p>
+                  )}
+                  {jetztWx && (
+                    <div className="stack" style={{ gap: 6 }} data-testid="nav-jetzt-result">
+                      <p className="caption">
+                        <strong>Wetter:</strong> {jetztWx.wind_kn} kn aus{" "}
+                        {compassPoint(jetztWx.wind_from_deg)} · Böen {jetztWx.gust_kn} kn
+                        {jetztWx.wave_m != null ? ` · Welle ${jetztWx.wave_m} m` : ""}
+                        {jetztWx.current_kn != null && jetztWx.current_kn > 0
+                          ? ` · Strom ${jetztWx.current_kn} kn`
+                          : ""}
+                      </p>
+                      {(jetztWx.gale || jetztWx.thunderstorm || jetztWx.high_wave) && (
+                        <p className="wetter-warnband" style={{ fontSize: 12 }} data-testid="nav-jetzt-warn">
+                          {[
+                            jetztWx.gale && "Sturm",
+                            jetztWx.thunderstorm && "Gewitter",
+                            jetztWx.high_wave && "hohe Welle",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}{" "}
+                          — Vorsicht.
+                        </p>
+                      )}
+                      {jetztDepth && (
+                        <p className="caption" data-testid="nav-jetzt-depth">
+                          <strong>Unter dem Kiel:</strong> {jetztDepth.depth_m} m Wassertiefe
+                          {jetztDepth.check ? ` · ${jetztDepth.check}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {jetztHaefen.length > 0 && (
+                    <div className="stack" style={{ gap: 2 }} data-testid="nav-jetzt-haefen">
+                      <span className="caption">
+                        <strong>Nächste Häfen:</strong>
+                      </span>
+                      {jetztHaefen.map((h) => (
+                        <span key={h.name} className="caption">
+                          {h.name} — {h.distance_nm} sm {h.kompass}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </details>
 
