@@ -808,3 +808,27 @@ test.describe("/navigation — Kreuzpeilung (REQ-NAV-025/026)", () => {
     await expect(page.getByTestId("nav-peil-fix")).toContainText(/Fehlerdreieck/);
   });
 });
+
+test.describe("/navigation — Peilung: Objekt frei auf der Karte wählen (REQ-NAV-025)", () => {
+  test("[REQ-NAV-025] Objekt per Kartenklick statt Hafen-Dropdown anpeilen", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await page.getByTestId("nav-tool-peilung").click();
+    const map = page.getByTestId("nav-map");
+    const box = (await map.boundingBox())!;
+    // Peilung 1: Objekt frei auf der Karte antippen (z. B. ein Turm an Land).
+    await page.getByTestId("nav-peil-pick-0").click();
+    await expect(page.getByTestId("nav-peil-pick-hint")).toBeVisible();
+    await map.click({ position: { x: box.width * 0.4, y: box.height * 0.35 } });
+    await expect(page.getByTestId("nav-peil-custom-0")).toBeVisible();
+    // Kein Wegpunkt entstanden — es war ein Peil-Objekt, kein Routenpunkt.
+    await expect(page.getByTestId("nav-waypoint-item")).toHaveCount(0);
+    await page.getByTestId("nav-peil-mag-0").fill("30");
+    // Peilung 2: zweites Objekt frei wählen.
+    await page.getByTestId("nav-peil-pick-1").click();
+    await map.click({ position: { x: box.width * 0.65, y: box.height * 0.55 } });
+    await expect(page.getByTestId("nav-peil-custom-1")).toBeVisible();
+    await page.getByTestId("nav-peil-mag-1").fill("300");
+    await expect(page.getByTestId("nav-peil-fix")).toBeVisible();
+  });
+});

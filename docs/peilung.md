@@ -11,7 +11,7 @@ Backup, wenn GPS unplausibel ist (real erlebt: GPS-Daten stimmen teils nicht).
    Objekt richten → Knopf drücken → Kompass-Heading wird eingefroren
    (iOS: DeviceOrientationEvent.requestPermission() + webkitCompassHeading;
    Android: absolute orientation alpha).
-2. **Objekt zuordnen:** Auf der Karte das gepeilte Objekt antippen —
+2. **Objekt zuordnen:** ENTWEDER einen kartierten Hafen aus der Liste wählen ODER — neu — „📍 Karte“ drücken und das gepeilte Objekt FREI auf der Karte antippen (auch an Land, z. B. ein Kirchturm zu Hause). Alternativ auf der Karte das gepeilte Objekt antippen —
    OpenSeaMap-Seezeichen/Leuchttürme sind ideale Kandidaten (bereits als
    Kartenlayer vorhanden; später POIs aus REQ-EXP-001).
 3. **Peillinie:** Vom Objekt wird die Gegenrichtung (Peilung ± 180°) als Linie

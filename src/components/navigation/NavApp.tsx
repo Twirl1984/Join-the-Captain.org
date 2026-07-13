@@ -193,11 +193,16 @@ export function NavApp() {
   const [jetztState, setJetztState] = useState<"idle" | "laden" | "fehler">("idle");
   const jetztSeq = useRef(0);
   // Kreuzpeilung (REQ-NAV-025): bis zu 3 Peilzeilen + editierbare Missweisung.
-  const [peilRows, setPeilRows] = useState<Array<{ refName: string; magnetic: string }>>([
+  // Referenz ist ENTWEDER ein kartierter Hafen (refName) ODER ein frei auf der
+  // Karte angetipptes Objekt (custom) — so peilt man auch Gebäude an Land an.
+  type PeilRow = { refName: string; magnetic: string; custom?: { lat: number; lon: number } };
+  const [peilRows, setPeilRows] = useState<PeilRow[]>([
     { refName: "", magnetic: "" },
     { refName: "", magnetic: "" },
   ]);
   const [missweisung, setMissweisung] = useState<string>("");
+  // Karten-Auswahlmodus: welche Peilzeile wartet auf einen Objekt-Klick?
+  const [peilPickRow, setPeilPickRow] = useState<number | null>(null);
   // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
   // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
   // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
@@ -248,17 +253,37 @@ export function NavApp() {
     missweisung.trim() !== "" && Number.isFinite(Number(missweisung))
       ? Number(missweisung)
       : missweisungForRevier(revierId);
+  // Referenzpunkt einer Peilzeile: frei angetipptes Objekt hat Vorrang, sonst
+  // der gewählte kartierte Hafen.
+  const peilRefPoint = (row: PeilRow): { lat: number; lon: number } | null => {
+    if (row.custom) return row.custom;
+    const h = peilRefs.find((r) => `${r.revier}::${r.name}` === row.refName);
+    return h ? { lat: h.lat, lon: h.lon } : null;
+  };
   const peilFix = useMemo(() => {
     const bearings: Bearing[] = peilRows
-      .map((row) => {
-        const ref = peilRefs.find((h) => `${h.revier}::${h.name}` === row.refName);
+      .map((row): Bearing | null => {
+        const ref = peilRefPoint(row);
         const mag = Number(row.magnetic);
         if (!ref || row.magnetic.trim() === "" || !Number.isFinite(mag)) return null;
-        return { ref: { lat: ref.lat, lon: ref.lon }, trueBearingDeg: magneticToTrue(mag, effMissweisung) };
+        return { ref, trueBearingDeg: magneticToTrue(mag, effMissweisung) };
       })
       .filter((b): b is Bearing => b !== null);
     return bearings.length >= 2 ? crossBearingFix(bearings) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peilRows, peilRefs, effMissweisung]);
+  // Angepeilte Objekte für die Kartenmarker.
+  const peilObjekte = useMemo(
+    () =>
+      peilRows
+        .map((row, i) => {
+          const ref = peilRefPoint(row);
+          return ref ? { lat: ref.lat, lon: ref.lon, label: `Peilung ${i + 1}` } : null;
+        })
+        .filter((o): o is { lat: number; lon: number; label: string } => o !== null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [peilRows, peilRefs],
+  );
   const peilPlaus = useMemo(
     () => (peilFix && gps.fix ? gpsPlausibility(gps.fix, peilFix, gps.fix.accuracy_m / 1852) : null),
     [peilFix, gps.fix],
@@ -315,6 +340,17 @@ export function NavApp() {
   }
 
   const addWaypoint = (w: Waypoint) => {
+    // Peilungs-Auswahlmodus (REQ-NAV-025): Karten-/Hafen-Klick setzt das
+    // angepeilte OBJEKT der wartenden Zeile — kein Wegpunkt, kein Snap (das
+    // Objekt darf an Land liegen, z. B. ein Kirchturm).
+    if (peilPickRow != null) {
+      const idx = peilPickRow;
+      setPeilRows((rows) =>
+        rows.map((r, j) => (j === idx ? { ...r, custom: { lat: w.lat, lon: w.lon }, refName: "" } : r)),
+      );
+      setPeilPickRow(null);
+      return;
+    }
     const id = `nwp-${nextId.current++}`;
     // Optimistisch setzen — Hafen-Klicks (mit Name) bleiben unangetastet;
     // freie Karten-Klicks werden sichtbar an die Küste gesnappt (REQ-NAV-010).
@@ -928,7 +964,13 @@ export function NavApp() {
               gps={gps.fix}
               followGps={followGps}
               fullscreen={mapFull}
+              peilObjekte={peilObjekte}
             />
+            {peilPickRow != null && (
+              <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
+                🎯 Tippe auf der Karte das Objekt an, das du anpeilst (Peilung {peilPickRow + 1}).
+              </p>
+            )}
           </div>
 
           <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
@@ -1198,24 +1240,56 @@ export function NavApp() {
                     <div key={i} className="stack" style={{ gap: 4 }}>
                       <span className="caption">Peilung {i + 1}</span>
                       <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                        <select
-                          data-testid={`nav-peil-ref-${i}`}
-                          className="wetter-select"
-                          style={{ flex: 1, minWidth: 140, minHeight: 44, fontSize: 16 }}
-                          value={row.refName}
-                          onChange={(e) =>
-                            setPeilRows((rows) =>
-                              rows.map((r, j) => (j === i ? { ...r, refName: e.target.value } : r)),
-                            )
-                          }
+                        {row.custom ? (
+                          <span
+                            className="pill"
+                            data-testid={`nav-peil-custom-${i}`}
+                            style={{ flex: 1, minWidth: 140, display: "flex", justifyContent: "space-between", gap: 6 }}
+                          >
+                            📍 Objekt {row.custom.lat.toFixed(3)}, {row.custom.lon.toFixed(3)}
+                            <button
+                              type="button"
+                              data-testid={`nav-peil-custom-clear-${i}`}
+                              aria-label="Objekt entfernen"
+                              onClick={() =>
+                                setPeilRows((rows) =>
+                                  rows.map((r, j) => (j === i ? { ...r, custom: undefined } : r)),
+                                )
+                              }
+                              style={{ background: "none", border: "none", cursor: "pointer", color: "inherit" }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : (
+                          <select
+                            data-testid={`nav-peil-ref-${i}`}
+                            className="wetter-select"
+                            style={{ flex: 1, minWidth: 120, minHeight: 44, fontSize: 16 }}
+                            value={row.refName}
+                            onChange={(e) =>
+                              setPeilRows((rows) =>
+                                rows.map((r, j) => (j === i ? { ...r, refName: e.target.value } : r)),
+                              )
+                            }
+                          >
+                            <option value="">Objekt wählen …</option>
+                            {peilRefs.map((h) => (
+                              <option key={`${h.revier}::${h.name}`} value={`${h.revier}::${h.name}`}>
+                                {h.name} ({h.revier}) — {h.distance_nm} sm {h.kompass}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          type="button"
+                          data-testid={`nav-peil-pick-${i}`}
+                          className={`pill ${peilPickRow === i ? "active" : ""}`}
+                          title="Objekt auf der Karte antippen (z. B. ein Turm an Land)"
+                          onClick={() => setPeilPickRow(peilPickRow === i ? null : i)}
                         >
-                          <option value="">Objekt wählen …</option>
-                          {peilRefs.map((h) => (
-                            <option key={`${h.revier}::${h.name}`} value={`${h.revier}::${h.name}`}>
-                              {h.name} ({h.revier}) — {h.distance_nm} sm {h.kompass}
-                            </option>
-                          ))}
-                        </select>
+                          📍 Karte
+                        </button>
                         <input
                           data-testid={`nav-peil-mag-${i}`}
                           type="number"

@@ -60,6 +60,8 @@ interface NavMapProps {
   followGps: boolean;
   /** Vollbild-Modus (REQ-NAV-018) — löst nach dem Layout-Wechsel invalidateSize aus. */
   fullscreen?: boolean;
+  /** Angepeilte Objekte (REQ-NAV-025) — als eigene Marker zeigen. */
+  peilObjekte?: Array<{ lat: number; lon: number; label: string }>;
 }
 
 function waypointIcon(n: number): L.DivIcon {
@@ -76,6 +78,14 @@ const hafenIcon = L.divIcon({
   html: `<span class="hafen-marker"></span>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
+});
+
+/** Angepeiltes Objekt (REQ-NAV-025): markantes Dreieck-Symbol. */
+const peilIcon = L.divIcon({
+  className: "wp-divicon",
+  html: `<span class="nav-peil-marker">▲</span>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 18],
 });
 
 /** Eigene Position: Pfeil in Kursrichtung (falls Kurs bekannt), sonst Punkt. */
@@ -198,6 +208,7 @@ export default function NavMap({
   gps,
   followGps,
   fullscreen,
+  peilObjekte,
 }: NavMapProps) {
   return (
     <MapContainer center={revier.center} zoom={revier.zoom} className="wetter-leaflet" scrollWheelZoom>
@@ -232,6 +243,14 @@ export default function NavMap({
         >
           <Tooltip direction="top" offset={[0, -6]}>
             {h.name} — Klick fügt Wegpunkt hinzu
+          </Tooltip>
+        </Marker>
+      ))}
+
+      {peilObjekte?.map((o, i) => (
+        <Marker key={`peil-${i}`} position={[o.lat, o.lon]} icon={peilIcon} interactive={false}>
+          <Tooltip direction="top" offset={[0, -14]}>
+            {o.label}
           </Tooltip>
         </Marker>
       ))}

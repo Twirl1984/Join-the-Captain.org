@@ -514,3 +514,9 @@ p { margin: 0; }
   content: "▸"; color: var(--accent); font-size: 12px; transition: transform 0.15s;
 }
 .nav-subtool[open] > summary::before { transform: rotate(90deg); }
+
+/* Angepeiltes Objekt auf der Karte (REQ-NAV-025) — markantes rotes Dreieck. */
+.nav-peil-marker {
+  color: #d9534f; font-size: 20px; line-height: 1;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9); cursor: default;
+}
