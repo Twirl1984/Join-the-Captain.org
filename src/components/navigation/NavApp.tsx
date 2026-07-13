@@ -26,7 +26,7 @@ import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast
 import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
 import { gpxFromRoute } from "@/lib/navigation/gpx";
-import { nearestHarbors } from "@/lib/navigation/nearby";
+import { nearestHarborsGlobal, nearestRevier } from "@/lib/navigation/nearby";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -212,11 +212,19 @@ export function NavApp() {
 
   const canCalc = effectiveWaypoints.length >= 2;
 
-  // Nächste Häfen des Reviers zur GPS-Position (rein clientseitig, REQ-NAV-024).
+  // Nächste Häfen ÜBER ALLE REVIERE zur GPS-Position (nicht ans ausgewählte
+  // Revier gebunden — sonst zeigt „Jetzt & hier" in Nürnberg Nordsee-Häfen).
   const jetztHaefen = useMemo(
-    () => (gps.fix ? nearestHarbors(gps.fix, revier.haefen, 3) : []),
-    [gps.fix, revier],
+    () => (gps.fix ? nearestHarborsGlobal(gps.fix, alleReviere(), 3) : []),
+    [gps.fix],
   );
+  // Vorschlag: zum tatsächlich nächsten Revier wechseln (REQ-NAV-024). Nur wenn
+  // es NICHT das aktuell gewählte ist — der User entscheidet per Klick.
+  const revierVorschlag = useMemo(() => {
+    if (!gps.fix) return null;
+    const nr = nearestRevier(gps.fix, alleReviere());
+    return nr && nr.id !== revierId ? nr : null;
+  }, [gps.fix, revierId]);
 
   // „Jetzt & hier": aktuelles Wetter + Tiefe unterm Kiel an der eigenen Position.
   async function loadJetzt() {
@@ -1008,6 +1016,24 @@ export function NavApp() {
                 </p>
               ) : (
                 <>
+                  {revierVorschlag && (
+                    <div
+                      className="wetter-warnband"
+                      style={{ fontSize: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
+                      data-testid="nav-jetzt-revier-vorschlag"
+                    >
+                      Du bist am nächsten an <strong>{revierVorschlag.label}</strong> (
+                      {revierVorschlag.distance_nm} sm).
+                      <button
+                        type="button"
+                        data-testid="nav-jetzt-revier-switch"
+                        className="pill"
+                        onClick={() => setRevierId(revierVorschlag.id)}
+                      >
+                        Dorthin wechseln
+                      </button>
+                    </div>
+                  )}
                   <div className="row-between">
                     <span className="caption">
                       Position {gps.fix.lat.toFixed(3)}, {gps.fix.lon.toFixed(3)}
@@ -1063,8 +1089,8 @@ export function NavApp() {
                         <strong>Nächste Häfen:</strong>
                       </span>
                       {jetztHaefen.map((h) => (
-                        <span key={h.name} className="caption">
-                          {h.name} — {h.distance_nm} sm {h.kompass}
+                        <span key={`${h.revier}-${h.name}`} className="caption">
+                          {h.name} ({h.revier}) — {h.distance_nm} sm {h.kompass}
                         </span>
                       ))}
                     </div>

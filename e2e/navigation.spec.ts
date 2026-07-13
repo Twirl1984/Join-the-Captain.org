@@ -474,6 +474,14 @@ test.describe("/navigation — GPS", () => {
     // Sub-Tool "Jetzt & hier" aufklappen — nächste Häfen erscheinen sofort (clientseitig).
     await page.getByTestId("nav-tool-jetzt").click();
     await expect(page.getByTestId("nav-jetzt-haefen")).toBeVisible();
+    // Position (54.42/13.39 = Rügen) liegt NICHT im Default-Revier (Deutsche
+    // Bucht) → Vorschlag, zum tatsächlich nächsten Revier zu wechseln.
+    const vorschlag = page.getByTestId("nav-jetzt-revier-vorschlag");
+    await expect(vorschlag).toBeVisible();
+    await expect(vorschlag).not.toContainText(/Deutsche Bucht/);
+    await page.getByTestId("nav-jetzt-revier-switch").click();
+    // Nach dem Wechsel ist der Vorschlag weg (wir sind jetzt im nächsten Revier).
+    await expect(page.getByTestId("nav-jetzt-revier-vorschlag")).toHaveCount(0);
     // Bedingungen laden → Wetter + Tiefe.
     await page.getByTestId("nav-jetzt-load").click();
     await expect(page.getByTestId("nav-jetzt-result")).toContainText(/14 kn aus W/);

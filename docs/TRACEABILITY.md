@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 57 · getaggte Zuordnungen 104.
+Stand: Requirements 57 · getaggte Zuordnungen 106.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -42,7 +42,7 @@ Stand: Requirements 57 · getaggte Zuordnungen 104.
 | REQ-NAV-021 — GPX-Export | umgesetzt | `src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] GPX enthält alle Punkte als rtept mit Namen/Fallback<br>`src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] Sonderzeichen werden escaped, Disclaimer enthalten<br>`src/lib/navigation/__tests__/gpx.test.ts`: [REQ-NAV-021] gültiger GPX-1.1-Rahmen |
 | REQ-NAV-022 — Törn-Stil und Tagesetappen | geplant | — |
 | REQ-NAV-023 — Zeitabhängiges Wetterfeld fürs Profil-Routing | geplant | — |
-| REQ-NAV-024 — Informationsarchitektur: Törnplaner + Detail-Tools | umgesetzt | `src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] nearestHarbors sortiert nach Distanz und deckelt auf n<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] bearing + Kompasspunkt stimmen grob (Norden/Osten)<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] leere Hafenliste → leeres Ergebnis<br>`e2e/navigation.spec.ts`: [REQ-NAV-024] Jetzt & hier: aktuelle Bedingungen + nächste Häfen an der Position<br>`e2e/navigation.spec.ts`: [REQ-NAV-024] Sub-Tools sind eingeklappt, Kern bleibt sichtbar, Aufklappen zeigt Regler |
+| REQ-NAV-024 — Informationsarchitektur: Törnplaner + Detail-Tools | umgesetzt | `src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] nearestHarbors sortiert nach Distanz und deckelt auf n<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] bearing + Kompasspunkt stimmen grob (Norden/Osten)<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] leere Hafenliste → leeres Ergebnis<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] nearestRevier: bei Nürnberg gewinnt Brombachsee, nicht die Nordsee<br>`src/lib/navigation/__tests__/nearby.test.ts`: [REQ-NAV-024] nearestHarborsGlobal liefert Häfen mit Revier-Label, positionsnah<br>`e2e/navigation.spec.ts`: [REQ-NAV-024] Jetzt & hier: aktuelle Bedingungen + nächste Häfen an der Position<br>`e2e/navigation.spec.ts`: [REQ-NAV-024] Sub-Tools sind eingeklappt, Kern bleibt sichtbar, Aufklappen zeigt Regler |
 | REQ-NAV-025 — Handy-Peilung und Kreuzpeilung | geplant | — |
 | REQ-NAV-026 — GPS-Plausibilitätswarnung | geplant | — |
 | REQ-SAFE-001 — Erstnutzungs-Disclaimer | umgesetzt | `e2e/navigation.spec.ts`: [REQ-SAFE-001] erscheint beim ersten Besuch, blockiert bis bestätigt, bleibt danach weg |
