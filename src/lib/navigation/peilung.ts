@@ -232,3 +232,49 @@ export function bestCutAngleDeg(bearings: Bearing[]): number {
 
 /** Schnitt unter diesem Winkel ⇒ Peilung nicht verwertbar (ehrlich melden). */
 export const MIN_CUT_ANGLE_DEG = 20;
+
+/**
+ * Azimut der KAMERA-Blickrichtung aus der 3D-Gerätelage (REQ-NAV-025, BUG-045).
+ *
+ * `webkitCompassHeading` beschreibt die Richtung der GERÄTE-OBERKANTE und gilt
+ * nur für ein FLACH gehaltenes Handy. Beim Anpeilen hält man das Handy aber
+ * AUFRECHT — dann zeigt die Oberkante zum Himmel, die Horizontal-Projektion
+ * kippt weg und der Wert reagiert kaum noch auf Drehungen (real gemessen:
+ * 90°-Drehung ⇒ nur wenige Grad Änderung).
+ *
+ * Korrekt: die Rückkamera zeigt in Gerätekoordinaten entlang −z. Diese Achse
+ * wird mit der Rotationsmatrix R = Rz(α)·Rx(β)·Ry(γ) (W3C) in Weltkoordinaten
+ * (Ost/Nord/Hoch) gedreht; der Azimut ist atan2(Ost, Nord).
+ *
+ * Rückgabe null, wenn die Kamera fast senkrecht zeigt (Azimut dann sinnlos) —
+ * die UI bittet dann, das Handy aufrecht aufs Objekt zu richten.
+ */
+export function sightingAzimuth(
+  alphaDeg: number,
+  betaDeg: number,
+  gammaDeg: number,
+): number | null {
+  if (![alphaDeg, betaDeg, gammaDeg].every((v) => Number.isFinite(v))) return null;
+  const r = (d: number) => (d * Math.PI) / 180;
+  const a = r(alphaDeg);
+  const b = r(betaDeg);
+  const g = r(gammaDeg);
+  const cA = Math.cos(a);
+  const sA = Math.sin(a);
+  const cB = Math.cos(b);
+  const sB = Math.sin(b);
+  const cG = Math.cos(g);
+  const sG = Math.sin(g);
+  // Dritte Spalte von R (Bild der Geräte-z-Achse in der Welt).
+  const r13 = cA * sG + sA * sB * cG;
+  const r23 = sA * sG - cA * sB * cG;
+  const r33 = cB * cG;
+  // Kamera = −z: Weltvektor (Ost, Nord, Hoch).
+  const vE = -r13;
+  const vN = -r23;
+  const horiz = Math.hypot(vE, vN);
+  // Kamera zeigt fast in den Himmel/Boden → kein sinnvoller Azimut.
+  if (horiz < 0.15) return null;
+  void r33;
+  return (((Math.atan2(vE, vN) * 180) / Math.PI) % 360 + 360) % 360;
+}

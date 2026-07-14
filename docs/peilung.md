@@ -68,3 +68,8 @@ bewusst als Premium-Ausbaustufe, nach MVP 1.
   ⇒ „Kompass unruhig, kalibrieren".
 - **Sichtprüfung**: Standlinien (gestrichelt) + Standort-Fadenkreuz werden auf
   der Karte gezeichnet — ohne das kann niemand das Ergebnis beurteilen.
+
+- **Gerätelage beachten (BUG-045)**: `webkitCompassHeading` gilt nur für ein FLACH
+  gehaltenes Handy (Richtung der Oberkante). Beim Anpeilen hält man das Handy
+  AUFRECHT und zielt mit der Kamera — dafür wird der Azimut der Kamera-Achse
+  (Geräte −z) aus der 3D-Lage (α/β/γ) gerechnet (`sightingAzimuth`).

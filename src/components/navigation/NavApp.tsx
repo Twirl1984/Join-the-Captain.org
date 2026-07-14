@@ -34,6 +34,7 @@ import {
   positionUncertaintyNm,
   bestCutAngleDeg,
   averageHeading,
+  sightingAzimuth,
   missweisungForRevier,
   MIN_CUT_ANGLE_DEG,
   type Bearing,
@@ -390,13 +391,23 @@ export function NavApp() {
       const handler = (
         e: DeviceOrientationEvent & { webkitCompassHeading?: number; webkitCompassAccuracy?: number },
       ) => {
-        // Nur GÜLTIGE Messungen sammeln. iOS: webkitCompassAccuracy < 0 = ungültig.
+        const flach = e.beta == null || Math.abs(e.beta) < 30;
+        // AUFRECHT (Anpeilen mit der Kamera): Azimut aus der 3D-Lage rechnen.
+        // webkitCompassHeading meint die GERÄTE-OBERKANTE und ist beim aufrechten
+        // Halten praktisch unbrauchbar (BUG-045: 90°-Drehung ⇒ wenige Grad).
+        if (!flach) {
+          const az = sightingAzimuth(e.alpha ?? NaN, e.beta ?? NaN, e.gamma ?? NaN);
+          if (az != null) samples.push(az);
+          return;
+        }
+        // FLACH gehalten (klassisch, über die Oberkante anvisieren):
+        // iOS webkitCompassHeading; Accuracy < 0 bedeutet ungültig.
         if (typeof e.webkitCompassHeading === "number" && Number.isFinite(e.webkitCompassHeading)) {
           if (e.webkitCompassAccuracy != null && e.webkitCompassAccuracy < 0) return;
           samples.push(e.webkitCompassHeading);
           return;
         }
-        // Android: nur absolute Orientierung mit vorhandenem alpha ist brauchbar.
+        // Android: nur absolute Orientierung ist brauchbar.
         if (e.absolute === true && e.alpha != null && Number.isFinite(e.alpha)) {
           samples.push((360 - e.alpha) % 360);
         }
@@ -1357,7 +1368,8 @@ export function NavApp() {
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
               <p className="caption">
-                Peile 2–3 markante, kartierte Objekte (Häfen, Leuchttürme) mit dem Handy-Kompass an
+                <strong>Handy aufrecht halten und mit der Kamera-Rückseite auf das Objekt zielen</strong>,
+                dann „Kompass“ tippen. Peile 2–3 markante Objekte an
                 — der Schnitt der Peilungen ergibt deinen Standort. Klassische Seemannschaft als
                 Rückfall, wenn die GPS-Position unplausibel wirkt. <strong>Planungshilfe</strong>,
                 ersetzt keinen Handpeilkompass und keine amtliche Seekarte.

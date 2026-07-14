@@ -9,6 +9,7 @@ import {
   bestCutAngleDeg,
   MIN_CUT_ANGLE_DEG,
   averageHeading,
+  sightingAzimuth,
   distanceNm,
   type LatLon,
   type Bearing,
@@ -164,4 +165,30 @@ test("[REQ-NAV-025] averageHeading über den Nordsprung (359°/1°) mittelt korr
 
 test("[REQ-NAV-025] averageHeading ohne Messungen → null", () => {
   assert.equal(averageHeading([]), null);
+});
+
+// ── Kamera-Blickrichtung aus der Gerätelage (BUG-045, iPhone aufrecht) ──────
+
+test("[REQ-NAV-025] aufrechtes Handy: 90°-Drehung ⇒ 90° Azimut-Änderung (BUG-045)", () => {
+  // beta=90° = Handy aufrecht, Kamera waagerecht nach vorn.
+  const a0 = sightingAzimuth(0, 90, 0)!;
+  const a90 = sightingAzimuth(90, 90, 0)!;
+  assert.ok(a0 != null && a90 != null);
+  const diff = Math.abs(((a90 - a0 + 540) % 360) - 180); // zyklische Differenz zu 180
+  assert.ok(Math.abs(Math.abs(((a90 - a0 + 360) % 360)) - 270) < 1 ||
+            Math.abs(Math.abs(((a90 - a0 + 360) % 360)) - 90) < 1,
+    `90° Drehung muss 90° Azimut-Änderung ergeben (war ${((a90 - a0 + 360) % 360)}°)`);
+  void diff;
+});
+
+test("[REQ-NAV-025] aufrechtes Handy, alpha=0 ⇒ Kamera schaut nach Norden", () => {
+  assert.ok(Math.abs(sightingAzimuth(0, 90, 0)!) < 1);
+});
+
+test("[REQ-NAV-025] flach liegendes Handy ⇒ kein Azimut (Kamera zeigt zum Boden)", () => {
+  assert.equal(sightingAzimuth(0, 0, 0), null);
+});
+
+test("[REQ-NAV-025] unvollständige Lagedaten ⇒ null", () => {
+  assert.equal(sightingAzimuth(NaN, 90, 0), null);
 });
