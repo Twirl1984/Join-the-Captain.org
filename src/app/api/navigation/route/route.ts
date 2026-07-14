@@ -17,13 +17,16 @@ import type { SailMode } from "@/lib/weather/polar";
 import { getNavRevier } from "@/lib/navigation/reviere";
 import { getMaskForRevier } from "@/lib/navigation/masks";
 import { expandWaypointsOverWater, thin } from "@/lib/navigation/route-helpers";
-import { gridField, parseRouteProfil, profileCosts, type FieldSample } from "@/lib/navigation/route-profiles";
+import { parseRouteProfil, profileCosts, samplerField } from "@/lib/navigation/route-profiles";
 import { navigationEnabled } from "@/lib/flags";
 import { clientKey, createLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 const ROUTE_WINDOW_DAYS = 6;
+// Zeitfenster des Profil-Wetterfelds (REQ-NAV-023): deckt lange Törns ab und
+// bleibt im Open-Meteo-Vorhersagehorizont.
+const PROFIL_FELD_STUNDEN = 120;
 
 // Abuse-Deckel: A* + Open-Meteo je Anfrage sind nicht gratis (Finding #10).
 const limiter = createLimiter({ limit: 30, windowMs: 60_000 });
@@ -119,21 +122,17 @@ export async function POST(req: NextRequest) {
           grid.push({ lat: s0 + ((n0 - s0) * i) / 2, lon: w0 + ((e0 - w0) * j) / 2 });
         }
       }
-      const fieldSampler = await buildSampler(grid, {
-        sensitivity,
-        window: { start: startTime, end: new Date(startTime.getTime() + 3600e3) },
-        model,
-      });
-      const samples = grid.map((g) => {
-        const wx = fieldSampler({ lat: g.lat, lon: g.lon, at: startTime });
-        return {
-          ...g,
-          wind_kn: wx.wind_speed_kn,
-          wind_from_deg: wx.wind_from_deg,
-          wave_m: wx.wave_height_m ?? null,
-        } satisfies { lat: number; lon: number } & FieldSample;
-      });
-      costs = profileCosts(profil, gridField(samples), boat) ?? undefined;
+      // ZEITBEWUSSTES Feld (REQ-NAV-023): der Sampler deckt das ganze Törn-
+      // Fenster ab, damit jede A*-Kante mit dem Wetter zur voraussichtlichen
+      // DURCHFAHRTSZEIT bewertet wird — nicht pauschal mit dem Start-Wetter.
+      const feldFenster: TimeWindow = {
+        start: startTime,
+        end: new Date(startTime.getTime() + PROFIL_FELD_STUNDEN * 3600e3),
+      };
+      const fieldSampler = await buildSampler(grid, { sensitivity, window: feldFenster, model });
+      costs =
+        profileCosts(profil, samplerField(fieldSampler, startTime, PROFIL_FELD_STUNDEN), boat) ??
+        undefined;
     } catch (err) {
       // Feld nicht verfügbar (z. B. Upstream-Fehler): ehrlich scheitern statt
       // still den kürzesten Weg als "Profil-Route" auszugeben.

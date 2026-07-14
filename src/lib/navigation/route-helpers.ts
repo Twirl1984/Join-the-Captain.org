@@ -12,6 +12,7 @@
 import type { Waypoint } from "../weather/route-forecast";
 import type { WaterMask } from "./watermask";
 import { findSeaRoute, segmentInWater, type LatLon, type RouteCosts } from "./searoute";
+import { haversineNm } from "../weather/route-forecast";
 
 export type SegmentRouting = "wasserweg" | "luftlinie";
 
@@ -46,17 +47,23 @@ export function expandWaypointsOverWater(
   const maxPer = Math.max(2, opts.maxPointsPerSegment ?? 12);
   const points: Waypoint[] = [waypoints[0]];
   const segments: RouteSegmentInfo[] = [];
+  // Zeit-Offset über die Segmente (REQ-NAV-023): Segment 2 wird später
+  // durchfahren als Segment 1 — das Wetterfeld muss entsprechend später
+  // abgefragt werden. Der Offset ist eine SCHÄTZUNG aus den bisher gerouteten
+  // Distanzen; die exakte ETA rechnet danach planRoute (route-forecast.ts).
+  let offsetH = 0;
 
   for (let i = 0; i < waypoints.length - 1; i++) {
     const from = waypoints[i];
     const to = waypoints[i + 1];
     const segStart = points.length - 1;
+    const segCosts = opts.costs ? shiftCosts(opts.costs, offsetH) : undefined;
 
     let routing: SegmentRouting = "luftlinie";
     let inner: Waypoint[] = [];
 
     if (mask) {
-      const sea = findSeaRoute(mask, { lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, opts.costs);
+      const sea = findSeaRoute(mask, { lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, segCosts);
       if (sea.status === "ok") {
         routing = "wasserweg";
         // Nur die ZWISCHENpunkte übernehmen — Endpunkte bleiben die Originale
@@ -75,6 +82,14 @@ export function expandWaypointsOverWater(
 
     points.push(...inner, to);
     segments.push({ from: segStart, to: points.length - 1, routing });
+    // Offset für das nächste Segment fortschreiben (Distanz / Marschfahrt).
+    if (opts.costs) {
+      let segNm = 0;
+      for (let k = segStart; k < points.length - 1; k++) {
+        segNm += haversineNm(points[k], points[k + 1]);
+      }
+      offsetH += segNm / Math.max(0.5, opts.costs.nominalSpeedKn);
+    }
   }
 
   return { status: "ok", points, segments };
@@ -115,4 +130,14 @@ export function thin<T>(arr: T[], max: number): T[] {
     out.push(arr[Math.round(((k + 1) * (arr.length - 1)) / (max + 1))]);
   }
   return out;
+}
+
+
+/** Kostenmodell um einen Zeit-Offset verschieben (Segment startet später). */
+function shiftCosts(costs: RouteCosts, offsetH: number): RouteCosts {
+  if (offsetH <= 0) return costs;
+  return {
+    ...costs,
+    edgeCost: (a, b, dist, elapsedH) => costs.edgeCost(a, b, dist, elapsedH + offsetH),
+  };
 }

@@ -29,11 +29,21 @@ export interface LatLon {
 /**
  * Kostenmodell für profil-abhängiges Routing (REQ-NAV-019). edgeCost liefert
  * die Kosten einer Kante (z. B. Stunden); für eine ZULÄSSIGE A*-Heuristik muss
- * stets gelten: edgeCost(a,b,dist) >= dist / heuristicSpeedNmPerCost.
+ * stets gelten: edgeCost(a,b,dist,t) >= dist / heuristicSpeedNmPerCost.
  */
 export interface RouteCosts {
-  edgeCost: (a: LatLon, b: LatLon, distNm: number) => number;
+  /**
+   * Kosten einer Kante. `elapsedH` ist die geschätzte Fahrtzeit (Stunden seit
+   * Abfahrt) BIS zum Kantenanfang — damit bewertet das Profil-Routing jede
+   * Kante mit dem Wetter zur voraussichtlichen DURCHFAHRTSZEIT (REQ-NAV-023),
+   * nicht mit dem Wetter zur Startzeit.
+   */
+  edgeCost: (a: LatLon, b: LatLon, distNm: number, elapsedH: number) => number;
   heuristicSpeedNmPerCost: number;
+  /** Kosten → Stunden (bei Zeit-Kosten die Identität, bei Komfort-Meilen /Speed). */
+  costToHours: (cost: number) => number;
+  /** Nominale Fahrt (kn) — nur zur Schätzung des Zeit-Offsets über Segmente. */
+  nominalSpeedKn: number;
 }
 
 export interface SeaRouteResult {
@@ -226,7 +236,12 @@ function aStar(
         if (closed[ni]) continue;
         const dNm = cellDistNm(mask, cur, ni);
         const step = costs
-          ? costs.edgeCost(cellCenter(mask, r, c), cellCenter(mask, nr, nc), dNm)
+          ? costs.edgeCost(
+              cellCenter(mask, r, c),
+              cellCenter(mask, nr, nc),
+              dNm,
+              costs.costToHours(g[cur]),
+            )
           : dNm;
         const tentative = g[cur] + step;
         if (tentative < g[ni]) {
@@ -260,13 +275,26 @@ function lineOfSightSimplify(mask: WaterMask, pts: LatLon[], costs?: RouteCosts)
   const prefix: number[] = [0];
   if (costs) {
     for (let k = 0; k < pts.length - 1; k++) {
-      prefix.push(prefix[k] + costs.edgeCost(pts[k], pts[k + 1], haversineNm(pts[k], pts[k + 1])));
+      prefix.push(
+        prefix[k] +
+          costs.edgeCost(
+            pts[k],
+            pts[k + 1],
+            haversineNm(pts[k], pts[k + 1]),
+            costs.costToHours(prefix[k]),
+          ),
+      );
     }
   }
   const jumpOk = (i: number, j: number): boolean => {
     if (!segmentInWater(mask, pts[i], pts[j])) return false;
     if (!costs) return true;
-    const direct = costs.edgeCost(pts[i], pts[j], haversineNm(pts[i], pts[j]));
+    const direct = costs.edgeCost(
+      pts[i],
+      pts[j],
+      haversineNm(pts[i], pts[j]),
+      costs.costToHours(prefix[i]),
+    );
     return direct <= (prefix[j] - prefix[i]) * 1.001 + 1e-9;
   };
   const out: LatLon[] = [pts[0]];

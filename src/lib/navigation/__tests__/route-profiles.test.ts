@@ -108,7 +108,7 @@ test("[REQ-NAV-019] Heuristik bleibt zulässig: edgeCost >= dist/heuristicSpeed"
       const a = { lat: 54 + (i % 7) * 0.1, lon: 13 + (i % 11) * 0.15 };
       const b = { lat: 54 + ((i + 3) % 7) * 0.1, lon: 13 + ((i + 5) % 11) * 0.15 };
       const dist = 1 + (i % 9);
-      const c = costs.edgeCost(a, b, dist);
+      const c = costs.edgeCost(a, b, dist, 0);
       assert.ok(
         c >= dist / costs.heuristicSpeedNmPerCost - 1e-9,
         `${profil}: edgeCost ${c} < dist/heuristicSpeed ${dist / costs.heuristicSpeedNmPerCost}`,
@@ -126,4 +126,34 @@ test("[REQ-NAV-019] parseRouteProfil: bekannte Werte, sonst null", () => {
   assert.equal(parseRouteProfil("segel"), "segel");
   assert.equal(parseRouteProfil(undefined), "kuerzeste");
   assert.equal(parseRouteProfil("warp-antrieb"), null);
+});
+
+
+// ── Zeitabhängiges Wetterfeld (REQ-NAV-023) ────────────────────────────────
+
+test("[REQ-NAV-023] Kantenkosten nutzen das Wetter zur DURCHFAHRTSZEIT, nicht zur Startzeit", () => {
+  // Feld: zu Beginn Flaute (2 kn), ab Stunde 5 kräftiger Wind (18 kn).
+  const zeitFeld = (_lat: number, _lon: number, elapsedH: number) => ({
+    wind_kn: elapsedH < 5 ? 2 : 18,
+    wind_from_deg: 180, // Halbwind auf Ost-Kurs
+    wave_m: 0,
+  });
+  const costs = profileCosts("segel", zeitFeld, DEFAULT_BOAT)!;
+  const a = { lat: 54.0, lon: 13.0 };
+  const b = { lat: 54.0, lon: 13.1 };
+  const dist = 3.5;
+  const frueh = costs.edgeCost(a, b, dist, 0); // Flaute → langsam → teuer
+  const spaet = costs.edgeCost(a, b, dist, 8); // Wind → schnell → billig
+  assert.ok(
+    spaet < frueh,
+    `dieselbe Kante muss später (mit Wind) billiger sein als in der Flaute (${spaet} vs. ${frueh})`,
+  );
+});
+
+test("[REQ-NAV-023] costToHours: Zeit-Profile identisch, Komfort über Marschfahrt", () => {
+  const feld = gridField([{ lat: 54, lon: 13, wind_kn: 10, wind_from_deg: 0, wave_m: 0.5 }]);
+  const segel = profileCosts("segel", feld, DEFAULT_BOAT)!;
+  const komfort = profileCosts("komfort", feld, DEFAULT_BOAT)!;
+  assert.equal(segel.costToHours(4), 4, "Segel-Kosten sind bereits Stunden");
+  assert.ok(komfort.costToHours(10) > 0 && komfort.costToHours(10) < 10, "Komfort-Meilen → Stunden");
 });
