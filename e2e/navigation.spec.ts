@@ -131,6 +131,10 @@ function timelineResponse(tide = false, night = false) {
     wind_from_deg: 240,
     cloud_pct: cloud,
     is_day: night ? false : true,
+    // Temperatur/Niederschlag (REQ-WET-016): Schritt 0/1 trocken, ab 2 Regen —
+    // deckt Windfahne + Temperatur-Label + Regen-Glyph im Overlay ab.
+    temperature_2m: 16 + i,
+    precipitation: i >= 2 ? 1.2 : 0,
     wave_m: 0.5,
     tide_m: tide ? -0.9 : null,
     gale: false,
@@ -385,6 +389,26 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     expect(await sky.count()).toBeGreaterThan(0);
     // Der wolkenlose Punkt (5 %) bei Nacht zeigt einen Mond statt leer zu wirken.
     await expect(page.locator(".wx-sky", { hasText: "🌙" }).first()).toBeVisible();
+  });
+
+  test("[REQ-WET-015] Windfahnen und [REQ-WET-016] Temperatur/Niederschlag im Overlay", async ({
+    page,
+  }) => {
+    // Flag NEXT_PUBLIC_FEATURE_WX_SYMBOLS_V2 ist im Test-Build Default an → v2-Pfad.
+    await mockApis(page);
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+    // Beaufort-Windfahne (SVG) statt Pfeil (REQ-WET-015).
+    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+    // Temperatur-Label (°) an den Overlay-Punkten (REQ-WET-016).
+    await expect(page.locator(".wx-temp").first()).toContainText("°");
+    // Trocken (Schritt 0) → kein Regen-Glyph; nach Vorspulen auf Schritt 3 (1.2 mm)
+    // erscheint das Niederschlags-Symbol.
+    expect(await page.locator(".wx-precip").count()).toBe(0);
+    await page.getByTestId("nav-playback-slider").fill("3");
+    await expect(page.locator(".wx-precip").first()).toBeVisible();
   });
 });
 
