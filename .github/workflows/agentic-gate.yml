@@ -13,6 +13,103 @@ on:
     branches: [main]
 
 jobs:
+  # ── Diff-Größe: Review-Qualität schützen ────────────────────────────────────
+  # Evidenz: Reviews finden 70–90 % der Defekte, solange der Diff klein bleibt;
+  # SmartBear/Cisco-Studien zeigen den Bruch bei ~200–400 Zeilen — darüber sinkt
+  # die Defect-Discovery-Rate steil ab (Reviewer "überfliegen" nur noch).
+  # Deshalb: ≤400 grün · 400–800 Warnung · >800 blockend (Override via Label
+  # "size-override", damit ein begründet großer Umbau nicht ausgebremst wird).
+  # Lockfiles und generierte Dateien zählen NICHT mit — die liest niemand.
+  diff-size:
+    name: Diff-Groesse (Review-Qualitaet)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Geaenderte Zeilen zaehlen (ohne Lockfiles/Generiertes)
+        id: size
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=100 origin "${{ github.base_ref }}"
+          BASE=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          LINES=$(git diff --numstat "$BASE" HEAD -- . \
+            ':(exclude)package-lock.json' \
+            ':(exclude)**/package-lock.json' \
+            ':(exclude)*.lock' \
+            ':(exclude)docs/TRACEABILITY.md' \
+            | awk '{a+=$1; d+=$2} END {print a+d+0}')
+          echo "lines=$LINES" >> "$GITHUB_OUTPUT"
+          echo "Diff: $LINES Zeilen (Additions+Deletions, ohne Lockfiles/Generiertes)"
+      - name: Bewerten
+        env:
+          LINES: ${{ steps.size.outputs.lines }}
+          OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'size-override') }}
+        run: |
+          set -euo pipefail
+          if [ "$LINES" -le 400 ]; then
+            echo "::notice::Diff-Groesse ok ($LINES Zeilen)."
+            exit 0
+          fi
+          if [ "$LINES" -le 800 ]; then
+            echo "::warning::Grosser Diff ($LINES Zeilen). Ab ~400 Zeilen sinkt die Defect-Discovery-Rate im Review deutlich — bitte aufteilen."
+            exit 0
+          fi
+          if [ "$OVERRIDE" = "true" ]; then
+            echo "::warning::Sehr grosser Diff ($LINES Zeilen) — per Label 'size-override' bewusst freigegeben."
+            exit 0
+          fi
+          echo "::error::Diff zu gross ($LINES Zeilen > 800). Bitte aufteilen oder das Label 'size-override' setzen."
+          exit 1
+      - name: Warn-Label setzen (best effort)
+        if: steps.size.outputs.lines > 400
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr edit "${{ github.event.pull_request.number }}" --add-label "grosser-diff"
+
+  # ── Security-Scan: Secrets + statische Analyse ──────────────────────────────
+  # gitleaks: findet versehentlich committete Keys/Tokens. Evidenz: geleakte
+  #   Credentials sind einer der häufigsten Einbruchswege; einmal gepusht bleibt
+  #   ein Secret in der Historie, auch wenn der Commit später "gefixt" wird.
+  # semgrep (OSS-Regeln p/typescript, p/react, p/security-audit): findet Muster
+  #   wie XSS-Senken, unsichere Redirects, eval-artige Konstrukte — Dinge, die
+  #   Lint und Typecheck bewusst NICHT prüfen.
+  # CodeQL bewusst NICHT: für PRIVATE Repos kostenpflichtig (GitHub Advanced
+  #   Security). Semgrep-OSS deckt die relevanten Klassen kostenlos ab.
+  # Vorerst continue-on-error: erst eine Woche Signalqualität beobachten
+  # (Fehlalarme kalibrieren), dann auf blockend stellen.
+  security-scan:
+    name: Security-Scan (Secrets + SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (Secret-Scanning)
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Semgrep installieren
+        run: pipx install semgrep
+      - name: semgrep (SAST, OSS-Regeln)
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/react \
+            --config p/security-audit \
+            --error \
+            --metrics=off \
+            --exclude=node_modules --exclude=.next --exclude=playwright-report
+
   verify:
     runs-on: ubuntu-latest
     steps:

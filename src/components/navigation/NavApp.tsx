@@ -39,11 +39,16 @@ import {
   MIN_CUT_ANGLE_DEG,
   type Bearing,
 } from "@/lib/navigation/peilung";
+import { weatherSymbolsV2Enabled } from "@/lib/flags";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
   loading: () => <div className="wetter-leaflet wetter-map-skeleton" aria-hidden="true" />,
 });
+
+// Wetterzeichen v2 (REQ-WET-015/016): Windfahnen + Temperatur/Niederschlag statt
+// Pfeil. Env-Flag (NEXT_PUBLIC_*, build-eingebacken) → einmal je Build ausgewertet.
+const SYMBOLS_V2 = weatherSymbolsV2Enabled();
 
 interface Timeline {
   times: string[];
@@ -1073,6 +1078,7 @@ export function NavApp() {
               peilObjekte={peilObjekte}
               peilLinien={peilLinien}
               peilFix={peilFix}
+              symbolsV2={SYMBOLS_V2}
             />
             {peilPickRow != null && (
               <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
@@ -1101,7 +1107,9 @@ export function NavApp() {
           {timeline && timeline.times.length > 1 && (
             <div className="card stack" style={{ gap: 8 }} data-testid="nav-playback-panel">
               <div className="row-between">
-                <span className="section-label">Wolken & Wind über die Zeit</span>
+                <span className="section-label">
+                  {SYMBOLS_V2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                </span>
                 <span className="caption" data-testid="nav-playback-time">
                   {fmtEta(timeline.times[Math.min(playIdx, timeline.times.length - 1)])}
                 </span>
@@ -1136,9 +1144,21 @@ export function NavApp() {
                 />
               </div>
               <p className="caption">
-                Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Pfeile = Wind ·
-                ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
-                ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
+                {SYMBOLS_V2 ? (
+                  <>
+                    Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Windfahnen =
+                    Richtung &amp; Stärke (Halbstrich 5 kn, Strich 10 kn, Wimpel 50 kn, Schaft zeigt
+                    zur Herkunft) · Zahl = Knoten, ° = Temperatur · 🌦️/🌧️/⛈️ Regen (leicht/mäßig/
+                    stark) · ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
+                    ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
+                  </>
+                ) : (
+                  <>
+                    Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Pfeile = Wind ·
+                    ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
+                    ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
+                  </>
+                )}
               </p>
             </div>
           )}

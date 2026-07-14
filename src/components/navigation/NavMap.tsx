@@ -28,7 +28,15 @@ import type { NavRevier } from "@/lib/navigation/reviere";
 import type { RouteSegmentInfo } from "@/lib/navigation/route-helpers";
 import type { Waypoint } from "@/lib/weather/route-forecast";
 import type { TimelineStep } from "@/lib/weather/open-meteo";
-import { skyCondition, windArrowRotationDeg } from "@/lib/weather/format";
+import {
+  skyCondition,
+  windArrowRotationDeg,
+  windBarb,
+  barbSvgPaths,
+  windBarbRotationDeg,
+  formatTemp,
+  precipInfo,
+} from "@/lib/weather/format";
 import { beaufort } from "@/lib/weather/warnings";
 import type { GeoFix } from "./useGeolocation";
 
@@ -66,6 +74,8 @@ interface NavMapProps {
   peilLinien?: Array<{ from: { lat: number; lon: number }; to: { lat: number; lon: number } }>;
   /** Errechneter Peilungs-Standort (REQ-NAV-025). */
   peilFix?: { lat: number; lon: number } | null;
+  /** Wetterzeichen v2 (REQ-WET-015/016): Windfahnen + Temperatur/Niederschlag statt Pfeil. */
+  symbolsV2?: boolean;
 }
 
 function waypointIcon(n: number): L.DivIcon {
@@ -118,24 +128,72 @@ function gpsIcon(headingDeg: number | null): L.DivIcon {
 // Windpfeil je Overlay-Punkt (Farbe nach Böen-Stärke, wie /wetter) + Himmels-Icon
 // aus dem Bedeckungsgrad (REQ-WET-014): so ist AUCH eine wolkenlose Lage sichtbar
 // „klar“/„klare Nacht“ (Sonne/Mond) und wirkt nicht leer.
-function windIcon(step: TimelineStep): L.DivIcon {
+//
+// `symbolsV2` (REQ-WET-015/016) schaltet auf die maritime Darstellung um:
+// Beaufort-Windfahne (Richtung + Stärke in einem Glyph, zeigt zur Herkunft),
+// dazu Temperatur (°C) und ein Regen-Glyph bei Niederschlag — größer und
+// kontrastreicher. Ohne Flag bleibt exakt die bisherige Pfeil-Darstellung.
+function windIcon(step: TimelineStep, symbolsV2: boolean): L.DivIcon {
   const bft = beaufort(step.gust_kn);
   const cls = step.gale || step.thunderstorm ? "wx-danger" : bft >= 6 ? "wx-strong" : "wx-calm";
-  const rot = windArrowRotationDeg(step.wind_from_deg);
   const bolt = step.thunderstorm ? '<span class="wx-bolt">⚡</span>' : "";
   const sky = skyCondition(step.cloud_pct, step.is_day);
   const skyGlyph = sky ? `<span class="wx-sky" title="${sky.label}">${sky.glyph}</span>` : "";
+
+  if (!symbolsV2) {
+    const rot = windArrowRotationDeg(step.wind_from_deg);
+    return L.divIcon({
+      className: "wp-divicon",
+      html:
+        `<span class="wx-marker ${cls}" title="${step.wind_kn} kn (Böen ${step.gust_kn} kn)">` +
+        skyGlyph +
+        `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
+        `stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${rot}deg)">` +
+        `<path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>` +
+        `<span class="wx-kn">${step.wind_kn}</span>${bolt}</span>`,
+      iconSize: [54, 24],
+      iconAnchor: [27, 12],
+    });
+  }
+
+  // v2: Beaufort-Windfahne (Barb). Sustained wind für die Federn, Böen für die Farbe.
+  const barb = windBarb(step.wind_kn);
+  const rot = windBarbRotationDeg(step.wind_from_deg);
+  const feathers = barbSvgPaths(barb)
+    .map((d) => `<path d="${d}"/>`)
+    .join("");
+  const barbBody = barb.calm
+    ? `<circle cx="12" cy="16" r="3.2" fill="none"/>`
+    : `<line x1="12" y1="5" x2="12" y2="27"/>${feathers}`;
+  const barbSvg =
+    `<svg class="wx-barb" width="24" height="32" viewBox="0 0 24 32" fill="currentColor" ` +
+    `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ` +
+    `style="transform:rotate(${rot}deg)">${barbBody}</svg>`;
+
+  const tempLabel = formatTemp(step.temperature_2m);
+  const tempSpan = tempLabel ? `<span class="wx-temp">${tempLabel}</span>` : "";
+  const precip = precipInfo(step.precipitation);
+  const precipSpan = precip
+    ? `<span class="wx-precip wx-precip-${precip.key}" title="${precip.label}">${precip.glyph}</span>`
+    : "";
+
+  const titleParts = [`${step.wind_kn} kn (Böen ${step.gust_kn} kn)`];
+  if (tempLabel) titleParts.push(`${tempLabel}C`);
+  if (precip) titleParts.push(precip.label);
+
   return L.divIcon({
     className: "wp-divicon",
     html:
-      `<span class="wx-marker ${cls}" title="${step.wind_kn} kn (Böen ${step.gust_kn} kn)">` +
+      `<span class="wx-marker wx-v2 ${cls}" title="${titleParts.join(" · ")}">` +
       skyGlyph +
-      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
-      `stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${rot}deg)">` +
-      `<path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>` +
-      `<span class="wx-kn">${step.wind_kn}</span>${bolt}</span>`,
-    iconSize: [54, 24],
-    iconAnchor: [27, 12],
+      barbSvg +
+      `<span class="wx-kn">${step.wind_kn}</span>` +
+      tempSpan +
+      precipSpan +
+      bolt +
+      `</span>`,
+    iconSize: [46, 62],
+    iconAnchor: [23, 31],
   });
 }
 
@@ -223,6 +281,7 @@ export default function NavMap({
   peilObjekte,
   peilLinien,
   peilFix,
+  symbolsV2 = false,
 }: NavMapProps) {
   return (
     <MapContainer center={revier.center} zoom={revier.zoom} className="wetter-leaflet" scrollWheelZoom>
@@ -335,7 +394,7 @@ export default function NavMap({
       )}
       {/* Windpfeile des aktiven Zeitschritts. */}
       {overlay?.points.map((p, i) => (
-        <Marker key={`wx-${i}`} position={[p.lat, p.lon]} icon={windIcon(p.step)} interactive={false} />
+        <Marker key={`wx-${i}`} position={[p.lat, p.lon]} icon={windIcon(p.step, symbolsV2)} interactive={false} />
       ))}
       {overlay?.boat && (
         <Marker position={[overlay.boat.lat, overlay.boat.lon]} icon={boatIcon} interactive={false} />
