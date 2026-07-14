@@ -110,19 +110,84 @@ export function distanceNm(a: LatLon, b: LatLon): number {
   return 2 * 3440.065 * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
+/** Typische Kompass-Unsicherheit eines Handys (Grad, 1σ). */
+export const KOMPASS_SIGMA_DEG = 8;
+
+/**
+ * Orts-Unsicherheit des Peilungs-Fixes (sm) — sie SKALIERT mit der Entfernung
+ * zu den angepeilten Objekten und mit dem Schnittwinkel:
+ *   quer zur Peillinie:  d · tan(σ)      (nahes Objekt → kleiner Fehler)
+ *   schlechter Schnitt:  / sin(Schnittwinkel)  (spitzer Schnitt → Fehler wächst)
+ * Genommen wird das BESTE Peilungs-Paar (konservativ im Sinne der Warnung:
+ * eine zu große Toleranz würde echte GPS-Fehler verschlucken — Vorgängerfehler
+ * war eine feste 0,5-sm-Toleranz, die selbst 40°-Fehlpeilungen durchwinkte).
+ */
+export function positionUncertaintyNm(
+  bearings: Bearing[],
+  fix: BearingFix,
+  sigmaDeg: number = KOMPASS_SIGMA_DEG,
+): number {
+  if (bearings.length < 2) return Infinity;
+  const tanS = Math.tan((sigmaDeg * Math.PI) / 180);
+  let best = Infinity;
+  for (let i = 0; i < bearings.length; i++) {
+    for (let j = i + 1; j < bearings.length; j++) {
+      const di = distanceNm(bearings[i].ref, fix);
+      const dj = distanceNm(bearings[j].ref, fix);
+      let cut = Math.abs(bearings[i].trueBearingDeg - bearings[j].trueBearingDeg) % 180;
+      if (cut > 90) cut = 180 - cut; // Schnittwinkel 0..90°
+      const sin = Math.max(Math.sin((cut * Math.PI) / 180), 0.1); // Deckel gegen ÷0
+      const err = Math.hypot(di * tanS, dj * tanS) / sin;
+      if (err < best) best = err;
+    }
+  }
+  return best;
+}
+
 /**
  * GPS-Plausibilität (REQ-NAV-026): weicht der GPS-Fix weiter vom Peilungs-Fix
- * ab als die kombinierte Unsicherheit, ist Vorsicht geboten.
+ * ab als die kombinierte Unsicherheit (GPS-Genauigkeit + Fehlerdreieck +
+ * entfernungsabhängige Peil-Unsicherheit), ist Vorsicht geboten.
  */
 export function gpsPlausibility(
   gps: LatLon,
   fix: BearingFix,
   gpsAccuracyNm: number,
-): { deviation_nm: number; plausibel: boolean } {
+  bearingUncertaintyNm: number,
+): { deviation_nm: number; toleranz_nm: number; plausibel: boolean } {
   const deviation = distanceNm(gps, fix);
-  // Toleranz: GPS-Genauigkeit + Fehlerdreieck + fester Peil-Puffer (Kompass ±10°).
-  const toleranz = gpsAccuracyNm + fix.error_nm + 0.5;
-  return { deviation_nm: Math.round(deviation * 100) / 100, plausibel: deviation <= toleranz };
+  // Kleiner Boden (≈18 m), damit die Warnung bei perfekter Geometrie nicht
+  // schon durch Rundungsrauschen anschlägt.
+  const toleranz = Math.max(0.01, gpsAccuracyNm + fix.error_nm + bearingUncertaintyNm);
+  return {
+    deviation_nm: Math.round(deviation * 100) / 100,
+    toleranz_nm: Math.round(toleranz * 100) / 100,
+    plausibel: deviation <= toleranz,
+  };
+}
+
+/**
+ * Robuster Kompass-Mittelwert über mehrere Messungen (zirkulär) + Streuung.
+ * Handy-Kompasse springen (real gemessen: 170° → 209°) — eine EINZELNE Messung
+ * ist unbrauchbar. `spread_deg` groß ⇒ Kompass unruhig, Nutzer warnen.
+ */
+export function averageHeading(headings: number[]): { heading: number; spread_deg: number } | null {
+  const hs = headings.filter((h) => Number.isFinite(h));
+  if (!hs.length) return null;
+  let sx = 0;
+  let sy = 0;
+  for (const h of hs) {
+    const r = (h * Math.PI) / 180;
+    sx += Math.sin(r);
+    sy += Math.cos(r);
+  }
+  const n = hs.length;
+  const heading = (((Math.atan2(sx / n, sy / n) * 180) / Math.PI) % 360 + 360) % 360;
+  // Resultierende Länge R ∈ [0,1]: 1 = alle Messungen gleich, 0 = chaotisch.
+  const R = Math.hypot(sx / n, sy / n);
+  // Zirkuläre Standardabweichung in Grad.
+  const spread = R > 0 ? (Math.sqrt(-2 * Math.log(Math.min(1, R))) * 180) / Math.PI : 180;
+  return { heading: Math.round(heading * 10) / 10, spread_deg: Math.round(spread * 10) / 10 };
 }
 
 /**
@@ -147,3 +212,23 @@ export function missweisungForRevier(revierId: string): number {
   };
   return tabelle[revierId] ?? 3;
 }
+
+/**
+ * Bester Schnittwinkel (0..90°) unter allen Peilungs-Paaren. Faustregel der
+ * Seemannschaft: ~90° ist ideal, unter ~20° ist der Schnitt praktisch wertlos
+ * (die Standlinien liegen fast übereinander → der "Standort" ist Zufall).
+ */
+export function bestCutAngleDeg(bearings: Bearing[]): number {
+  let best = 0;
+  for (let i = 0; i < bearings.length; i++) {
+    for (let j = i + 1; j < bearings.length; j++) {
+      let cut = Math.abs(bearings[i].trueBearingDeg - bearings[j].trueBearingDeg) % 180;
+      if (cut > 90) cut = 180 - cut;
+      if (cut > best) best = cut;
+    }
+  }
+  return Math.round(best * 10) / 10;
+}
+
+/** Schnitt unter diesem Winkel ⇒ Peilung nicht verwertbar (ehrlich melden). */
+export const MIN_CUT_ANGLE_DEG = 20;

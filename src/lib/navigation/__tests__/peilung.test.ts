@@ -5,6 +5,10 @@ import {
   magneticToTrue,
   crossBearingFix,
   gpsPlausibility,
+  positionUncertaintyNm,
+  bestCutAngleDeg,
+  MIN_CUT_ANGLE_DEG,
+  averageHeading,
   distanceNm,
   type LatLon,
   type Bearing,
@@ -68,11 +72,96 @@ test("[REQ-NAV-025] < 2 Peilungen → null", () => {
   assert.equal(crossBearingFix([{ ref: { lat: 54, lon: 13 }, trueBearingDeg: 90 }]), null);
 });
 
-test("[REQ-NAV-026] GPS-Plausibilität: naher GPS ok, ferner GPS nicht plausibel", () => {
-  const fix = { lat: 54.0, lon: 13.0, error_nm: 0.1, n: 2 };
-  const nah = gpsPlausibility({ lat: 54.002, lon: 13.0 }, fix, 0.05);
-  assert.equal(nah.plausibel, true);
-  const fern = gpsPlausibility({ lat: 54.2, lon: 13.3 }, fix, 0.05);
-  assert.equal(fern.plausibel, false);
-  assert.ok(fern.deviation_nm > 5, `große Abweichung ausgewiesen (${fern.deviation_nm} sm)`);
+// ── GPS-Plausibilität: entfernungsabhängige Toleranz (BUG-043) ─────────────
+// Regression zum echten Testfund: eine FESTE Toleranz (0,5 sm) winkte selbst
+// eine 40°-Fehlpeilung als "GPS deckt sich" durch. Die Toleranz MUSS mit der
+// Entfernung zu den angepeilten Objekten skalieren.
+
+const nbg = { lat: 49.4521, lon: 11.0767 };
+const obj1 = { lat: 49.456, lon: 11.079 }; // ~450 m
+const obj2 = { lat: 49.4505, lon: 11.085 }; // ~630 m
+const bearingTo = (from: LatLon, to: LatLon) => {
+  const cosLat = Math.cos((from.lat * Math.PI) / 180);
+  const e = (to.lon - from.lon) * 60 * cosLat;
+  const n = (to.lat - from.lat) * 60;
+  return (((Math.atan2(e, n) * 180) / Math.PI) % 360 + 360) % 360;
+};
+const GPS_ACC_NM = 30 / 1852; // 30 m
+
+function pruefe(fehlerGrad: number) {
+  const bs: Bearing[] = [
+    { ref: obj1, trueBearingDeg: bearingTo(nbg, obj1) },
+    { ref: obj2, trueBearingDeg: bearingTo(nbg, obj2) + fehlerGrad },
+  ];
+  const fix = crossBearingFix(bs)!;
+  const unsicher = positionUncertaintyNm(bs, fix);
+  return gpsPlausibility(nbg, fix, GPS_ACC_NM, unsicher);
+}
+
+test("[REQ-NAV-026] korrekte Peilungen → GPS deckt sich", () => {
+  const r = pruefe(0);
+  assert.equal(r.plausibel, true);
+  assert.ok(r.deviation_nm < 0.02, `Abweichung winzig (${r.deviation_nm} sm)`);
+});
+
+test("[REQ-NAV-026] 40°-Fehlpeilung auf nahe Objekte MUSS anschlagen (BUG-043)", () => {
+  const r = pruefe(40);
+  assert.equal(r.plausibel, false, `40° Fehler muss auffallen (Abw. ${r.deviation_nm} sm, Toleranz ${r.toleranz_nm} sm)`);
+});
+
+test("[REQ-NAV-026] 90°-Fehlpeilung kippt die Geometrie → als unbrauchbar melden", () => {
+  // Bei so grobem Fehler werden die Standlinien fast parallel: der Schnitt ist
+  // wertlos. Die App darf dann NICHT "GPS deckt sich" behaupten, sondern muss
+  // den schlechten Schnittwinkel ausweisen (BUG-043).
+  const bs: Bearing[] = [
+    { ref: obj1, trueBearingDeg: bearingTo(nbg, obj1) },
+    { ref: obj2, trueBearingDeg: bearingTo(nbg, obj2) + 90 },
+  ];
+  assert.ok(bestCutAngleDeg(bs) < MIN_CUT_ANGLE_DEG, `Schnittwinkel unbrauchbar (${bestCutAngleDeg(bs)}°)`);
+});
+
+test("[REQ-NAV-025] guter Schnittwinkel wird als brauchbar erkannt", () => {
+  const bs: Bearing[] = [
+    { ref: obj1, trueBearingDeg: bearingTo(nbg, obj1) },
+    { ref: obj2, trueBearingDeg: bearingTo(nbg, obj2) },
+  ];
+  assert.ok(bestCutAngleDeg(bs) >= MIN_CUT_ANGLE_DEG, `guter Schnitt (${bestCutAngleDeg(bs)}°)`);
+});
+
+test("[REQ-NAV-026] Toleranz wächst mit der Entfernung der Objekte", () => {
+  // Nahe Objekte (Wohnviertel) → strenge Toleranz; ferne Objekte (Küste) → milder.
+  const nah: Bearing[] = [
+    { ref: obj1, trueBearingDeg: bearingTo(nbg, obj1) },
+    { ref: obj2, trueBearingDeg: bearingTo(nbg, obj2) },
+  ];
+  const fern: Bearing[] = [
+    { ref: { lat: 49.6, lon: 11.08 }, trueBearingDeg: 0 },
+    { ref: { lat: 49.45, lon: 11.35 }, trueBearingDeg: 90 },
+  ];
+  const fixNah = crossBearingFix(nah)!;
+  const fixFern = crossBearingFix(fern)!;
+  assert.ok(
+    positionUncertaintyNm(fern, fixFern) > positionUncertaintyNm(nah, fixNah) * 5,
+    "ferne Objekte ⇒ deutlich größere Unsicherheit",
+  );
+});
+
+// ── Kompass-Mittelung (springende Werte, real: 170° → 209°) ────────────────
+
+test("[REQ-NAV-025] averageHeading mittelt zirkulär und meldet die Streuung", () => {
+  const ruhig = averageHeading([120, 121, 119, 120])!;
+  assert.ok(Math.abs(ruhig.heading - 120) < 1);
+  assert.ok(ruhig.spread_deg < 3, `ruhiger Kompass = kleine Streuung (${ruhig.spread_deg}°)`);
+
+  const unruhig = averageHeading([170, 209, 175, 205])!;
+  assert.ok(unruhig.spread_deg > 10, `springender Kompass = große Streuung (${unruhig.spread_deg}°)`);
+});
+
+test("[REQ-NAV-025] averageHeading über den Nordsprung (359°/1°) mittelt korrekt", () => {
+  const r = averageHeading([359, 1, 0])!;
+  assert.ok(r.heading > 355 || r.heading < 5, `~0° erwartet, war ${r.heading}`);
+});
+
+test("[REQ-NAV-025] averageHeading ohne Messungen → null", () => {
+  assert.equal(averageHeading([]), null);
 });

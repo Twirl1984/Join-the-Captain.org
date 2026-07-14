@@ -62,6 +62,10 @@ interface NavMapProps {
   fullscreen?: boolean;
   /** Angepeilte Objekte (REQ-NAV-025) — als eigene Marker zeigen. */
   peilObjekte?: Array<{ lat: number; lon: number; label: string }>;
+  /** Standlinien Objekt→Standort (REQ-NAV-025) — sichtbar prüfbar machen. */
+  peilLinien?: Array<{ from: { lat: number; lon: number }; to: { lat: number; lon: number } }>;
+  /** Errechneter Peilungs-Standort (REQ-NAV-025). */
+  peilFix?: { lat: number; lon: number } | null;
 }
 
 function waypointIcon(n: number): L.DivIcon {
@@ -78,6 +82,14 @@ const hafenIcon = L.divIcon({
   html: `<span class="hafen-marker"></span>`,
   iconSize: [14, 14],
   iconAnchor: [7, 7],
+});
+
+/** Errechneter Peilungs-Standort (REQ-NAV-025): Fadenkreuz. */
+const peilFixIcon = L.divIcon({
+  className: "wp-divicon",
+  html: `<span class="nav-peilfix-marker">✛</span>`,
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
 });
 
 /** Angepeiltes Objekt (REQ-NAV-025): markantes Dreieck-Symbol. */
@@ -209,6 +221,8 @@ export default function NavMap({
   followGps,
   fullscreen,
   peilObjekte,
+  peilLinien,
+  peilFix,
 }: NavMapProps) {
   return (
     <MapContainer center={revier.center} zoom={revier.zoom} className="wetter-leaflet" scrollWheelZoom>
@@ -246,6 +260,24 @@ export default function NavMap({
           </Tooltip>
         </Marker>
       ))}
+
+      {peilLinien?.map((l, i) => (
+        <Polyline
+          key={`peillinie-${i}`}
+          positions={[
+            [l.from.lat, l.from.lon],
+            [l.to.lat, l.to.lon],
+          ]}
+          pathOptions={{ color: "#d9534f", weight: 2, dashArray: "6 6", opacity: 0.9 }}
+        />
+      ))}
+      {peilFix && (
+        <Marker position={[peilFix.lat, peilFix.lon]} icon={peilFixIcon} interactive={false}>
+          <Tooltip direction="top" offset={[0, -10]}>
+            Standort aus Peilung
+          </Tooltip>
+        </Marker>
+      )}
 
       {peilObjekte?.map((o, i) => (
         <Marker key={`peil-${i}`} position={[o.lat, o.lon]} icon={peilIcon} interactive={false}>

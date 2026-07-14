@@ -834,3 +834,33 @@ test.describe("/navigation — Peilung: Objekt frei auf der Karte wählen (REQ-N
     await expect(page.getByTestId("nav-peil-fix")).toBeVisible();
   });
 });
+
+test.describe("/navigation — Peilung: Geometrie & Kartendarstellung (BUG-043)", () => {
+  test("[REQ-NAV-026] zu spitzer Schnittwinkel → als unbrauchbar gemeldet, kein GPS-Urteil", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await page.getByTestId("nav-tool-peilung").click();
+    // Zwei Peilungen fast in dieselbe Richtung → Standlinien nahezu parallel.
+    await page.getByTestId("nav-peil-ref-0").selectOption({ index: 1 });
+    await page.getByTestId("nav-peil-mag-0").fill("90");
+    await page.getByTestId("nav-peil-ref-1").selectOption({ index: 2 });
+    await page.getByTestId("nav-peil-mag-1").fill("95");
+    await expect(page.getByTestId("nav-peil-geometrie")).toBeVisible();
+    // Ohne brauchbare Geometrie darf KEIN GPS-Urteil erscheinen.
+    await expect(page.getByTestId("nav-peil-plaus")).toHaveCount(0);
+  });
+
+  test("[REQ-NAV-025] guter Schnitt → Peillinien und Standort-Fadenkreuz auf der Karte", async ({ page }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await page.getByTestId("nav-tool-peilung").click();
+    await page.getByTestId("nav-peil-ref-0").selectOption({ index: 1 });
+    await page.getByTestId("nav-peil-mag-0").fill("45");
+    await page.getByTestId("nav-peil-ref-1").selectOption({ index: 2 });
+    await page.getByTestId("nav-peil-mag-1").fill("135");
+    await expect(page.getByTestId("nav-peil-fix")).toContainText(/Schnittwinkel/);
+    // Karte zeigt die Standlinien + den errechneten Standort.
+    await expect(page.locator(".nav-peilfix-marker")).toBeVisible();
+    expect(await page.locator("path.leaflet-interactive").count()).toBeGreaterThan(0);
+  });
+});

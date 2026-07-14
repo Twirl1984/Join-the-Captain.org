@@ -31,7 +31,11 @@ import {
   magneticToTrue,
   crossBearingFix,
   gpsPlausibility,
+  positionUncertaintyNm,
+  bestCutAngleDeg,
+  averageHeading,
   missweisungForRevier,
+  MIN_CUT_ANGLE_DEG,
   type Bearing,
 } from "@/lib/navigation/peilung";
 
@@ -207,6 +211,8 @@ export function NavApp() {
   const [peilCapturing, setPeilCapturing] = useState<number | null>(null);
   // Zeile, deren Kompass kein gültiges Signal lieferte (statt falscher 0).
   const [peilNoSignal, setPeilNoSignal] = useState<number | null>(null);
+  // Streuung der Kompass-Messreihe je Zeile (großer Wert ⇒ Kompass unruhig).
+  const [peilSpread, setPeilSpread] = useState<{ row: number; spread: number; n: number } | null>(null);
   // Sequenz-Guard gegen Races: nur die JÜNGSTE Anfrage darf State setzen —
   // sonst überschreibt eine verspätete Antwort (z. B. nach Revier-Wechsel)
   // die aktuelle Karte mit dem Plan des alten Reviers (Review-Finding #4).
@@ -291,8 +297,9 @@ export function NavApp() {
     const h = peilRefs.find((r) => `${r.revier}::${r.name}` === row.refName);
     return h ? { lat: h.lat, lon: h.lon } : null;
   };
-  const peilFix = useMemo(() => {
-    const bearings: Bearing[] = peilRows
+  // Gültige Peilungen (Referenz + rechtweisende Peilung).
+  const peilBearings = useMemo((): Bearing[] => {
+    return peilRows
       .map((row): Bearing | null => {
         const ref = peilRefPoint(row);
         const mag = Number(row.magnetic);
@@ -300,9 +307,23 @@ export function NavApp() {
         return { ref, trueBearingDeg: magneticToTrue(mag, effMissweisung) };
       })
       .filter((b): b is Bearing => b !== null);
-    return bearings.length >= 2 ? crossBearingFix(bearings) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peilRows, peilRefs, effMissweisung]);
+  const peilFix = useMemo(
+    () => (peilBearings.length >= 2 ? crossBearingFix(peilBearings) : null),
+    [peilBearings],
+  );
+  // Schnittwinkel-Qualität: unter ~20° ist der Schnitt wertlos (Standlinien fast
+  // parallel) — dann darf die App KEIN GPS-Urteil fällen (BUG-043).
+  const peilCut = useMemo(
+    () => (peilBearings.length >= 2 ? bestCutAngleDeg(peilBearings) : 0),
+    [peilBearings],
+  );
+  const peilBrauchbar = peilBearings.length >= 2 && peilCut >= MIN_CUT_ANGLE_DEG;
+  const peilUnsicherheit = useMemo(
+    () => (peilFix ? positionUncertaintyNm(peilBearings, peilFix) : Infinity),
+    [peilBearings, peilFix],
+  );
   // Angepeilte Objekte für die Kartenmarker.
   const peilObjekte = useMemo(
     () =>
@@ -316,9 +337,21 @@ export function NavApp() {
     [peilRows, peilRefs],
   );
   const peilPlaus = useMemo(
-    () => (peilFix && gps.fix ? gpsPlausibility(gps.fix, peilFix, gps.fix.accuracy_m / 1852) : null),
-    [peilFix, gps.fix],
+    () =>
+      peilFix && gps.fix && peilBrauchbar
+        ? gpsPlausibility(gps.fix, peilFix, gps.fix.accuracy_m / 1852, peilUnsicherheit)
+        : null,
+    [peilFix, gps.fix, peilBrauchbar, peilUnsicherheit],
   );
+  // Peillinien für die Karte: vom angepeilten Objekt zurück durch den Fix
+  // (die Standlinie, auf der der Beobachter liegt) — sichtbar prüfbar.
+  const peilLinien = useMemo(() => {
+    if (!peilFix) return [];
+    return peilBearings.map((b) => ({
+      from: { lat: b.ref.lat, lon: b.ref.lon },
+      to: { lat: peilFix.lat, lon: peilFix.lon },
+    }));
+  }, [peilBearings, peilFix]);
 
   // Kompass-Heading in eine Peilzeile übernehmen (Best-Effort; iOS braucht die
   // Berechtigung, sonst trägt der Nutzer die Peilung manuell ein).
@@ -332,18 +365,24 @@ export function NavApp() {
       }
       setPeilCapturing(rowIdx);
       setPeilNoSignal((s) => (s === rowIdx ? null : s));
+      setPeilSpread((s) => (s?.row === rowIdx ? null : s));
+      // Handy-Kompasse springen (real: 170° → 209°). Eine EINZELNE Messung ist
+      // wertlos → über ~2 s sammeln und zirkulär mitteln; große Streuung melden.
+      const samples: number[] = [];
       let done = false;
-      const finish = (val: number | null) => {
+      const finish = () => {
         if (done) return;
         done = true;
         window.removeEventListener("deviceorientation", handler as EventListener);
         setPeilCapturing((c) => (c === rowIdx ? null : c));
-        if (val != null) {
+        const avg = averageHeading(samples);
+        if (avg && samples.length >= 3) {
           setPeilRows((rows) =>
-            rows.map((r, i) => (i === rowIdx ? { ...r, magnetic: String(Math.round(val)) } : r)),
+            rows.map((r, i) => (i === rowIdx ? { ...r, magnetic: String(Math.round(avg.heading)) } : r)),
           );
+          setPeilSpread({ row: rowIdx, spread: avg.spread_deg, n: samples.length });
         } else {
-          // Kein gültiges Kompass-Signal → NICHT die falsche 0 schreiben,
+          // Kein (verwertbares) Kompass-Signal → NICHT die falsche 0 schreiben,
           // sondern sichtbar melden (User-Feedback).
           setPeilNoSignal(rowIdx);
         }
@@ -351,22 +390,20 @@ export function NavApp() {
       const handler = (
         e: DeviceOrientationEvent & { webkitCompassHeading?: number; webkitCompassAccuracy?: number },
       ) => {
-        // Nur GÜLTIGE Messungen übernehmen — sonst schrieb der Kompass eine
-        // irreführende 0, wenn er (noch) keinen Fix hatte (User-Feedback).
-        // iOS: webkitCompassAccuracy < 0 bedeutet ungültig.
+        // Nur GÜLTIGE Messungen sammeln. iOS: webkitCompassAccuracy < 0 = ungültig.
         if (typeof e.webkitCompassHeading === "number" && Number.isFinite(e.webkitCompassHeading)) {
           if (e.webkitCompassAccuracy != null && e.webkitCompassAccuracy < 0) return;
-          finish(e.webkitCompassHeading);
+          samples.push(e.webkitCompassHeading);
           return;
         }
         // Android: nur absolute Orientierung mit vorhandenem alpha ist brauchbar.
         if (e.absolute === true && e.alpha != null && Number.isFinite(e.alpha)) {
-          finish((360 - e.alpha) % 360);
+          samples.push((360 - e.alpha) % 360);
         }
       };
       window.addEventListener("deviceorientation", handler as EventListener);
-      // Nach 4 s ohne gültige Messung aufgeben (kein Wert, kein Listener-Leak).
-      window.setTimeout(() => finish(null), 4000);
+      // Nach 2,5 s auswerten (genug Messungen, kein Listener-Leak).
+      window.setTimeout(finish, 2500);
     } catch {
       setPeilCapturing((c) => (c === rowIdx ? null : c));
     }
@@ -1023,6 +1060,8 @@ export function NavApp() {
               followGps={followGps}
               fullscreen={mapFull}
               peilObjekte={peilObjekte}
+              peilLinien={peilLinien}
+              peilFix={peilFix}
             />
             {peilPickRow != null && (
               <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
@@ -1430,6 +1469,17 @@ export function NavApp() {
                           8 bewegen (kalibrieren) und erneut „Kompass“ tippen.
                         </span>
                       )}
+                      {peilSpread?.row === i && (
+                        <span
+                          className="caption"
+                          data-testid={`nav-peil-spread-${i}`}
+                          style={peilSpread.spread > 15 ? { color: "var(--warn, #d9534f)" } : undefined}
+                        >
+                          {peilSpread.spread > 15
+                            ? `⚠ Kompass unruhig (±${peilSpread.spread}° über ${peilSpread.n} Messungen) — Handy in einer 8 bewegen und erneut messen.`
+                            : `Kompass ruhig (±${peilSpread.spread}° über ${peilSpread.n} Messungen).`}
+                        </span>
+                      )}
                     </div>
                   ))}
                   {peilRows.length < 3 && (
@@ -1447,8 +1497,22 @@ export function NavApp() {
                       <p className="caption">
                         <strong>Geschätzter Standort:</strong> {peilFix.lat.toFixed(4)},{" "}
                         {peilFix.lon.toFixed(4)}
+                        {Number.isFinite(peilUnsicherheit)
+                          ? ` · Unsicherheit ± ${peilUnsicherheit < 0.1 ? Math.round(peilUnsicherheit * 1852) + " m" : peilUnsicherheit.toFixed(2) + " sm"}`
+                          : ""}
                         {peilFix.n >= 3 ? ` · Fehlerdreieck ± ${peilFix.error_nm} sm` : ""}
                       </p>
+                      <p className="caption">
+                        Schnittwinkel {peilCut}° {peilBrauchbar ? "(brauchbar)" : "(zu spitz!)"}
+                      </p>
+                      {!peilBrauchbar && (
+                        <p className="wetter-warnband" style={{ fontSize: 12 }} data-testid="nav-peil-geometrie" role="alert">
+                          ⚠ Die Peillinien liegen fast übereinander (Schnittwinkel {peilCut}°) — der
+                          Schnittpunkt ist Zufall und <strong>nicht verwertbar</strong>. Wähle Objekte,
+                          die von dir aus möglichst <strong>~90° auseinander</strong> liegen. Solange
+                          gibt es kein GPS-Urteil.
+                        </p>
+                      )}
                       {peilPlaus && (
                         <p
                           className={peilPlaus.plausibel ? "caption" : "wetter-warnband"}
@@ -1457,8 +1521,8 @@ export function NavApp() {
                           role={peilPlaus.plausibel ? undefined : "alert"}
                         >
                           {peilPlaus.plausibel
-                            ? `GPS deckt sich mit der Peilung (Abweichung ${peilPlaus.deviation_nm} sm).`
-                            : `⚠ GPS weicht ${peilPlaus.deviation_nm} sm von der Peilung ab — Position prüfen, Kompass kalibrieren.`}
+                            ? `GPS deckt sich mit der Peilung: ${peilPlaus.deviation_nm} sm Abweichung (erlaubt bis ${peilPlaus.toleranz_nm} sm).`
+                            : `⚠ GPS weicht ${peilPlaus.deviation_nm} sm ab — mehr als die ${peilPlaus.toleranz_nm} sm, die Kompass + GPS-Genauigkeit hergeben. Position prüfen, Kompass kalibrieren, Peilungen wiederholen.`}
                         </p>
                       )}
                     </div>

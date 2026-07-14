@@ -54,3 +54,17 @@ Zusätzliche, optionale Variante (die vereinfachte Peilung bleibt Standard):
 Ehrliche Grenzen wie gehabt (Kompass ±5–10°, Missweisung, Fehlerband) plus:
 Kamera-Tap-Genauigkeit, Blickfeld/Neigung. Aufwendig (Kamera + Ray-Cast) →
 bewusst als Premium-Ausbaustufe, nach MVP 1.
+
+
+## Fehlerrechnung (nach echtem Testfund BUG-043)
+
+- **Toleranz skaliert mit der Entfernung**: Peil-Unsicherheit ≈ d · tan(σ) je
+  Standlinie (σ ≈ 8° Handy-Kompass), geteilt durch sin(Schnittwinkel). Nahe
+  Objekte (400 m) ⇒ ~56 m Unsicherheit; ferne (5 sm) ⇒ ~0,7 sm. Eine FESTE
+  Toleranz (vorher 0,5 sm) machte die GPS-Warnung wirkungslos.
+- **Schnittwinkel < 20°** ⇒ Standlinien fast parallel, der Schnittpunkt ist
+  Zufall. Die App meldet das ehrlich und fällt dann KEIN GPS-Urteil.
+- **Kompass mitteln**: 2,5 s Messreihe, zirkuläre Mittelung; Streuung > 15°
+  ⇒ „Kompass unruhig, kalibrieren".
+- **Sichtprüfung**: Standlinien (gestrichelt) + Standort-Fadenkreuz werden auf
+  der Karte gezeichnet — ohne das kann niemand das Ergebnis beurteilen.
