@@ -121,3 +121,29 @@ als Merkposten sichtbar, statt still zu verschwinden.
   den Repo-Owner.
 - Ergänzend außerhalb GitHub: VPS-Smoke alle 6 h (qa-smoke.sh) und der
   So-03:30-Verify-Cron (Feedback vs. ERA5).
+
+## Geräte-Berechtigungen (GPS, Kompass, Kamera) — UX-Pflicht
+
+Blockierte Browser-/OS-Berechtigungen sind der häufigste „die App ist kaputt"-
+Moment. Verbindlich für JEDES Feature mit Geräte-Berechtigung:
+
+1. **Blockade sauber erkennen und benennen** — nie stumm hängen bleiben
+   (`PERMISSION_DENIED` → eigener Status, kein Endlos-„suche …").
+2. **Nur den PASSENDEN Klickpfad zeigen**, gerätegenau erkannt
+   (iOS-Safari / iOS-Drittanbieter-Browser / Android / Desktop). Eine
+   Sammel-Anleitung mit drei Wegen ist bereits zu viel Suche.
+   - Fallstrick iOS: Drittanbieter-Browser (Chrome=`CriOS`, Firefox=`FxiOS`,
+     Edge=`EdgiOS`) brauchen eine EIGENE Standort-Freigabe in den iOS-App-
+     Einstellungen — zusätzlich zu den Ortungsdiensten. Das übersehen fast alle.
+3. **„Erneut anfragen"-Knopf** direkt daneben (weiche Ablehnungen lassen sich so
+   ohne Reload heilen).
+4. **KEIN Deeplink in die OS-Einstellungen aus dem Web** — Apple/Google sperren
+   das (`prefs:root=` & Co. sind tot). Einen Button zu bauen, der nichts tut,
+   ist schlimmer als keiner. Ehrlich benennen und auf die native App verweisen.
+5. **In der nativen App (Capacitor)** ist der Ein-Klick-Sprung in die
+   App-Einstellungen erlaubt — dort gehört er hin (iOS-Etappe).
+6. **Sensorwerte validieren, nie falsche Defaults schreiben**: Ein Kompass ohne
+   Fix meldet gern `0`/Norden. Gültigkeit prüfen (iOS `webkitCompassAccuracy >= 0`,
+   Android nur `absolute === true`), sonst NICHTS übernehmen + sichtbaren
+   Hinweis zeigen (Kalibrier-Tipp). Eine falsche 0 ist gefährlicher als ein
+   leeres Feld — sie sieht aus wie eine Messung.

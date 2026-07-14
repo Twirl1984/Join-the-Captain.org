@@ -248,6 +248,33 @@ export function NavApp() {
     return nr && nr.id !== revierId ? nr : null;
   }, [gps.fix, revierId]);
 
+  // Gerät/Browser erkennen, um bei blockiertem GPS NUR den passenden Freischalt-
+  // Weg zu zeigen (REQ-NAV-005). Ein Deeplink in die OS-Einstellungen ist aus dem
+  // WEB heraus nicht möglich (Apple/Google sperren das bewusst) — deshalb
+  // wenigstens der kürzeste, gerätegenaue Klickpfad statt einer Sammel-Anleitung.
+  // In der nativen App (Capacitor) geht der Ein-Klick-Sprung, siehe docs/ios-portierung.md.
+  const geraet = useMemo((): { os: "ios-safari" | "ios-dritt" | "android" | "desktop"; browser: string } => {
+    if (typeof navigator === "undefined") return { os: "desktop", browser: "" };
+    const ua = navigator.userAgent;
+    const isIOS =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      const b = /CriOS/.test(ua)
+        ? "Chrome"
+        : /FxiOS/.test(ua)
+          ? "Firefox"
+          : /EdgiOS/.test(ua)
+            ? "Edge"
+            : /OPiOS|OPT\//.test(ua)
+              ? "Opera"
+              : "";
+      return { os: b ? "ios-dritt" : "ios-safari", browser: b };
+    }
+    if (/Android/.test(ua)) return { os: "android", browser: "" };
+    return { os: "desktop", browser: "" };
+  }, []);
+
   // Kreuzpeilung (REQ-NAV-025): kartierte Referenzpunkte in der Nähe (Häfen).
   const peilRefs = useMemo(
     () => nearestHarborsGlobal(gps.fix ?? { lat: revier.center[0], lon: revier.center[1] }, alleReviere(), 8),
@@ -1102,26 +1129,52 @@ export function NavApp() {
               </span>
             </div>
             {(gps.status === "denied" || gps.status === "unavailable") && (
-              <details className="nav-subtool" data-testid="nav-gps-help">
-                <summary className="caption" style={{ cursor: "pointer" }}>
-                  GPS klemmt? So schaltest du es frei
-                </summary>
-                <div className="caption stack" style={{ gap: 4, marginTop: 6 }}>
-                  <span>
-                    <strong>iPhone (Safari):</strong> Einstellungen → Datenschutz &amp; Sicherheit →
-                    Ortungsdienste <em>an</em> → Safari-Websites → „Beim Verwenden“.
-                  </span>
-                  <span>
-                    <strong>iPhone (Chrome/Firefox):</strong> zusätzlich Einstellungen → dein Browser →
-                    Standort → „Beim Verwenden der App“.
-                  </span>
-                  <span>
-                    <strong>Android (Chrome):</strong> Schloss-Symbol in der Adresszeile →
-                    Berechtigungen → Standort → Zulassen.
-                  </span>
-                  <span>Danach Seite neu laden und „GPS aktivieren“ erneut tippen.</span>
-                </div>
-              </details>
+              <div className="wetter-warnband stack" style={{ gap: 6, fontSize: 12 }} data-testid="nav-gps-help">
+                <strong>So schaltest du den Standort frei:</strong>
+                {geraet.os === "ios-safari" && (
+                  <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-ios-safari">
+                    <li>Einstellungen → Datenschutz &amp; Sicherheit → <strong>Ortungsdienste</strong> einschalten</li>
+                    <li>Gleich darunter: <strong>Safari-Websites</strong> → „Beim Verwenden“</li>
+                    <li>Hierher zurück, Seite neu laden, „GPS aktivieren“ tippen</li>
+                  </ol>
+                )}
+                {geraet.os === "ios-dritt" && (
+                  <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-ios-dritt">
+                    <li>Einstellungen → Datenschutz &amp; Sicherheit → <strong>Ortungsdienste</strong> einschalten</li>
+                    <li>
+                      Einstellungen → <strong>{geraet.browser || "dein Browser"}</strong> → <strong>Standort</strong> →
+                      „Beim Verwenden der App“ <em>(diesen Schritt übersehen die meisten)</em>
+                    </li>
+                    <li>Hierher zurück, Seite neu laden, „GPS aktivieren“ tippen</li>
+                  </ol>
+                )}
+                {geraet.os === "android" && (
+                  <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-android">
+                    <li><strong>Schloss-Symbol</strong> in der Adresszeile → Berechtigungen → <strong>Standort</strong> → Zulassen</li>
+                    <li>Falls das fehlt: Android-Einstellungen → Apps → dein Browser → Berechtigungen → Standort</li>
+                    <li>Seite neu laden, „GPS aktivieren“ tippen</li>
+                  </ol>
+                )}
+                {geraet.os === "desktop" && (
+                  <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-desktop">
+                    <li><strong>Schloss-Symbol</strong> links in der Adresszeile → <strong>Standort</strong> → Zulassen</li>
+                    <li>Seite neu laden, „GPS aktivieren“ tippen</li>
+                  </ol>
+                )}
+                <button
+                  type="button"
+                  data-testid="nav-gps-retry"
+                  className="pill"
+                  style={{ alignSelf: "flex-start" }}
+                  onClick={gps.start}
+                >
+                  Standort erneut anfragen
+                </button>
+                <span className="caption">
+                  Ein direkter Link in die Einstellungen ist Webseiten von Apple/Google gesperrt —
+                  in unserer App fürs iPhone/Android kommt der Ein-Klick-Knopf.
+                </span>
+              </div>
             )}
             {gps.fix && (
               <>
