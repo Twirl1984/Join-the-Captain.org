@@ -1,0 +1,22 @@
+# Supply-Chain-Hygiene: npm-Abhängigkeiten wöchentlich prüfen.
+# Evidenz: Der überwiegende Teil ausnutzbarer Schwachstellen in JS-Projekten
+# kommt aus transitiven Abhängigkeiten — regelmäßige, KLEINE Updates halten das
+# Fenster kurz und den Review-Aufwand niedrig.
+# Gruppiert, damit nicht 20 Einzel-PRs entstehen (jeder PR muss durchs Gate).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      prod-dependencies:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      dev-dependencies:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
