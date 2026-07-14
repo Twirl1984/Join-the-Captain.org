@@ -72,6 +72,44 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr edit "${{ github.event.pull_request.number }}" --add-label "grosser-diff"
 
+  # ── Security-Scan: Secrets + statische Analyse ──────────────────────────────
+  # gitleaks: findet versehentlich committete Keys/Tokens. Evidenz: geleakte
+  #   Credentials sind einer der häufigsten Einbruchswege; einmal gepusht bleibt
+  #   ein Secret in der Historie, auch wenn der Commit später "gefixt" wird.
+  # semgrep (OSS-Regeln p/typescript, p/react, p/security-audit): findet Muster
+  #   wie XSS-Senken, unsichere Redirects, eval-artige Konstrukte — Dinge, die
+  #   Lint und Typecheck bewusst NICHT prüfen.
+  # CodeQL bewusst NICHT: für PRIVATE Repos kostenpflichtig (GitHub Advanced
+  #   Security). Semgrep-OSS deckt die relevanten Klassen kostenlos ab.
+  # Vorerst continue-on-error: erst eine Woche Signalqualität beobachten
+  # (Fehlalarme kalibrieren), dann auf blockend stellen.
+  security-scan:
+    name: Security-Scan (Secrets + SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (Secret-Scanning)
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Semgrep installieren
+        run: pipx install semgrep
+      - name: semgrep (SAST, OSS-Regeln)
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/react \
+            --config p/security-audit \
+            --error \
+            --metrics=off \
+            --exclude=node_modules --exclude=.next --exclude=playwright-report
+
   verify:
     runs-on: ubuntu-latest
     steps:
