@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 59 · getaggte Zuordnungen 136.
+Stand: Requirements 59 · getaggte Zuordnungen 144.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -55,7 +55,7 @@ Stand: Requirements 59 · getaggte Zuordnungen 136.
 | REQ-PROC-002 — Widerspruchs-Regel | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-003 — Verifikationsschleifen | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-004 — Device-Matrix | umgesetzt | ⚠ FEHLT |
-| REQ-EXP-001 — POI-Wissensbasis | geplant | — |
+| REQ-EXP-001 — POI-Wissensbasis | umgesetzt | `src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] POI ohne Saison/Gueltigkeit ist immer gueltig<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfilter schliesst Monate ausserhalb des Bereichs aus<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfilter erlaubt Wrap-Around ueber den Jahreswechsel<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] ohne angefragten Monat wird ein Saison-POI nicht ausgeschlossen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Event-Gueltigkeitsfenster (gueltig_von/gueltig_bis) inklusive Grenzen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] ohne angefragtes Stichdatum wird ein Event-POI nicht ausgeschlossen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] poiInBbox erkennt Treffer und Ausreisser<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Quellenpflicht: mindestens eine Quelle mit URL und Abrufdatum |
 | REQ-EXP-002 — Kurations-Routine | geplant | — |
 | REQ-EXP-003 — Community-Bewertung | geplant | — |
 | REQ-EXP-004 — Erlebnisse entlang der Route | geplant | — |

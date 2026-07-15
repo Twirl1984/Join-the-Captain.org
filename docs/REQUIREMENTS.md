@@ -83,7 +83,7 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 
 ## Erlebnis-System (geplant, docs/erlebnis-system.md)
 
-- **REQ-EXP-001** POI-Wissensbasis (Status: geplant) — Buchten, Sehenswürdigkeiten, Events und Versorgung je Revier mit Quellenpflicht (URL + Abrufdatum), Stand-Datum, Confidence und Lebenszyklus entwurf→live→prüfen→archiviert. Quelle: User + Kollege 2026-07-10.
+- **REQ-EXP-001** POI-Wissensbasis (Status: umgesetzt) — Buchten, Sehenswürdigkeiten, Events und Versorgung je Revier mit Quellenpflicht (URL + Abrufdatum), Stand-Datum, Confidence und Lebenszyklus entwurf→live→prüfen→archiviert. Migration 0007, `src/lib/erlebnis/poi.ts`, `GET /api/erlebnis/poi`, Seed mit 12 real recherchierten POIs (Rügen + Dalmatien). Nicht befüllt: typ='bucht'/'versorgung' (Windschutz/Liegeplatz) brauchen Fachquellen — offener Punkt für REQ-EXP-002. Quelle: User + Kollege 2026-07-10, umgesetzt Branch mvp2/poi-wissensbasis 2026-07-15.
 - **REQ-EXP-002** Kurations-Routine (Status: geplant) — Append-and-Review: Neues nur in die Inbox, wiederkehrender Review der ältesten Live-Einträge, kein Eintrag bleibt länger als 6 Monate ungereviewt; abgelaufene Events werden automatisch archiviert. Quelle: User 2026-07-10.
 - **REQ-EXP-003** Community-Bewertung (Status: geplant) — Nutzer bewerten je Eintrag „stimmt noch / stimmt nicht mehr"; ab 2 Negativ-Meldungen ohne Gegenstimme wird der Eintrag zurückgestuft und aus Empfehlungen genommen. Quelle: User 2026-07-10.
 - **REQ-EXP-004** Erlebnisse entlang der Route (Status: geplant) — Zur geplanten Route werden live-POIs im Korridor gefiltert nach Saison/Gültigkeit angezeigt. Quelle: User 2026-07-10.
