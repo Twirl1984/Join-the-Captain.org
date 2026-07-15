@@ -59,6 +59,47 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 
 ## Nachtlauf-Notizen (Routine „JTC MVP-2 Nachtlauf", ab 2026-07-14 21:00 UTC)
 
+**⚠️ WICHTIG — bitte morgens zuerst lesen: doppelte 2.1-Umsetzung + Session-Erkenntnis**
+
+Der Zyklus um 01:03 UTC hat REQ-EXP-001 (POI-Wissensbasis) bereits UNABHÄNGIG
+umgesetzt und auf Branch `mvp2/2.1-poi-wissensbasis` gepusht — **bevor** dieser
+03:04-UTC-Zyklus begann. Dieser Zyklus hatte davon KEINE Kenntnis (leeres
+`docs/mvp-plan.md` beim frischen Klon von `main`, wie erwartet, da Feature-
+Branches nie gemergt werden) und hat REQ-EXP-001 daraufhin EIGENSTÄNDIG NOCH
+EINMAL gebaut, auf `mvp2/poi-wissensbasis`. **Zwei unabhängige, NICHT
+kompatible Implementierungen existieren jetzt:**
+
+| | `mvp2/2.1-poi-wissensbasis` (01:03 UTC) | `mvp2/poi-wissensbasis` (dieser Zyklus, 03:xx UTC) |
+|---|---|---|
+| Migration | `0007_erlebnis_system.sql`, `BIGSERIAL`-PKs, **kein** `IF NOT EXISTS` auf `CREATE TABLE` | `0007_erlebnis_poi.sql`, `UUID`-PKs (`gen_random_uuid()`), `IF NOT EXISTS` |
+| Typen | lokal in `poi.ts` definiert, `id: number` | in `src/lib/types.ts` (Codebase-Konvention), `id: string` |
+| Umfang | nur 2.1 (List by Revier/Bbox) | 2.1 **+ 2.2 (Kuration) + 2.3 (Korridor-Filter+UI) + 2.4 (Törn-Link)** bauen direkt darauf auf |
+
+**Beide Migrationsdateien heißen `0007_*`, unterschiedlicher Dateiname — kein
+Versionskonflikt in `scripts/migrate.ts`, ABER beide legen `revier_poi`/
+`poi_vote` an; würden beide angewendet, bricht die zweite (die ohne
+`IF NOT EXISTS`) mit „relation already exists". Nicht beide Branches
+anwenden.** Meine Folge-Etappen (2.2–2.4) sind gegen MEINE Version gebaut
+(nutzen u. a. `listPoisAmKorridor`/`bboxUmRoute`/`listReviewFaelligePois`, die
+im 01:03-Branch nicht existieren) — sie lassen sich nicht ohne Weiteres auf
+die andere Version umstöpseln. **Empfehlung (keine Entscheidung, nur
+Vorschlag):** `mvp2/poi-wissensbasis` → `kurations-routine` → `erlebnisse-route`
+→ `toern-share` als zusammenhängende Linie behalten (funktional vollständiger,
+UUID passt zum Rest der Codebase, z. B. `feature_request`/`affiliate_tool`
+nutzen ebenfalls `UUID`), `mvp2/2.1-poi-wissensbasis` verwerfen oder als
+Referenz für abweichende Seed-Recherche danebenlegen — **User entscheidet.**
+
+**Warum das passiert ist:** Trotz der Tool-Beschreibung „fires into THIS
+SESSION, resuming the same conversation" bestätigen die eigenen Notizen des
+01:03-Zyklus explizit: „jede Cron-Feuerung ist eine frische Session" (dort im
+Kontext des `add_repo`-Fixes vermerkt). Das deckt sich mit der Erfahrung
+dieses Zyklus — kein Gedächtnis an 21:00/23:00/01:00 UTC. Für den 05:03-Lauf
+heißt das: er wird vermutlich EBENFALLS frisch von `main` klonen und hat ohne
+Weiteres KEINE automatische Kenntnis der Nacht-Fortschritte auf den
+Feature-Branches. Empfehlung für den 05:03-Zyklus (bzw. für den User): vor dem
+Gesamtbericht `git ls-remote --heads origin | grep mvp2` prüfen und die
+Branch-`docs/mvp-plan.md`-Stände lesen, nicht nur den `main`-Stand.
+
 **Umgebungs-Einschränkungen dieses Containers (gelten für ALLE Zyklen heute Nacht):**
 - **Kein `ssh`/`rsync` im Container** — Schritt „Staging aktualisieren" (rsync +
   `docker compose … up -d --build` auf root@194.164.197.23) ist von hier aus
