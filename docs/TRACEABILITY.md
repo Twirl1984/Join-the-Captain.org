@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 59 · getaggte Zuordnungen 136.
+Stand: Requirements 59 · getaggte Zuordnungen 140.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -55,7 +55,7 @@ Stand: Requirements 59 · getaggte Zuordnungen 136.
 | REQ-PROC-002 — Widerspruchs-Regel | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-003 — Verifikationsschleifen | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-004 — Device-Matrix | umgesetzt | ⚠ FEHLT |
-| REQ-EXP-001 — POI-Wissensbasis | geplant | — |
+| REQ-EXP-001 — POI-Wissensbasis | umgesetzt | `src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] POI ohne Saison/Event-Felder ist ganzjährig gültig<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfenster innerhalb eines Jahres (z. B. Blaue Grotte Mai-Oktober)<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfenster über den Jahreswechsel (Wraparound, z. B. Nov-Feb)<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Event mit gueltig_bis fällt nach Ablauf aus der Anzeige |
 | REQ-EXP-002 — Kurations-Routine | geplant | — |
 | REQ-EXP-003 — Community-Bewertung | geplant | — |
 | REQ-EXP-004 — Erlebnisse entlang der Route | geplant | — |
