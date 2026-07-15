@@ -203,6 +203,9 @@ export function NavApp() {
   const [erlebnisseLoading, setErlebnisseLoading] = useState(false);
   const [erlebnisseError, setErlebnisseError] = useState<string | null>(null);
   const erlebnisseSeq = useRef(0);
+  // Teilbarer Törn-Link (REQ-EXP-009): read-only Snapshot per Kurz-ID.
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareState, setShareState] = useState<"idle" | "laden" | "fehler">("idle");
   // „Jetzt & hier" (REQ-NAV-024): aktuelle Bedingungen an der eigenen Position.
   const [jetztWx, setJetztWx] = useState<JetztWetter | null>(null);
   const [jetztDepth, setJetztDepth] = useState<{ depth_m: number; check?: FlachwasserStatus } | null>(null);
@@ -482,6 +485,34 @@ export function NavApp() {
         setErlebnisseError("Erlebnisse gerade nicht verfügbar — später erneut versuchen.");
     } finally {
       if (myId === erlebnisseSeq.current) setErlebnisseLoading(false);
+    }
+  }
+
+  // Teilbarer Törn-Link (REQ-EXP-009): Snapshot der aktuellen Route anlegen.
+  async function shareToern() {
+    if (!routing || !plan) return;
+    setShareState("laden");
+    setShareUrl(null);
+    try {
+      const res = await fetch("/api/toern/share", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          revierId: revier.id,
+          punkte: routing.points,
+          plan,
+          highlights: (erlebnisse ?? []).map((e) => ({ name: e.name, lat: e.lat, lon: e.lon, typ: e.typ })),
+        }),
+      });
+      if (!res.ok) {
+        setShareState("fehler");
+        return;
+      }
+      const data = (await res.json()) as { id: string };
+      setShareUrl(`${window.location.origin}/toern/${data.id}`);
+      setShareState("idle");
+    } catch {
+      setShareState("fehler");
     }
   }
 
@@ -2028,6 +2059,16 @@ export function NavApp() {
             >
               GPX ↓
             </button>
+            <button
+              type="button"
+              data-testid="nav-share-toern"
+              className="pill"
+              title="Read-only Link zum Teilen erzeugen"
+              disabled={shareState === "laden"}
+              onClick={() => void shareToern()}
+            >
+              {shareState === "laden" ? "Erzeuge Link …" : "Törn teilen"}
+            </button>
             {startAtGps && (
               <span className="tag phase-auf_dem_toern" data-testid="nav-live-badge">
                 ab eigener Position
@@ -2040,6 +2081,20 @@ export function NavApp() {
             {luftlinienSegmente > 0 &&
               ` · ${luftlinienSegmente} Teilstrecke(n) als Luftlinie (außerhalb der Maske).`}
           </p>
+
+          {shareState === "fehler" && (
+            <p className="caption" role="status" data-testid="nav-share-error">
+              Link konnte gerade nicht erzeugt werden — später erneut versuchen.
+            </p>
+          )}
+          {shareUrl && (
+            <p className="caption" data-testid="nav-share-result">
+              Geteilter Törn-Link:{" "}
+              <a href={shareUrl} target="_blank" rel="noreferrer">
+                {shareUrl}
+              </a>
+            </p>
+          )}
 
           {plan.warnings.length > 0 && (
             <div className="wetter-warnband stack" style={{ gap: 6 }}>

@@ -464,6 +464,28 @@ test.describe("/navigation — Erlebnisse entlang der Route (REQ-EXP-004)", () =
   });
 });
 
+test.describe("/navigation — Teilbarer Törn-Link (REQ-EXP-009)", () => {
+  test("[REQ-EXP-009] Törn teilen erzeugt einen read-only Link", async ({ page }) => {
+    await mockApis(page);
+    await page.route("**/api/toern/share", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "abc12345" }),
+      }),
+    );
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+
+    const resp = page.waitForResponse((r) => r.url().endsWith("/api/toern/share"));
+    await page.getByTestId("nav-share-toern").click();
+    await resp;
+    await expect(page.getByTestId("nav-share-result")).toBeVisible();
+    await expect(page.getByTestId("nav-share-result")).toContainText(/\/toern\/abc12345/);
+  });
+});
+
 test.describe("/navigation — Karte im Vollbild (REQ-NAV-018)", () => {
   test("[REQ-NAV-018] Vollbild-Schalter vergrößert die Karte und schließt wieder (Klick & Escape)", async ({ page }) => {
     await mockApis(page);
