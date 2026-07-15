@@ -15,6 +15,7 @@
     "db:seed:erlebnis": "tsx scripts/seed-erlebnis-poi.ts",
     "pipeline:run": "tsx scripts/run-pipeline.ts",
     "research:run": "tsx scripts/run-research.ts",
+    "erlebnis:kuration": "tsx scripts/erlebnis-kuration.ts",
     "discovery:run": "tsx scripts/run-discovery.ts",
     "test:weather": "node --import tsx --test src/lib/weather/__tests__/*.test.ts",
     "test:navigation": "node --import tsx --test src/lib/navigation/__tests__/*.test.ts",

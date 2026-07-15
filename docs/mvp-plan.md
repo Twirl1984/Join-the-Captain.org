@@ -51,7 +51,7 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 - [x] 1.4 Peilung — Kreuzpeilung (2–3 kartierte Objekte, Kompass-Capture, Missweisung editierbar) + GPS-Plausibilitätswarnung; Branch mvp/peilung; Objekt-Wahl per Hafen-Dropdown ODER freiem Kartenklick (mvp/peilung-map)
 - [x] 1.5 Profil-Feld zeitabhängig — A*-Kanten werden mit dem Wetter zur geschätzten Durchfahrtszeit bewertet (elapsedH über die Kosten, Segment-Offset); Branch mvp/profil-zeit
 - [x] 2.1 POI-Wissensbasis — Migration `0007_erlebnis_poi.sql` (revier_poi/poi_vote, UUID-PKs statt BIGSERIAL-Entwurf, CHECK-Constraints), `src/lib/erlebnis/poi.ts` (reine Saison-/Gültigkeits-/Bbox-Filterlogik + `listRevierPois`), `GET /api/erlebnis/poi`, Seed `scripts/seed-erlebnis-poi.ts` mit 12 ECHT recherchierten POIs (6× Rügen, 6× Dalmatien, Wikipedia/Wikidata-Quellen, Abrufdatum 2026-07-15). REQ-EXP-001 → umgesetzt. Branch `mvp2/poi-wissensbasis`. **Offener Punkt:** typ='bucht'/'versorgung' (Windschutz-Sektoren, Liegeplatz-Details) bewusst NICHT befüllt — braucht Segelrevier-Fachquellen (Navily & Co., "Lizenz vor Eigenbau"), Aufgabe für die Kurations-Routine (2.2).
-- [ ] 2.2 Kurations-Routine
+- [x] 2.2 Kurations-Routine — `src/lib/erlebnis/kuration.ts` (reine Entscheidungslogik: Review-Fälligkeit 6-Monats-Deckel, Event-Ablauf, Auto-Publish-Guardrail Confidence+Erreichbarkeit) + `scripts/erlebnis-kuration.ts` (Review-Zyklus älteste-zuerst + Entwurf-Promotion, HTTP-Erreichbarkeits-Check mit injizierbarem fetch). REQ-EXP-002 → umgesetzt. Branch `mvp2/kurations-routine` (auf `mvp2/poi-wissensbasis` aufbauend). Community-Votes (REQ-EXP-003) bewusst NICHT enthalten — für MVP2 ausgeklammert. Kein UI-Anteil → E2E-Matrix laut ISTQB-Tabelle nicht pflichtig (in 2.1 bereits als Regressions-Check gelaufen, hier nicht wiederholt, da keine navigation-/wetter-nahen Dateien geändert wurden). Skript selbst NICHT gegen eine echte DB gelaufen (Umgebungslücke s. u.).
 - [ ] 2.3 Erlebnisse an der Route
 - [ ] 2.4 Teilbarer Törn-Link
 - [ ] 2.5 iOS-App (inkl. BUG-039)
@@ -104,4 +104,4 @@ ggf. in „Migration+lib+API+Tests" und „Seed-Daten" aufteilen, wenn ein
 Reviewer das wünscht — heute Nacht bewusst als ein Commit belassen, um den
 Zyklus nicht zu verlängern.
 
-**Nächster Schritt:** 2.2 Kurations-Routine (scripts/erlebnis-kuration.ts).
+**Nächster Schritt:** 2.3 Erlebnisse an der Route (Korridor-Filter + Karte).

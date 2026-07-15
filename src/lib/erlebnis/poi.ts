@@ -6,7 +6,7 @@
 // offline testbar bleibt (CLAUDE.md-Konvention wie lib/weather, lib/navigation).
 
 import { query } from "../db";
-import type { RevierPoi } from "../types";
+import type { RevierPoi, PoiStatus } from "../types";
 
 export interface PoiListFilter {
   revierId?: string;
@@ -107,4 +107,26 @@ export async function listRevierPois(filter: PoiListFilter): Promise<RevierPoi[]
 
   if (filter.monat == null && filter.datum == null) return rows;
   return rows.filter((poi) => poiIstGueltig(poi, { monat: filter.monat, datum: filter.datum }));
+}
+
+/** Review-fällige live-POIs, älteste zuerst (NULL = nie reviewed → zuerst). */
+export async function listReviewFaelligePois(): Promise<RevierPoi[]> {
+  return query<RevierPoi>(
+    `SELECT * FROM revier_poi WHERE status = 'live' ORDER BY reviewed_am ASC NULLS FIRST`,
+  );
+}
+
+/** Entwürfe, die auf ihre erste Kuration warten (Append-and-Review Inbox). */
+export async function listEntwuerfe(): Promise<RevierPoi[]> {
+  return query<RevierPoi>(
+    `SELECT * FROM revier_poi WHERE status = 'entwurf' ORDER BY created_at ASC`,
+  );
+}
+
+export async function setPoiStatus(id: string, status: PoiStatus): Promise<void> {
+  await query(`UPDATE revier_poi SET status = $1 WHERE id = $2`, [status, id]);
+}
+
+export async function markPoiReviewed(id: string): Promise<void> {
+  await query(`UPDATE revier_poi SET reviewed_am = now() WHERE id = $1`, [id]);
 }

@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 59 · getaggte Zuordnungen 144.
+Stand: Requirements 59 · getaggte Zuordnungen 152.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -56,7 +56,7 @@ Stand: Requirements 59 · getaggte Zuordnungen 144.
 | REQ-PROC-003 — Verifikationsschleifen | umgesetzt | ⚠ FEHLT |
 | REQ-PROC-004 — Device-Matrix | umgesetzt | ⚠ FEHLT |
 | REQ-EXP-001 — POI-Wissensbasis | umgesetzt | `src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] POI ohne Saison/Gueltigkeit ist immer gueltig<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfilter schliesst Monate ausserhalb des Bereichs aus<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Saisonfilter erlaubt Wrap-Around ueber den Jahreswechsel<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] ohne angefragten Monat wird ein Saison-POI nicht ausgeschlossen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Event-Gueltigkeitsfenster (gueltig_von/gueltig_bis) inklusive Grenzen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] ohne angefragtes Stichdatum wird ein Event-POI nicht ausgeschlossen<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] poiInBbox erkennt Treffer und Ausreisser<br>`src/lib/erlebnis/__tests__/poi.test.ts`: [REQ-EXP-001] Quellenpflicht: mindestens eine Quelle mit URL und Abrufdatum |
-| REQ-EXP-002 — Kurations-Routine | geplant | — |
+| REQ-EXP-002 — Kurations-Routine | umgesetzt | `src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] nie reviewte POIs sind sofort review-faellig<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] frisch reviewte POIs sind nicht faellig<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] POIs aelter als 6 Monate sind review-faellig (Deckel)<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] Event mit ueberschrittenem gueltig_bis gilt als abgelaufen<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] Review-Entscheidung: abgelaufenes Event wird archiviert, unabhaengig von der<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] Review-Entscheidung: tote Quelle geht in pruefen, nicht direkt archiviert<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] Review-Entscheidung: erreichbare Quelle aktualisiert nur reviewed_am<br>`src/lib/erlebnis/__tests__/kuration.test.ts`: [REQ-EXP-002] Auto-Publish-Guardrail: Confidence UND Erreichbarkeit sind beide Pflicht |
 | REQ-EXP-003 — Community-Bewertung | geplant | — |
 | REQ-EXP-004 — Erlebnisse entlang der Route | geplant | — |
 | REQ-EXP-005 — Buchten-Ranking nach Wind | geplant | — |
