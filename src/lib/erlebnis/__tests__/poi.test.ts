@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { poiIstGueltig, poiInBbox, poiHatPflichtquellen } from "../poi";
+import { poiIstGueltig, poiInBbox, poiHatPflichtquellen, poiImKorridor, bboxUmRoute } from "../poi";
 
 test("[REQ-EXP-001] POI ohne Saison/Gueltigkeit ist immer gueltig", () => {
   assert.equal(
@@ -48,6 +48,30 @@ test("[REQ-EXP-001] poiInBbox erkennt Treffer und Ausreisser", () => {
   const bbox = { minLat: 54.0, maxLat: 55.0, minLon: 13.0, maxLon: 14.0 };
   assert.equal(poiInBbox({ lat: 54.5, lon: 13.5 }, bbox), true);
   assert.equal(poiInBbox({ lat: 43.0, lon: 16.0 }, bbox), false);
+});
+
+test("[REQ-EXP-004] poiImKorridor: Treffer nah an einem Routenpunkt, Ausreisser weit weg", () => {
+  // Kap Arkona liegt praktisch auf dem Routenpunkt, Split ist weit entfernt.
+  const route = [
+    { lat: 54.68, lon: 13.4 },
+    { lat: 54.5, lon: 13.6 },
+  ];
+  assert.equal(poiImKorridor({ lat: 54.679611, lon: 13.432611 }, route, 3), true);
+  assert.equal(poiImKorridor({ lat: 43.5, lon: 16.44 }, route, 3), false);
+});
+
+test("[REQ-EXP-004] poiImKorridor: leere Route ergibt nie einen Treffer", () => {
+  assert.equal(poiImKorridor({ lat: 54.68, lon: 13.4 }, [], 5), false);
+});
+
+test("[REQ-EXP-004] bboxUmRoute umschliesst alle Routenpunkte plus Rand", () => {
+  const route = [
+    { lat: 54.0, lon: 13.0 },
+    { lat: 54.5, lon: 13.6 },
+  ];
+  const bbox = bboxUmRoute(route, 6); // 6 sm ≈ 0.1°
+  assert.ok(bbox.minLat < 54.0 && bbox.maxLat > 54.5);
+  assert.ok(bbox.minLon < 13.0 && bbox.maxLon > 13.6);
 });
 
 test("[REQ-EXP-001] Quellenpflicht: mindestens eine Quelle mit URL und Abrufdatum", () => {

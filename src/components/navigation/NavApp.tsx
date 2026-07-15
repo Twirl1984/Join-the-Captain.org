@@ -23,6 +23,7 @@ import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import { boatPositionAt } from "@/lib/weather/playback";
 import type { TimelinePoint } from "@/lib/weather/open-meteo";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
+import type { RevierPoi } from "@/lib/types";
 import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
 import { gpxFromRoute } from "@/lib/navigation/gpx";
@@ -197,6 +198,11 @@ export function NavApp() {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // Erlebnisse entlang der Route (REQ-EXP-004): POIs im Korridor um den Wasserweg.
+  const [erlebnisse, setErlebnisse] = useState<RevierPoi[] | null>(null);
+  const [erlebnisseLoading, setErlebnisseLoading] = useState(false);
+  const [erlebnisseError, setErlebnisseError] = useState<string | null>(null);
+  const erlebnisseSeq = useRef(0);
   // „Jetzt & hier" (REQ-NAV-024): aktuelle Bedingungen an der eigenen Position.
   const [jetztWx, setJetztWx] = useState<JetztWetter | null>(null);
   const [jetztDepth, setJetztDepth] = useState<{ depth_m: number; check?: FlachwasserStatus } | null>(null);
@@ -450,6 +456,35 @@ export function NavApp() {
     }
   }
 
+  // Erlebnisse entlang der Route (REQ-EXP-004): POIs im Korridor um den
+  // gerouteten Wasserweg, gefiltert nach Saison/Gültigkeit des Abfahrtsmonats.
+  async function loadErlebnisse() {
+    if (!routing) return;
+    const myId = ++erlebnisseSeq.current;
+    setErlebnisseLoading(true);
+    setErlebnisseError(null);
+    try {
+      const pts = thin(routing.points, 20);
+      const route = pts.map((p) => `${p.lat},${p.lon}`).join(";");
+      const monat = new Date(startTime).getUTCMonth() + 1;
+      const res = await fetch(
+        `/api/erlebnis/poi?route=${encodeURIComponent(route)}&korridorNm=5&monat=${monat}`,
+      );
+      if (myId !== erlebnisseSeq.current) return;
+      if (!res.ok) {
+        setErlebnisseError("Erlebnisse gerade nicht verfügbar — später erneut versuchen.");
+        return;
+      }
+      const data = (await res.json()) as { pois: RevierPoi[] };
+      setErlebnisse(data.pois);
+    } catch {
+      if (myId === erlebnisseSeq.current)
+        setErlebnisseError("Erlebnisse gerade nicht verfügbar — später erneut versuchen.");
+    } finally {
+      if (myId === erlebnisseSeq.current) setErlebnisseLoading(false);
+    }
+  }
+
   const addWaypoint = (w: Waypoint) => {
     // Peilungs-Auswahlmodus (REQ-NAV-025): Karten-/Hafen-Klick setzt das
     // angepeilte OBJEKT der wartenden Zeile — kein Wegpunkt, kein Snap (das
@@ -685,6 +720,8 @@ export function NavApp() {
       setSource((data as { source?: string }).source ?? null);
       setFbState("idle");
       setDepths(null);
+      setErlebnisse(null);
+      setErlebnisseError(null);
       // Timeline zuerst (liefert die Tide fürs Flachwasser, REQ-NAV-012),
       // dann automatischer Tiefen-Check mit Tide-Verrechnung.
       void (async () => {
@@ -1079,6 +1116,7 @@ export function NavApp() {
               peilLinien={peilLinien}
               peilFix={peilFix}
               symbolsV2={SYMBOLS_V2}
+              erlebnisse={erlebnisse ?? undefined}
             />
             {peilPickRow != null && (
               <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
@@ -2069,6 +2107,52 @@ export function NavApp() {
               </div>
             )}
           </div>
+
+          {/* Erlebnisse entlang der Route (REQ-EXP-004) */}
+          <details className="card nav-subtool" data-testid="nav-erlebnisse">
+            <summary className="section-label" data-testid="nav-tool-erlebnisse">
+              Erlebnisse entlang der Route
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              <div className="row-between">
+                <p className="caption">
+                  Buchten, Sehenswürdigkeiten und Versorgung im Korridor um den Wasserweg —
+                  kuratiert mit Quellenangabe, keine amtliche Freigabe.
+                </p>
+                <button
+                  type="button"
+                  data-testid="nav-erlebnisse-load"
+                  className="btn btn-outline-teal"
+                  disabled={erlebnisseLoading}
+                  onClick={() => void loadErlebnisse()}
+                >
+                  {erlebnisseLoading ? "Lädt …" : "Erlebnisse laden"}
+                </button>
+              </div>
+              {erlebnisseError && (
+                <p className="caption" role="status" data-testid="nav-erlebnisse-error">
+                  {erlebnisseError}
+                </p>
+              )}
+              {erlebnisse && (
+                <div className="stack" style={{ gap: 6 }} data-testid="nav-erlebnisse-result">
+                  {erlebnisse.length === 0 ? (
+                    <p className="caption">Keine kuratierten Erlebnisse im Korridor gefunden.</p>
+                  ) : (
+                    erlebnisse.map((e) => (
+                      <div key={e.id} className="row" style={{ gap: 8 }} data-testid="nav-erlebnisse-item">
+                        <Icon name="anchor" size={14} />
+                        <span>
+                          {e.name}
+                          <span className="caption"> — {e.beschreibung}</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </details>
 
           <div className="grid-features">
             {plan.legs.map((leg) => (

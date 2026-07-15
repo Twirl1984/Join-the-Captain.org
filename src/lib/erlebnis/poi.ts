@@ -6,6 +6,7 @@
 // offline testbar bleibt (CLAUDE.md-Konvention wie lib/weather, lib/navigation).
 
 import { query } from "../db";
+import { haversineNm, type Waypoint } from "../weather/route-forecast";
 import type { RevierPoi, PoiStatus } from "../types";
 
 export interface PoiListFilter {
@@ -65,6 +66,55 @@ export function poiInBbox(
     poi.lon >= bbox.minLon &&
     poi.lon <= bbox.maxLon
   );
+}
+
+/**
+ * Korridor-Filter für REQ-EXP-004: kürzeste Distanz des POI zu irgendeinem
+ * Punkt der Route (Vertex-Näherung, kein exaktes Punkt-zu-Segment-Lot — bei
+ * der üblichen Wegpunkt-Dichte der bestehenden Routen ausreichend genau,
+ * kein zweiter Routing-Stack). Nutzt die geteilte haversineNm-Basis
+ * (CLAUDE.md: /wetter UND /navigation teilen sich lib/weather).
+ */
+export function poiImKorridor(
+  poi: Pick<RevierPoi, "lat" | "lon">,
+  routenPunkte: Waypoint[],
+  korridorNm: number,
+): boolean {
+  if (routenPunkte.length === 0) return false;
+  const poiPunkt: Waypoint = { lat: poi.lat, lon: poi.lon };
+  return routenPunkte.some((p) => haversineNm(poiPunkt, p) <= korridorNm);
+}
+
+/** Grob-Bbox um die Route (+ Rand für den Korridor) für den SQL-Vorfilter. */
+export function bboxUmRoute(routenPunkte: Waypoint[], korridorNm: number) {
+  const randGrad = korridorNm / 60; // 1° Breite ≈ 60 sm; grobe, konservative Näherung
+  const lats = routenPunkte.map((p) => p.lat);
+  const lons = routenPunkte.map((p) => p.lon);
+  return {
+    minLat: Math.min(...lats) - randGrad,
+    maxLat: Math.max(...lats) + randGrad,
+    minLon: Math.min(...lons) - randGrad,
+    maxLon: Math.max(...lons) + randGrad,
+  };
+}
+
+/** Live-POIs im Korridor um eine Route, optional nach Saison/Datum gefiltert. */
+export async function listPoisAmKorridor(params: {
+  routenPunkte: Waypoint[];
+  korridorNm: number;
+  revierId?: string;
+  monat?: number;
+  datum?: string;
+}): Promise<RevierPoi[]> {
+  const { routenPunkte, korridorNm, revierId, monat, datum } = params;
+  if (routenPunkte.length === 0) return [];
+
+  const bbox = bboxUmRoute(routenPunkte, korridorNm);
+  const kandidaten = await listRevierPois({ revierId, bbox, status: "live" });
+  const imKorridor = kandidaten.filter((poi) => poiImKorridor(poi, routenPunkte, korridorNm));
+
+  if (monat == null && datum == null) return imKorridor;
+  return imKorridor.filter((poi) => poiIstGueltig(poi, { monat, datum }));
 }
 
 /** Mindestens eine Quelle mit URL + Abrufdatum — Guardrail aus dem Skill. */
