@@ -54,8 +54,8 @@ BUGLOG, verify, 4-Geräte-Matrix), `.claude/skills/erlebnis-wissen/SKILL.md`.
 - [x] 2.2 Kurations-Routine — `src/lib/erlebnis/kuration.ts` (reine Entscheidungslogik: Review-Fälligkeit 6-Monats-Deckel, Event-Ablauf, Auto-Publish-Guardrail Confidence+Erreichbarkeit) + `scripts/erlebnis-kuration.ts` (Review-Zyklus älteste-zuerst + Entwurf-Promotion, HTTP-Erreichbarkeits-Check mit injizierbarem fetch). REQ-EXP-002 → umgesetzt. Branch `mvp2/kurations-routine` (auf `mvp2/poi-wissensbasis` aufbauend). Community-Votes (REQ-EXP-003) bewusst NICHT enthalten — für MVP2 ausgeklammert. Kein UI-Anteil → E2E-Matrix laut ISTQB-Tabelle nicht pflichtig (in 2.1 bereits als Regressions-Check gelaufen, hier nicht wiederholt, da keine navigation-/wetter-nahen Dateien geändert wurden). Skript selbst NICHT gegen eine echte DB gelaufen (Umgebungslücke s. u.).
 - [x] 2.3 Erlebnisse an der Route — Korridor-Filter `poiImKorridor`/`bboxUmRoute`/`listPoisAmKorridor` (Vertex-Näherung über die geteilte `haversineNm`-Basis, kein zweiter Routing-Stack), `GET /api/erlebnis/poi` um `route=lat,lon;...&korridorNm=` erweitert, neues Sub-Tool „Erlebnisse entlang der Route" im Ergebnis-Bereich von `/navigation` (Liste + Kartenmarker in `NavMap.tsx`, manuell geladen). REQ-EXP-004 → umgesetzt. Branch `mvp2/erlebnisse-route` (auf `mvp2/kurations-routine` aufbauend). E2E `[REQ-EXP-004]` neu in `e2e/navigation.spec.ts`, 76/82 auf chromium+mobile grün (6 bekannte netzabhängige Fehlschläge in navigation-live.spec.ts, unverändert). **Bewusste Vereinfachung:** kein Auto-Trigger direkt nach der Routenberechnung (anders als der Tiefen-Check) — Nutzer klickt „Erlebnisse laden", um die bestehende `reqSeq`/Timeline/Tiefen-Sequenzierung in `NavApp.tsx` nicht anzufassen (Risiko/Zeit-Abwägung im Nachtlauf).
 - [x] 2.4 Teilbarer Törn-Link — Migration `0008_toern_share.sql` (Kurz-ID `geteilter_toern`), `src/lib/toern/share.ts` (reine ID-/Snapshot-Logik + DB), `POST /api/toern/share` + `GET /api/toern/share/:id`, read-only Seite `/toern/[id]` (Vogelperspektive-Karte `ToernShareMap` + Highlights-Liste), „Törn teilen"-Knopf im Ergebnis-Bereich. REQ-EXP-009 → umgesetzt. Branch `mvp2/toern-share` (auf `mvp2/erlebnisse-route` aufbauend). E2E `[REQ-EXP-009]` (Knopf→Link) neu, 78/84 auf chromium+mobile grün (6 bekannte netzabhängige Fehlschläge, unverändert). **Nicht E2E-getestet:** die `/toern/[id]`-Seite selbst (Server Component mit direktem DB-Zugriff, nicht über gemockte `page.route` erreichbar) — ungetestet in diesem Container mangels DB, siehe Umgebungs-Notiz unten.
-- [ ] 2.5 iOS-App (inkl. BUG-039)
-- [ ] 2.6 Android-App (TWA/AAB)
+- [ ] 2.5 iOS-App (inkl. BUG-039) — **BLOCKIERT in diesem Container:** kein Xcode/macOS vorhanden (`xcodebuild`/`swift` nicht installiert, Linux-Container). Ein Simulator-Build ist von hier aus kategorisch nicht möglich — braucht einen macOS-Runner. Nicht versucht/nicht angefasst (feat/ios-capacitor unverändert), keine Ratearbeit.
+- [ ] 2.6 Android-App (TWA/AAB) — **BLOCKIERT in diesem Container:** der Netzwerk-Proxy lässt sowohl `https://join-the-captain.org` (Manifest-Quelle für `bubblewrap init`) als auch `https://dl.google.com` (Android-SDK/Build-Tools-Repository) NICHT durch (beide CONNECT-Tunnel mit 403 abgelehnt, geprüft per curl). Ohne SDK-Download ist „AAB lokal bauen" nicht möglich, unabhängig vom TWA-Setup selbst. npm-Registry (für `@bubblewrap/cli` selbst) ist erreichbar, das SDK/Gradle-Toolchain-Download aber nicht. Nicht versucht/nicht angefasst. **Zum Entsperren:** entweder Proxy-Freigabe für `dl.google.com`/`join-the-captain.org` in dieser Umgebung, oder Etappe in einer Umgebung mit vollem Netzzugang fortsetzen.
 
 ## Nachtlauf-Notizen (Routine „JTC MVP-2 Nachtlauf", ab 2026-07-14 21:00 UTC)
 
@@ -110,4 +110,11 @@ Migration+lib+2 API-Routen+Seite+Map-Komponente+Knopf+Tests bilden ein
 zusammenhängendes Feature; bei Bedarf vor einem PR in „Backend (Migration+
 lib+API)" und „Frontend (Seite+Map+Knopf)" aufteilbar.
 
-**Nächster Schritt:** 2.5 iOS-App (feat/ios-capacitor) — voraussichtlich in diesem Container BLOCKIERT (kein Xcode/macOS zum Simulator-Build, s. u.), wird als nächstes geprüft und ggf. sauber dokumentiert übersprungen zugunsten von 2.6.
+**Nächster Schritt:** 2.5 und 2.6 sind beide in diesem Container blockiert
+(Details oben in der Statustafel) — geprüft und sauber dokumentiert, nicht
+geraten oder simuliert. MVP2 2.1–2.4 sind vollständig umgesetzt und auf
+separaten Branches gepusht (mvp2/poi-wissensbasis → mvp2/kurations-routine →
+mvp2/erlebnisse-route → mvp2/toern-share, jeweils aufeinander aufbauend).
+Für 2.5/2.6 braucht es entweder einen macOS-Runner (iOS) oder eine Umgebung
+mit Netzzugang zu dl.google.com + der Live-Domain (Android) — das entscheidet
+der User morgens.
