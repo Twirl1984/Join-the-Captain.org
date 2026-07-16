@@ -24,6 +24,11 @@ const a = args ?? {};
 const WT = a.worktree ?? process.env.PWD ?? ".";
 const GIT = a.gitBin ?? "git";
 const MAX = Math.max(1, Math.min(10, a.maxRounds ?? 10));
+// MODELL-DIVERSITÄT (Generator-Verifier-Asymmetrie): Autor und Prüfer laufen
+// auf VERSCHIEDENEN, gleich starken Modellen — sonst teilen sie den blinden
+// Fleck. NIE Haiku für die adversariale QA (zu schwach).
+const DEV_MODEL = a.devModel ?? "opus";
+const QA_MODEL = a.qaModel ?? "sonnet";
 const FOCUS = a.focus ?? "die zuletzt geänderten Dateien dieses Branches (git diff gegen origin/main)";
 const DB = a.dbSetup
   ? `\nDB-Features: echte Postgres nutzen —\n  docker run -d --name jtc-qa-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=jtc_org -p 55433:5432 postgres:16\n  export DATABASE_URL="postgresql://postgres:postgres@localhost:55433/jtc_org?sslmode=disable"\n  npm run db:migrate && npm run db:seed:erlebnis`
@@ -68,7 +73,7 @@ while (round < MAX) {
       : `Runde ${round}. Prüfe ZUERST, ob die zuletzt gemeldeten Findings WIRKLICH gefixt sind (Regressionstest grün): ${JSON.stringify(offen.map((f) => f.titel))}. Dann suche Neues.`;
   const qa = await agent(
     `${BASE}\n\nDu bist qa-adversarial. ${kontext}\n\nSchreibe NEUE Tests, die brechen sollen (in die passenden __tests__/ bzw. e2e/), und führe die ECHTE Suite aus: npm run verify; bei UI \`npm run build && PW_PORT=3312 npx playwright test\`; bei DB die Postgres oben. Gib NUR reproduzierbare Findings zurück (Eingabe→falsches Verhalten). Tests im Working Tree lassen, NICHT committen — der Dev-Agent nagelt sie fest.`,
-    { label: `qa:r${round}`, phase: "QA-Scan", schema: FINDINGS, effort: "high" },
+    { label: `qa:r${round}`, phase: "QA-Scan", schema: FINDINGS, effort: "high", model: QA_MODEL },
   );
   historie.push({ round, rolle: "qa", ...qa });
 
@@ -83,7 +88,7 @@ while (round < MAX) {
   phase("Dev-Fix");
   const fix = await agent(
     `${BASE}\n\nDu bist dev-tdd. QA-Findings (mit Repro):\n${JSON.stringify(echte, null, 2)}\n\nFür JEDES: erst der rote Regressionstest (nutze/prüfe den vom QA hinterlassenen), dann der minimale Fix, dann grün. BUGLOG-Eintrag je Bug. Kein echter Bug? Kurz begründen statt blind ändern — Beweislast bei dir. Am Ende MUSS \`npm run verify\` grün sein. Kurze Bilanz zurück.`,
-    { label: `dev:r${round}`, phase: "Dev-Fix", effort: "high" },
+    { label: `dev:r${round}`, phase: "Dev-Fix", effort: "high", model: DEV_MODEL },
   );
   historie.push({ round, rolle: "dev", text: fix });
 
