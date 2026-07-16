@@ -29,4 +29,5 @@
 
 ## Prozess (verbindlich)
 - Vorgehen nach ASPICE/ISTQB: `.claude/skills/aspice-istqb-workflow/SKILL.md` — Requirements-IDs Pflicht (`docs/REQUIREMENTS.md`), Tests tragen `[REQ-…]`-Tags, `npm run trace` ist Teil von `verify`.
+- **Substanzielle Entwicklung läuft über den dev↔qa-Loop:** Skill `.claude/skills/dev-loop/SKILL.md` startet den benannten Workflow `dev-qa-loop` (Rollen `dev-tdd` + `qa-adversarial`) — Entwickler baut testgetrieben, ein unabhängiger QA-Agent greift adversarisch an (Unit→E2E über 4 Geräte, DB gegen echte Postgres), bis grün. Einzeiler/Trivialfixes brauchen nur `dev-tdd` + `verify`, keinen Loop.
 - Bei widersprüchlichen/unklaren Anforderungen: stoppen und den User konkret fragen (REQ-PROC-002).
