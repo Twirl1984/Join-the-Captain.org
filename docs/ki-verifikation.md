@@ -117,3 +117,55 @@ Coverage.
 - ⬜ **Mutation-Gate** (Stryker, erst Cron-Report auf Kern-Logik).
 - ⬜ **Property-Tests** (fast-check) für die reinen Libs (peilung, routing, poi).
 - ⬜ **CODEOWNERS** für SAFE-*/Warnlogik.
+
+---
+
+## Einordnung: ein Baustein im System-of-Systems
+
+Dies ist die **Entwicklungs- & Verifikations-Komponente**. Sie liefert, was jede
+andere Komponente braucht: dass gebauter Code nachweislich stimmt, ohne dass ein
+Mensch jede Zeile liest. Andere Bausteine (Erlebnis-Wissen, Research-Scout,
+Deadline-/Karpathy-Routinen …) sind fachlich; dieser hier ist der Qualitäts-Boden
+darunter — überall gleich, per Sprachwelt nur anders verdrahtet.
+
+## Bausteine & Links (der eine Ort)
+
+| Baustein | Was | Ort |
+|---|---|---|
+| **dev-tdd** (Skill) | Autor-Rolle, testgetrieben | `.claude/skills/dev-tdd/` · global `~/.claude/skills/dev-tdd/` |
+| **qa-adversarial** (Skill) | Prüfer-Rolle, bricht adversarial | `.claude/skills/qa-adversarial/` · global |
+| **dev-loop** (Skill) | Einstieg `/dev-loop`, wann welcher Pfad | `.claude/skills/dev-loop/` · global |
+| **dev-qa-loop** (Workflow) | orchestriert dev↔qa, Modell-Diversität | `.claude/workflows/dev-qa-loop.js` · global |
+| **aspice-istqb-workflow** (Skill) | Requirements-IDs, Traceability | `.claude/skills/aspice-istqb-workflow/` |
+| **ki-verifikation** (diese Datei) | Architektur, Gates, Fluss, Tool-Mapping | `docs/ki-verifikation.md` |
+| **GATES** | welche CI-Gates hier laufen und warum | `docs/GATES.md` |
+| **feature-pipeline** | gestapelte 80%-Pipeline, Integrations-Kopf | `docs/feature-pipeline.md` |
+| **autonomer Treiber** | Agent baut, Gate urteilt (lokal, inert) | `scripts/pipeline/` |
+| **Prozess-Metriken** | wöchentliche Messung + Log | `scripts/process-metrics.sh` · `docs/process-metrics.md` |
+| **Bug-Historie** | BUG-IDs + Regressionstests (SUP.9) | `docs/BUGLOG.md` |
+
+## Messung & Justierung über die Zeit
+
+`scripts/process-metrics.sh` misst schlank aus dem Repo-Zustand (REQs, mit Tests,
+REQ-Tags, Testdateien, Bugs, **Mutation-Score**) und hängt eine datierte Zeile an
+`docs/process-metrics.md`. **Wöchentlich per Cron** ausführen → Trend statt
+Momentaufnahme. Regel: Schwellwerte (diff-size-Grenze, Mutation-Mindestscore,
+Scanner scharf/beobachtend) an diesen Ist-Zahlen justieren, nicht raten. Sinkt
+der Mutation-Score → Testnetz bekommt Löcher → nachlegen, bevor ein Gate rot wird.
+
+## Für andere Projekte übernehmen
+
+1. **Global schon da** (dieser Mac): `~/.claude/skills/{dev-tdd,qa-adversarial,
+   dev-loop}` + `~/.claude/workflows/dev-qa-loop.js` — projektneutral, erkennen
+   die Test-/Build-Befehle selbst. In jedem Repo greift `/dev-loop`.
+2. **Anderer Rechner/Repo:** den portablen Prozess-Prompt geben (siehe unten)
+   oder diese Datei kopieren und einer Session sagen „setz das gemäß
+   docs/ki-verifikation.md um".
+3. **Sprachwelt:** Tool-Mapping-Tabelle oben (Stryker/mutmut, fast-check/
+   hypothesis, ESLint/ruff). Einführungsreihenfolge + Fallen ebenfalls oben.
+4. **Repo-Overlay gewinnt** gegen die globale Version — jedes Projekt tunt seine
+   Befehle, ohne die generische Vorlage zu berühren.
+
+Portabler Prompt (in ein fremdes Repo geben): siehe die Kurzfassung in
+`.claude/skills/dev-loop/SKILL.md` bzw. den Handover-Text im Self_Organisation-
+Repo (`KI-VERIFIKATION-UEBERGABE.md`).
