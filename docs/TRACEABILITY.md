@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 59 · getaggte Zuordnungen 162.
+Stand: Requirements 59 · getaggte Zuordnungen 163.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -63,4 +63,4 @@ Stand: Requirements 59 · getaggte Zuordnungen 162.
 | REQ-EXP-006 — Törn-Vorschläge mit Highlights | geplant | — |
 | REQ-EXP-007 — Referral-Monetarisierung | geplant | — |
 | REQ-EXP-008 — Revier-Wiki mit Linting | geplant | — |
-| REQ-EXP-009 — Teilbarer Törn-Link | geplant | `src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId liefert 8 Zeichen aus dem base36-Alphabet<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId ist mit injiziertem Zufall deterministisch (Testbarkeit)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot kuerzt lange Punktfolgen auf maxPunkte, behaelt Start/End<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot laesst kurze Punktfolgen unveraendert<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot ohne Highlights ergibt null (kein leeres Array)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot mit Highlights behaelt sie |
+| REQ-EXP-009 — Teilbarer Törn-Link | umgesetzt | `src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId liefert 8 Zeichen aus dem base36-Alphabet<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId ist mit injiziertem Zufall deterministisch (Testbarkeit)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot kuerzt lange Punktfolgen auf maxPunkte, behaelt Start/End<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot laesst kurze Punktfolgen unveraendert<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot ohne Highlights ergibt null (kein leeres Array)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot mit Highlights behaelt sie<br>`e2e/navigation.spec.ts`: [REQ-EXP-009] Törn teilen erzeugt einen read-only Link |

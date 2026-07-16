@@ -159,3 +159,17 @@ mvp2/erlebnisse-route → mvp2/toern-share, jeweils aufeinander aufbauend).
 Für 2.5/2.6 braucht es entweder einen macOS-Runner (iOS) oder eine Umgebung
 mit Netzzugang zu dl.google.com + der Live-Domain (Android) — das entscheidet
 der User morgens.
+
+## Durchstich-Verifikation (2026-07-16, lokal — schließt die Nacht-Lücken)
+
+- **DB verifiziert (NEU):** lokale Postgres (docker), alle 10 Migrationen sauber
+  (inkl. 0007 POI + 0008 Törn-Share), Seed = 12 kuratierte POIs (6 Rügen, 6
+  Dalmatien, alle mit Quelle), API `/api/erlebnis/poi` liefert korrekt, Korridor-
+  Filter (route=+korridorNm=) grenzt richtig ein.
+- **4-Geräte-Matrix (NEU):** 164 E2E grün über chromium/mobile/safari/iphone
+  (die Nacht schaffte nur 2/4).
+- Release-Branch `mvp_2` = main + `mvp2/toern-share` (2.1A→2.4), 0 Konflikte,
+  verify grün. Doppel-2.1 entschieden: Variante A (UUID) behalten (in toern-share),
+  B (`mvp2/2.1-poi-wissensbasis`, BIGSERIAL) verwerfen.
+- Neue Skills: `.claude/skills/dev-tdd/` + `.claude/skills/qa-adversarial/`
+  (dev↔qa-Loop).
