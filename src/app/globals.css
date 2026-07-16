@@ -542,3 +542,9 @@ p { margin: 0; }
   color: #d9534f; font-size: 22px; font-weight: 700; line-height: 1;
   text-shadow: 0 0 4px rgba(255,255,255,0.95);
 }
+
+/* Erlebnis-POI entlang der Route (REQ-EXP-004). */
+.nav-erlebnis-marker {
+  color: var(--accent); font-size: 16px; line-height: 1;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9); cursor: default;
+}

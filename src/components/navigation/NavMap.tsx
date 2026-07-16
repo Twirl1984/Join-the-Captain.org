@@ -76,6 +76,8 @@ interface NavMapProps {
   peilFix?: { lat: number; lon: number } | null;
   /** Wetterzeichen v2 (REQ-WET-015/016): Windfahnen + Temperatur/Niederschlag statt Pfeil. */
   symbolsV2?: boolean;
+  /** Erlebnisse im Korridor um die Route (REQ-EXP-004) — als eigene Marker. */
+  erlebnisse?: Array<{ lat: number; lon: number; name: string; typ: string }>;
 }
 
 function waypointIcon(n: number): L.DivIcon {
@@ -108,6 +110,14 @@ const peilIcon = L.divIcon({
   html: `<span class="nav-peil-marker">▲</span>`,
   iconSize: [22, 22],
   iconAnchor: [11, 18],
+});
+
+/** Erlebnis-POI entlang der Route (REQ-EXP-004): Stern-Symbol. */
+const erlebnisIcon = L.divIcon({
+  className: "wp-divicon",
+  html: `<span class="nav-erlebnis-marker">★</span>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
 });
 
 /** Eigene Position: Pfeil in Kursrichtung (falls Kurs bekannt), sonst Punkt. */
@@ -282,6 +292,7 @@ export default function NavMap({
   peilLinien,
   peilFix,
   symbolsV2 = false,
+  erlebnisse,
 }: NavMapProps) {
   return (
     <MapContainer center={revier.center} zoom={revier.zoom} className="wetter-leaflet" scrollWheelZoom>
@@ -342,6 +353,14 @@ export default function NavMap({
         <Marker key={`peil-${i}`} position={[o.lat, o.lon]} icon={peilIcon} interactive={false}>
           <Tooltip direction="top" offset={[0, -14]}>
             {o.label}
+          </Tooltip>
+        </Marker>
+      ))}
+
+      {erlebnisse?.map((e, i) => (
+        <Marker key={`erlebnis-${i}`} position={[e.lat, e.lon]} icon={erlebnisIcon} interactive={false}>
+          <Tooltip direction="top" offset={[0, -10]}>
+            {e.name}
           </Tooltip>
         </Marker>
       ))}

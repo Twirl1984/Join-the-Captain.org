@@ -331,3 +331,58 @@ export interface VideoFeedback {
   helpful_votes: number;
   created_at: string;
 }
+
+// ── Erlebnis-System (REQ-EXP-001) — POI-Wissensbasis ────────────────────
+// Lebenszyklus: entwurf → live → prüfen → archiviert (docs/erlebnis-system.md)
+export type PoiTyp =
+  | "bucht"
+  | "hafen-highlight"
+  | "sehenswuerdigkeit"
+  | "event"
+  | "versorgung";
+
+export type PoiStatus = "entwurf" | "live" | "pruefen" | "archiviert";
+
+export interface PoiQuelle {
+  url: string;
+  titel: string;
+  abgerufen_am: string; // ISO-Datum
+}
+
+export interface PoiScoreBasis {
+  nennungen: number;
+  quellen: string[]; // nur Quellen-Namen, nie Zitate/Nicknames
+}
+
+export interface RevierPoi {
+  id: string;
+  revier_id: string;
+  typ: PoiTyp;
+  name: string;
+  lat: number;
+  lon: number;
+  beschreibung: string;
+  windschutz_sektoren: string | null;
+  saison_von: number | null;
+  saison_bis: number | null;
+  gueltig_von: string | null; // ISO-Datum
+  gueltig_bis: string | null;
+  quellen_json: PoiQuelle[];
+  erlebnis_links_json: string[] | null;
+  confidence: number;
+  score: number | null;
+  score_basis_json: PoiScoreBasis | null;
+  stand_datum: string; // ISO-Datum
+  status: PoiStatus;
+  reviewed_am: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PoiVote {
+  id: string;
+  poi_id: string;
+  stimmt: boolean;
+  kommentar: string | null;
+  created_at: string;
+}
