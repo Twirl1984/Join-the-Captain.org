@@ -5,7 +5,7 @@ export function ok<T>(data: T, init?: ResponseInit): NextResponse {
 }
 
 export function fehler(message: string, status = 400): NextResponse {
-  return NextResponse.json({ error: message }, { status });
+  return NextResponse.json({ fehler: message }, { status });
 }
 
 export function eurFromCent(cent: number): string {

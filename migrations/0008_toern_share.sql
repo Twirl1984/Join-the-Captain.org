@@ -5,7 +5,7 @@
 -- §Abgleich Implementierungsplan). Read-only — kein Editieren über den Link.
 
 CREATE TABLE IF NOT EXISTS geteilter_toern (
-  id           TEXT PRIMARY KEY,          -- kurzer Code, z.B. 8 Zeichen base36
+  id           TEXT PRIMARY KEY CHECK (LENGTH(id) = 8),  -- genau 8 Zeichen base36 (BUG-050)
   revier_id    TEXT NOT NULL,
   punkte_json  JSONB NOT NULL,            -- [{lat, lon, name}] — geroutete Linie, ausgedünnt
   plan_json    JSONB,                     -- {total_nm, eta, warnings} — Kurzfassung, keine Legs-Details

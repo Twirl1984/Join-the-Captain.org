@@ -41,6 +41,14 @@ export function poiIstGueltig(
     if (poi.gueltig_bis && d > poi.gueltig_bis) return false;
   }
 
+  // Asymmetrische Saison-Filter sind ungültig: BUG-QA-003, BUG-QA-004
+  const hasSaisonVon = poi.saison_von != null;
+  const hasSaisonBis = poi.saison_bis != null;
+  if (hasSaisonVon !== hasSaisonBis) {
+    // Nur einer gesetzt → asymmetrisch → ungültig
+    return false;
+  }
+
   if (poi.saison_von != null && poi.saison_bis != null) {
     if (!monat) return true; // kein Monat angefragt → nicht ausschließen
     const { saison_von: von, saison_bis: bis } = poi;
@@ -81,20 +89,37 @@ export function poiImKorridor(
   korridorNm: number,
 ): boolean {
   if (routenPunkte.length === 0) return false;
+  if (korridorNm <= 0) return false; // BUG-046: Korridor deaktiviert bei ≤ 0
   const poiPunkt: Waypoint = { lat: poi.lat, lon: poi.lon };
   return routenPunkte.some((p) => haversineNm(poiPunkt, p) <= korridorNm);
 }
 
 /** Grob-Bbox um die Route (+ Rand für den Korridor) für den SQL-Vorfilter. */
 export function bboxUmRoute(routenPunkte: Waypoint[], korridorNm: number) {
+  // BUG-057: Validiere korridorNm > 0
+  if (korridorNm <= 0) {
+    throw new Error(`Korridor muss > 0 sein, erhalten: ${korridorNm}`);
+  }
+
   const randGrad = korridorNm / 60; // 1° Breite ≈ 60 sm; grobe, konservative Näherung
   const lats = routenPunkte.map((p) => p.lat);
   const lons = routenPunkte.map((p) => p.lon);
+
+  // BUG-058: Prüfe auf NaN-Koordinaten
+  if (lats.some((lat) => !Number.isFinite(lat)) || lons.some((lon) => !Number.isFinite(lon))) {
+    throw new Error("Route enthält ungültige Koordinaten (NaN oder Infinity)");
+  }
+
+  // BUG-053, BUG-054: Leere Route → Infinity/NaN, sonst clamp auf gültige Grenzen
+  const isEmpty = lats.length === 0;
+  const clampLat = (v: number) => (isEmpty ? v : Math.max(-90, Math.min(90, v)));
+  const clampLon = (v: number) => (isEmpty ? v : Math.max(-180, Math.min(180, v)));
+
   return {
-    minLat: Math.min(...lats) - randGrad,
-    maxLat: Math.max(...lats) + randGrad,
-    minLon: Math.min(...lons) - randGrad,
-    maxLon: Math.max(...lons) + randGrad,
+    minLat: clampLat(Math.min(...lats) - randGrad),
+    maxLat: clampLat(Math.max(...lats) + randGrad),
+    minLon: clampLon(Math.min(...lons) - randGrad),
+    maxLon: clampLon(Math.max(...lons) + randGrad),
   };
 }
 

@@ -11,6 +11,16 @@ import type { Waypoint, RoutePlan } from "../weather/route-forecast";
 const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const ID_LAENGE = 8;
 
+/** Validiert, dass eine ID exakt 8 Zeichen aus dem base36-Alphabet ist [BUG-056]. */
+export function validateToernShareId(id: string): void {
+  if (id.length !== ID_LAENGE) {
+    throw new Error(`Kurz-ID muss genau ${ID_LAENGE} Zeichen lang sein, erhalten: ${id.length}`);
+  }
+  if (!id.match(/^[a-z0-9]{8}$/)) {
+    throw new Error(`Kurz-ID muss nur a-z und 0-9 enthalten (base36), erhalten: ${id}`);
+  }
+}
+
 export interface ToernShareHighlight {
   name: string;
   lat: number;
@@ -48,6 +58,16 @@ export function generateShareId(zufall: () => number = Math.random): string {
   return id;
 }
 
+// Limits für DoS-Prävention (REQ-EXP-009 Sicherheit)
+const MAX_NAME_LENGTH = 500; // Zeichen pro Punkt-Name/Highlight-Name
+const MAX_HIGHLIGHTS = 1000; // Maximale Anzahl Highlights pro Snapshot
+
+/** Kurzt einen Namen auf MAX_NAME_LENGTH. */
+function truncateName(name: string | null | undefined): string | null {
+  if (!name || typeof name !== "string") return null;
+  return name.length > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name;
+}
+
 /** Formt die vollständige Route/Plan auf den Teaser-Umfang herunter (reine Funktion). */
 export function buildShareSnapshot(params: {
   revierId: string;
@@ -61,16 +81,35 @@ export function buildShareSnapshot(params: {
     punkte.length <= maxPunkte
       ? punkte
       : thinPunkte(punkte, maxPunkte);
+
+  // Kürze Highlights: Limit auf MAX_HIGHLIGHTS, Namenstruncation
+  let highlightsGekuerzt: ToernShareHighlight[] | null = null;
+  if (highlights && highlights.length > 0) {
+    const sliced = highlights.slice(0, MAX_HIGHLIGHTS);
+    highlightsGekuerzt = sliced.map((h) => ({
+      name: truncateName(h.name) ?? "",
+      lat: h.lat,
+      lon: h.lon,
+      typ: h.typ,
+    }));
+  }
+
   return {
     revier_id: revierId,
-    punkte_json: punkteGekuerzt.map((p) => ({ lat: p.lat, lon: p.lon, name: p.name ?? null })),
+    punkte_json: punkteGekuerzt.map((p) => ({
+      lat: p.lat,
+      lon: p.lon,
+      name: truncateName(p.name),
+    })),
     plan_json: { total_nm: plan.total_nm, eta: plan.eta, warnings: plan.warnings },
-    highlights_json: highlights && highlights.length > 0 ? highlights : null,
+    highlights_json: highlightsGekuerzt && highlightsGekuerzt.length > 0 ? highlightsGekuerzt : null,
   };
 }
 
 function thinPunkte<T>(arr: T[], max: number): T[] {
   if (arr.length <= max) return arr;
+  if (max <= 0) return [];
+  if (max === 1) return [arr[0]];
   const out: T[] = [arr[0]];
   for (let k = 1; k < max - 1; k++) {
     out.push(arr[Math.round((k * (arr.length - 1)) / (max - 1))]);
@@ -85,6 +124,7 @@ export async function createToernShare(
 ): Promise<string> {
   for (let versuch = 0; versuch < 5; versuch++) {
     const id = generateShareId();
+    validateToernShareId(id); // BUG-056: Validiere die ID vor Insert
     const bestehend = await queryOne(`SELECT id FROM geteilter_toern WHERE id = $1`, [id]);
     if (bestehend) continue;
     await query(
