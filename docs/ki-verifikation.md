@@ -113,7 +113,7 @@ Coverage.
 
 - ✅ Ebene 1 (dev-loop), Boden-Teil (diff-size, security, verify, trace, echte
   DB/4-Geräte/Staging), autonomer Treiber, GATES.md.
-- ⬜ **Modell-Diversität** im Loop (Änderung in `.claude/workflows/dev-qa-loop.js`).
+- ✅ **Modell-Diversität** im Loop (Autor `opus` ≠ Prüfer `sonnet`, nie Haiku) — in `.claude/workflows/dev-qa-loop.js`; am 2026-07-17 im route-profiles-Loop erstmals scharf gefahren.
 - ✅ **Mutation-Gate** (Stryker) auf den Kern-Libs. Baseline 2026-07-16: 75,7 %.
   **dev↔qa-Loop (Autor Opus ↔ Prüfer Sonnet) am 2026-07-17: route-profiles
   63 % → 93,55 %** (54 neue Tests, unabhängig per Stryker bestätigt). 6 harte
