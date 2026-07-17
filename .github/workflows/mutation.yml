@@ -1,0 +1,37 @@
+# Mutation-Report (docs/ki-verifikation.md): beweist wöchentlich, dass die Tests
+# echte Bugs fangen. Bewusst NUR die Kern-Libs (peilung, route-profiles) und
+# NICHT blockend (eigener Workflow, kein Required Check) — erst messen, dann
+# nach stabilem Trend scharfstellen (Schwelle `break` in stryker.config.json).
+name: mutation-report
+on:
+  schedule:
+    - cron: "23 4 * * 1" # montags 04:23 UTC
+  workflow_dispatch:
+
+jobs:
+  mutation:
+    name: Mutation-Score (Kern-Libs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Stryker (Kern-Libs)
+        run: npx stryker run
+      - name: Score in die Zusammenfassung schreiben
+        if: always()
+        run: |
+          if [ -f reports/mutation/mutation.json ]; then
+            SCORE=$(python3 -c "import json;d=json.load(open('reports/mutation/mutation.json'));m=[x for f in d.get('files',{}).values() for x in f.get('mutants',[])];k=sum(1 for x in m if x['status'] in('Killed','Timeout'));v=sum(1 for x in m if x['status'] in('Killed','Timeout','Survived','NoCoverage'));print('%.1f'%(100*k/v) if v else 'n/a')")
+            echo "## Mutation-Score: ${SCORE}%" >> "$GITHUB_STEP_SUMMARY"
+            echo "Überlebende Mutanten = Testlücken. Details im Artefakt." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 14

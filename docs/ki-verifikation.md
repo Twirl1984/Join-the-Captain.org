@@ -114,7 +114,11 @@ Coverage.
 - ✅ Ebene 1 (dev-loop), Boden-Teil (diff-size, security, verify, trace, echte
   DB/4-Geräte/Staging), autonomer Treiber, GATES.md.
 - ⬜ **Modell-Diversität** im Loop (Änderung in `.claude/workflows/dev-qa-loop.js`).
-- ⬜ **Mutation-Gate** (Stryker, erst Cron-Report auf Kern-Logik).
+- ✅ **Mutation-Gate** (Stryker) auf den Kern-Libs. **Baseline 2026-07-16: 75,7 %**
+  (peilung 80 % · route-profiles **63 %**, 83 überlebende Mutanten = Testlücken).
+  Wöchentlicher Report `.github/workflows/mutation.yml`, `break` noch `null`
+  (report-only); nach stabilem Trend auf den Ist-Boden heben. Erster konkreter
+  Auftrag daraus: route-profiles-Tests nachlegen (34 überlebende Mutanten).
 - ⬜ **Property-Tests** (fast-check) für die reinen Libs (peilung, routing, poi).
 - ⬜ **CODEOWNERS** für SAFE-*/Warnlogik.
 

@@ -28,7 +28,9 @@
     "verify": "npm run lint && npm run typecheck && npm run test:lib && npm run test:weather && npm run test:navigation && npm run test:erlebnis && npm run test:toern && npm run trace",
     "test:lib": "node --import tsx --test src/lib/__tests__/*.test.ts",
     "nav:icons": "tsx scripts/generate-app-icons.ts",
-    "trace": "tsx scripts/trace-check.ts"
+    "trace": "tsx scripts/trace-check.ts",
+    "test:mutation": "node --import tsx --test src/lib/navigation/__tests__/peilung.test.ts src/lib/navigation/__tests__/route-profiles.test.ts",
+    "mutation": "stryker run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -44,6 +46,7 @@
     "@geo-maps/earth-coastlines-1km": "^0.6.0",
     "@geo-maps/earth-lakes-1km": "^0.6.0",
     "@playwright/test": "^1.61.1",
+    "@stryker-mutator/core": "^9.6.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.10.7",
     "@types/pg": "^8.11.10",

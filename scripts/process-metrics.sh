@@ -18,9 +18,11 @@ tagged=$(grep -rEoh '\[REQ-[A-Z]+-[0-9]{3}\]' src e2e 2>/dev/null | wc -l | tr -
 # trace liefert "N Requirements · M mit Tests"; robust gegen Fehlen von DB etc.
 trace_out=$(npm run -s trace 2>/dev/null | grep -oE 'trace: [0-9]+ Requirements · [0-9]+ mit Tests' | head -1 || echo "trace: - Requirements · - mit Tests")
 mit_tests=$(echo "$trace_out" | grep -oE '· [0-9]+ mit Tests' | grep -oE '[0-9]+' || echo "-")
-# Mutation-Score (falls Stryker eingerichtet + Report vorhanden), sonst "-".
+# Mutation-Score (falls Stryker-Report vorhanden) — aus den Mutanten berechnet.
 mutation="-"
-[ -f reports/mutation/mutation.json ] && mutation=$(grep -oE '"mutationScore":[0-9.]+' reports/mutation/mutation.json | head -1 | grep -oE '[0-9.]+' || echo "-")
+if [ -f reports/mutation/mutation.json ]; then
+  mutation=$(python3 -c "import json;d=json.load(open('reports/mutation/mutation.json'));m=[x for f in d.get('files',{}).values() for x in f.get('mutants',[])];k=sum(1 for x in m if x['status'] in('Killed','Timeout'));v=sum(1 for x in m if x['status'] in('Killed','Timeout','Survived','NoCoverage'));print('%.1f'%(100*k/v) if v else '-')" 2>/dev/null || echo "-")
+fi
 
 LINE="| $DATUM | $req_total | $req_umgesetzt | $mit_tests | $tagged | $testfiles | $bugs | $bugs_offen | $mutation |"
 
