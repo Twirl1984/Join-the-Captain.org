@@ -72,8 +72,8 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 
 **Etappen-Queue (Reihenfolge: erst sicherer Prozess-Ausbau, dann Features):**
 1. [x] P1 — peilung.ts Mutation 80,24%→89,92% (25 harte Rest, verifiziert) ✓ 2026-07-18
-2. [ ] P2 — Property-Tests (fast-check) für peilung + route-profiles (Invarianten)
-3. [ ] P3 — CODEOWNERS für SAFE-*/Warnlogik-Pfade
+2. [x] P2 — Property-Tests (fast-check): 23 Invarianten, peilung 89,92%→90,32%, Kern-Libs 91,20% ✓ 2026-07-18
+3. [x] P3 — CODEOWNERS für Kern-Libs/Haftungs-Wording/Gates (Ebene-3-Gate) ✓ 2026-07-18
 4. [ ] F1 — REQ-EXP-005 Buchten-Ranking nach vorhergesagter Abend-Windrichtung
 5. [ ] F2 — REQ-EXP-003 Community-Bewertung „stimmt noch?" (poi_vote)
 6. [ ] (weitere Features EXP-006/007/008, NAV-022 — bei Produktentscheidung Übergabe)
