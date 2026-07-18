@@ -58,6 +58,16 @@ Simulator-Build), 2.6 Android (TWA/AAB), REQ-NAV-027 AR-Kamera (Premium),
 _(Pipeline trägt hier die verbliebenen `gering`-Findings je Etappe ein; vor dem
 `main`-Release abräumen.)_
 
+### Übergabe REQ-EXP-003 (Community-Votum „stimmt noch?") — Wiring offen
+Reiner Kern gebaut + verifiziert (`src/lib/erlebnis/community-votum.ts`, Flag
+`NEXT_PUBLIC_FEATURE_COMMUNITY_VOTUM`, Branch `mvp2/exp-003-votum`). Regel exakt:
+`negativ >= 2 && positiv === 0` → zurückstufen. Offen vor der Verdrahtung:
+1. **Vote-Endpoint** (`POST /api/votum`): Auth/Identität nötig? IP-basiert? Doppelstimmen?
+2. **Zurückstufungs-Aktion:** nur Query-Filter der Empfehlungen (reversibel) ODER
+   Status-Mutation `poi.status → "pruefen"` per Job — dann Kadenz + Revert-Regel klären.
+3. **Verdrahtung** von `ohneZurueckgestufte` in `listPoisAmKorridor` etc.: automatisch oder opt-in?
+4. `poi_vote.kommentar` bislang ungenutzt (Kurator-Dashboard-Kandidat).
+
 ## Wochenend-Autolauf (ab 2026-07-18, in der Chat-Session)
 
 Getrieben aus der Haupt-Chat-Session (eine Engine, nachvollziehbar dort):
@@ -74,6 +84,6 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 1. [x] P1 — peilung.ts Mutation 80,24%→89,92% (25 harte Rest, verifiziert) ✓ 2026-07-18
 2. [x] P2 — Property-Tests (fast-check): 23 Invarianten, peilung 89,92%→90,32%, Kern-Libs 91,20% ✓ 2026-07-18
 3. [x] P3 — CODEOWNERS für Kern-Libs/Haftungs-Wording/Gates (Ebene-3-Gate) ✓ 2026-07-18
-4. [ ] F1 — REQ-EXP-005 Buchten-Ranking nach vorhergesagter Abend-Windrichtung
-5. [ ] F2 — REQ-EXP-003 Community-Bewertung „stimmt noch?" (poi_vote)
-6. [ ] (weitere Features EXP-006/007/008, NAV-022 — bei Produktentscheidung Übergabe)
+4. [x] F1 — REQ-EXP-005 Buchten-Ranking: reiner Kern + Flag verifiziert, Datenquelle+Sektor-Gewichtung übergeben (Branch mvp2/exp-005-buchten) ✓ 2026-07-18
+5. [x] F2 — REQ-EXP-003 Community-Votum: Regel-Kern + Flag verifiziert, Wiring übergeben (Branch mvp2/exp-003-votum) ✓ 2026-07-18
+6. [ ] (weitere Features EXP-006/007/008, NAV-022 — brauchen Produktentscheidung → STOPP+Übergabe, NICHT autonom gestartet)
