@@ -29,7 +29,7 @@
     "test:lib": "node --import tsx --test src/lib/__tests__/*.test.ts",
     "nav:icons": "tsx scripts/generate-app-icons.ts",
     "trace": "tsx scripts/trace-check.ts",
-    "test:mutation": "node --import tsx --test src/lib/navigation/__tests__/peilung.test.ts src/lib/navigation/__tests__/route-profiles.test.ts",
+    "test:mutation": "node --import tsx --test src/lib/navigation/__tests__/peilung.test.ts src/lib/navigation/__tests__/route-profiles.test.ts src/lib/navigation/__tests__/depth.test.ts",
     "mutation": "stryker run"
   },
   "dependencies": {

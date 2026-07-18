@@ -7,7 +7,8 @@
   },
   "mutate": [
     "src/lib/navigation/peilung.ts",
-    "src/lib/navigation/route-profiles.ts"
+    "src/lib/navigation/route-profiles.ts",
+    "src/lib/navigation/depth.ts"
   ],
   "coverageAnalysis": "off",
   "concurrency": 4,
