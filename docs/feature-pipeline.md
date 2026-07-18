@@ -57,3 +57,23 @@ Simulator-Build), 2.6 Android (TWA/AAB), REQ-NAV-027 AR-Kamera (Premium),
 
 _(Pipeline trägt hier die verbliebenen `gering`-Findings je Etappe ein; vor dem
 `main`-Release abräumen.)_
+
+## Wochenend-Autolauf (ab 2026-07-18, in der Chat-Session)
+
+Getrieben aus der Haupt-Chat-Session (eine Engine, nachvollziehbar dort):
+jede Etappe läuft als Hintergrund-`dev-qa-loop`; bei Fertigstellung wird die
+Session benachrichtigt → verifiziert (eigene Messung, nicht Agenten-Selbstlob)
+→ committet → berichtet → startet die nächste Etappe. Heartbeat als Ausfall-
+sicherung. Cloud-Pipeline-Routine dafür deaktiviert (kein zweiter Treiber).
+
+**Sicherheitsgeländer:** nie auf `main`, Staging ist die Decke, das deterministische
+Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
+(REQ-PROC-002), eine Etappe zur Zeit.
+
+**Etappen-Queue (Reihenfolge: erst sicherer Prozess-Ausbau, dann Features):**
+1. [ ] P1 — peilung.ts Mutation-Härtung (überlebende Mutanten killen, Ziel ~90 %)
+2. [ ] P2 — Property-Tests (fast-check) für peilung + route-profiles (Invarianten)
+3. [ ] P3 — CODEOWNERS für SAFE-*/Warnlogik-Pfade
+4. [ ] F1 — REQ-EXP-005 Buchten-Ranking nach vorhergesagter Abend-Windrichtung
+5. [ ] F2 — REQ-EXP-003 Community-Bewertung „stimmt noch?" (poi_vote)
+6. [ ] (weitere Features EXP-006/007/008, NAV-022 — bei Produktentscheidung Übergabe)
