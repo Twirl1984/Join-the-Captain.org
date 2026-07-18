@@ -1,6 +1,7 @@
 // Unit-Tests Kreuzpeilung (REQ-NAV-025/026). Lauf: node --import tsx --test …/peilung.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as fc from "fast-check";
 import {
   magneticToTrue,
   crossBearingFix,
@@ -241,7 +242,7 @@ test("[REQ-NAV-025] Schnittwinkel > 90° wird auf 0..90° normalisiert", () => {
 test("[REQ-NAV-025] positionUncertaintyNm: cut > 90 wird zu 180-cut (keine Geometrie-Kipp)", () => {
   // Konstruiere zwei Peilungen, deren Differenz > 90° ist.
   // Die Funktion sollte das intern normalisieren.
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const obj1 = { lat: 54.5, lon: 13.0 };
   const obj2 = { lat: 54.0, lon: 13.5 };
   // Peilung zu obj1: ~180°, zu obj2: ~90° ⇒ Differenz 90° exakt.
@@ -477,7 +478,7 @@ test("[REQ-NAV-025] crossBearingFix: 4+ Peilungen zeigen maximales Fehlerdreieck
   // Der error_nm ist der MAXIMALE Abstand eines Schnittpunktes vom Zentroid.
   // Test: vier Peilungen mit künstlich erzeugtem Fehlerdreieck.
   // Die Schnitte sollten ein Dreieck bilden, error sollte der max-Radius sein.
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const refs = [
     { lat: 54.1, lon: 13.0 },  // Nord, ~6 sm
     { lat: 54.0, lon: 13.1 },  // Ost, ~5 sm
@@ -530,7 +531,7 @@ test("[REQ-NAV-025] bestCutAngleDeg: >= statt > würde best=0 nicht korrekt upda
     { ref: { lat: 54.0, lon: 13.0 }, trueBearingDeg: 45 },
     { lat: 54.1, lon: 13.1 }, // zweite Ref
     { ref: { lat: 54.0, lon: 13.1 }, trueBearingDeg: 45 }, // Paar mit 0°
-  ] as any;
+  ] as Bearing[];
   const cut = bestCutAngleDeg(bearings);
   // Der beste Schnitt sollte > 0 sein (nicht beide identisch).
   assert.ok(cut >= 0, "bestCutAngleDeg gibt Grenzfälle korrekt zurück");
@@ -539,7 +540,7 @@ test("[REQ-NAV-025] bestCutAngleDeg: >= statt > würde best=0 nicht korrekt upda
 test("[REQ-NAV-026] cut > 90 in positionUncertaintyNm normalisiert korrekt", () => {
   // Zwei Peilungen mit cut > 90° sollten intern zu 180-cut normalisiert werden.
   // Die Unsicherheit sollte damit plausibel sein (nicht inf/nan).
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const obj1 = { lat: 54.5, lon: 13.0 };
   const obj2 = { lat: 54.0, lon: 13.5 };
   const bearings: Bearing[] = [
@@ -646,7 +647,7 @@ test("[REQ-NAV-026] err < best Vergleich: initiales best=Infinity wird korrekt e
   // Wenn < zu <= mutiert, würde err == best auch updaten (falsch).
   // Aber bei initialisierung mit Infinity und err=endlich sollte << Infinity greifen.
   // Der Test verprüft, dass best am Ende < Infinity ist (also aktualisiert wurde).
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const refs = [
     { lat: 54.1, lon: 13.0 },
     { lat: 54.0, lon: 13.1 },
@@ -763,7 +764,7 @@ test("[REQ-NAV-025] positionUncertaintyNm: sigmaDeg Konversion (°→rad)", () =
   // tan((sigmaDeg / PI) / 180) oder tan(sigmaDeg * PI * 180) wären falsch.
   // Bei sigmaDeg=8° (typisch): tan(8°) ≈ 0.141.
   // Die Unsicherheit sollte damit plausibel wachsen.
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const obj1 = { lat: 54.1, lon: 13.0 };
   const obj2 = { lat: 54.0, lon: 13.1 };
   const bearings: Bearing[] = [
@@ -782,7 +783,7 @@ test("[REQ-NAV-025] positionUncertaintyNm: err / sin nicht * sin", () => {
   // Die Unsicherheit wird durch den Schnittwinkel geteilt, nicht multipliziert.
   // Spitzer Schnitt (sin klein) ⇒ Unsicherheit groß.
   // Flacher Schnitt (sin groß) ⇒ Unsicherheit klein.
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const ref1 = { lat: 54.3, lon: 13.0 }; // Nord
   const ref2 = { lat: 54.0, lon: 13.3 }; // Ost
   // Guter Schnittwinkel (~90°):
@@ -826,7 +827,7 @@ test("[REQ-NAV-026] Grenzfall deviation == toleranz ist plausibel (<= nicht <)",
   // Wenn deviation == toleranz, sollte plausibel = true sein (mit <=).
   // Mit dem Mutanten (deviation < toleranz) würde deviation == toleranz als false gelten.
   // Test konstruiert: toleranz = 0.5, deviation = 0.5 (genau gleich).
-  const fix: BearingFix = {
+  const _fix: BearingFix = {
     lat: 54.0,
     lon: 13.0,
     error_nm: 0.3,
@@ -895,7 +896,7 @@ test("[REQ-NAV-025] positionUncertaintyNm: err < best Update korrekt (nicht <=)"
   // Mit >, bleibt best beim ersten Auftreten.
   // Mit >=, würde auch bei Gleichheit updaten (aber Ergebnis gleich).
   // Stattdessen: teste, dass die Funktion das MINIMUM err findet.
-  const obs = { lat: 54.0, lon: 13.0 };
+  const _obs = { lat: 54.0, lon: 13.0 };
   const obj1 = { lat: 54.1, lon: 13.0 }; // ~6 sm Nord
   const obj2 = { lat: 54.0, lon: 13.1 }; // ~5 sm Ost (wegen Breite)
   const obj3 = { lat: 53.95, lon: 13.05 }; // SW
@@ -937,4 +938,194 @@ test("[REQ-NAV-025] Rückpeilung +180 vs -180: Geometrie-Direktionalität", () =
   assert.ok(correctFix, "Fix mit 4 korrekten Peilungen existiert");
   assert.ok(distanceNm(correctFix, obs) < 0.1, `korrekte Peilungen → Fix nah (${distanceNm(correctFix, obs)} sm)`);
   assert.ok(correctFix.error_nm < 0.01, `4 Peilungen Himmelsrichtungen → kein Fehlerdreieck (error=${correctFix.error_nm})`);
+});
+
+// ── Property-based Tests mit fast-check ──────────────────────────────────────
+
+test("[REQ-NAV-025] Property: distanceNm ist symmetrisch", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      (lat1, lon1, lat2, lon2) => {
+        const a = { lat: lat1, lon: lon1 };
+        const b = { lat: lat2, lon: lon2 };
+        const d1 = distanceNm(a, b);
+        const d2 = distanceNm(b, a);
+        assert.ok(Math.abs(d1 - d2) < 1e-9, `dist(${lat1},${lon1};${lat2},${lon2}) = ${d1}, dist(reverse) = ${d2}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: distanceNm(a,a) = 0", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      (lat, lon) => {
+        const p = { lat, lon };
+        assert.equal(distanceNm(p, p), 0);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: distanceNm >= 0", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      (lat1, lon1, lat2, lon2) => {
+        const a = { lat: lat1, lon: lon1 };
+        const b = { lat: lat2, lon: lon2 };
+        const d = distanceNm(a, b);
+        assert.ok(d >= 0, `distance = ${d} sollte >= 0 sein`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: magneticToTrue Ergebnis in [0,360)", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -360, max: 720, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      (magnetic, decl) => {
+        const result = magneticToTrue(magnetic, decl);
+        assert.ok(result >= 0 && result < 360, `magneticToTrue(${magnetic}, ${decl}) = ${result}, sollte [0,360) sein`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: magneticToTrue Roundtrip (m,d) → (m,d) → m", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -30, max: 30, noNaN: true, noDefaultInfinity: true }),
+      (magnetic, decl) => {
+        const true1 = magneticToTrue(magnetic, decl);
+        const back = magneticToTrue(true1, -decl);
+        // Zirkulärer Abstand mit Toleranz für Floating-Point-Fehler
+        const diff = Math.abs(((back - magnetic + 360) % 360));
+        const min_diff = Math.min(diff, 360 - diff);
+        assert.ok(min_diff < 0.01, `roundtrip: ${magnetic} → ${true1} → ${back}, min_diff=${min_diff}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: averageHeading Ergebnis in [0,360] oder null", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }), { minLength: 1, maxLength: 20 }),
+      (headings) => {
+        const result = averageHeading(headings);
+        if (result) {
+          // Floating-Point-Rounding kann heading ≈ 360 ergeben (anstatt 0)
+          assert.ok((result.heading >= 0 && result.heading <= 360), `heading=${result.heading} sollte [0,360] sein`);
+          assert.ok(result.spread_deg >= 0, `spread=${result.spread_deg} sollte >= 0 sein`);
+        }
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: averageHeading mit identischen Werten → heading = Input, spread ≈ 0", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }),
+      (heading) => {
+        const result = averageHeading([heading, heading, heading, heading])!;
+        assert.ok(Math.abs(result.heading - heading) < 0.1 || Math.abs(result.heading - heading + 360) < 0.1,
+          `heading von [${heading},${heading},...] sollte ~${heading} sein, war ${result.heading}`);
+        assert.ok(result.spread_deg < 1, `spread von konstanten Werten sollte ~0 sein, war ${result.spread_deg}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: averageHeading Permutations-Invarianz", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }), { minLength: 2, maxLength: 10 }),
+      (headings) => {
+        const r1 = averageHeading(headings);
+        const shuffled = [...headings].sort(() => Math.random() - 0.5);
+        const r2 = averageHeading(shuffled);
+        if (r1 && r2) {
+          const hdiff = Math.abs((r1.heading - r2.heading + 360) % 360);
+          const circular_diff = Math.min(hdiff, 360 - hdiff);
+          assert.ok(circular_diff < 0.2, `averageHeading sollte unabhängig von Reihenfolge sein: ${r1.heading} vs ${r2.heading}`);
+        }
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: sightingAzimuth Ergebnis in [0,360) oder null", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -360, max: 360, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -360, max: 360, noNaN: true, noDefaultInfinity: true }),
+      (alpha, beta, gamma) => {
+        const result = sightingAzimuth(alpha, beta, gamma);
+        if (result !== null) {
+          assert.ok(result >= 0 && result < 360, `sightingAzimuth(${alpha},${beta},${gamma}) = ${result}, sollte [0,360) sein`);
+        }
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-025] Property: positionUncertaintyNm >= 0 oder Infinity", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 2, max: 5 }),
+      fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
+      (nBearings, baseLat, baseLon) => {
+        const bearings: Bearing[] = [];
+        for (let i = 0; i < nBearings; i++) {
+          const refLat = baseLat + Math.sin((i * Math.PI) / nBearings) * 0.2;
+          const refLon = baseLon + Math.cos((i * Math.PI) / nBearings) * 0.2;
+          bearings.push({
+            ref: { lat: refLat, lon: refLon },
+            trueBearingDeg: (i * 360) / nBearings,
+          });
+        }
+        const fix = crossBearingFix(bearings);
+        if (fix && bearings.length >= 2) {
+          const uncert = positionUncertaintyNm(bearings, fix);
+          assert.ok(uncert > 0 || uncert === Infinity, `positionUncertaintyNm = ${uncert} sollte > 0 oder Infinity sein`);
+        }
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-026] Property: gpsPlausibility deviation und toleranz >= 0", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 2, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 2, noNaN: true, noDefaultInfinity: true }),
+      (fixLat, fixLon, gpsAcc, bearingUncert) => {
+        const gps = { lat: fixLat + Math.random() * 0.1, lon: fixLon + Math.random() * 0.1 };
+        const fix: BearingFix = { lat: fixLat, lon: fixLon, error_nm: 0.5, n: 2 };
+        const result = gpsPlausibility(gps, fix, gpsAcc, bearingUncert);
+        assert.ok(result.deviation_nm >= 0, `deviation = ${result.deviation_nm} sollte >= 0 sein`);
+        assert.ok(result.toleranz_nm >= 0.01, `toleranz = ${result.toleranz_nm} sollte >= 0.01 sein`);
+        assert.equal(result.plausibel, result.deviation_nm <= result.toleranz_nm, 
+          `plausibel sollte deviation <= toleranz sein: ${result.deviation_nm} <= ${result.toleranz_nm}`);
+      }
+    )
+  );
 });

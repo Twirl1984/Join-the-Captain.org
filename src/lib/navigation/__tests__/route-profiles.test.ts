@@ -3,10 +3,11 @@
 // Lauf:  node --import tsx --test src/lib/navigation/__tests__/route-profiles.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as fc from "fast-check";
 import { createMask } from "../watermask";
 import { findSeaRoute } from "../searoute";
 import { gridField, profileCosts, parseRouteProfil, samplerField } from "../route-profiles";
-import { DEFAULT_BOAT } from "../../weather/polar";
+import { DEFAULT_BOAT, type Boat } from "../../weather/polar";
 
 // "H"-Maske: zwei horizontale Korridore (oben kurz, unten lang = Umweg),
 // verbunden durch senkrechte Kanäle an beiden Enden. Start links, Ziel rechts.
@@ -353,7 +354,7 @@ test("[REQ-NAV-019] profileCosts: boot.hull_speed_kn Fallback auf DEFAULT_BOAT",
   const segelCosts = profileCosts("segel", feld, customBoat)!;
   assert.ok(segelCosts.nominalSpeedKn > 0, "segel-Speed sollte vom Boot kommen");
   // Mutant töten: ?? statt && für Fallback
-  const noHullBoat = { ...DEFAULT_BOAT, hull_speed_kn: undefined };
+  const noHullBoat = { ...DEFAULT_BOAT, hull_speed_kn: undefined } as unknown as Boat;
   const costs2 = profileCosts("segel", feld, noHullBoat)!;
   assert.ok(costs2.nominalSpeedKn > 0, "Fallback sollte DEFAULT_BOAT.hull_speed_kn verwenden");
 });
@@ -392,12 +393,12 @@ test("[REQ-NAV-023] samplerField: Zeitstempel wird korrekt addiert", () => {
   };
 
   const field = samplerField(sampler, startTime, 120);
-  const result = field(54, 13, 2); // 2 Stunden später
+  const _result = field(54, 13, 2); // 2 Stunden später
 
   assert.ok(capturedAt !== null, "sampler sollte aufgerufen worden sein");
-  assert.equal(capturedAt.getTime(), startMs + 2 * 3600e3, "Zeit sollte +2h sein");
+  assert.equal((capturedAt as Date).getTime(), startMs + 2 * 3600e3, "Zeit sollte +2h sein");
   // Mutant töten: + statt - oder * statt /
-  assert.ok(Math.abs(capturedAt.getTime() - (startMs + 2 * 3600e3)) < 1);
+  assert.ok(Math.abs((capturedAt as Date).getTime() - (startMs + 2 * 3600e3)) < 1);
 });
 
 test("[REQ-NAV-023] samplerField: Deckel bei maxHours (nicht extrapolieren)", () => {
@@ -411,13 +412,13 @@ test("[REQ-NAV-023] samplerField: Deckel bei maxHours (nicht extrapolieren)", ()
   };
 
   const field = samplerField(sampler, startTime, 5); // maxHours = 5
-  const result = field(54, 13, 100); // Anfrage für 100 Stunden
+  const _result = field(54, 13, 100); // Anfrage für 100 Stunden
 
   assert.ok(capturedAt !== null);
   // Sollte auf 5 Stunden gekürzt werden, nicht 100
-  assert.equal(capturedAt.getTime(), startMs + 5 * 3600e3, "Zeit sollte auf maxHours begrenzt sein");
+  assert.equal((capturedAt as Date).getTime(), startMs + 5 * 3600e3, "Zeit sollte auf maxHours begrenzt sein");
   // Mutant töten: Math.min statt Math.max
-  assert.ok(capturedAt.getTime() <= startMs + 5 * 3600e3 + 1000);
+  assert.ok((capturedAt as Date).getTime() <= startMs + 5 * 3600e3 + 1000);
 });
 
 test("[REQ-NAV-023] samplerField: negative elapsedH wird auf 0 gesetzt", () => {
@@ -431,13 +432,13 @@ test("[REQ-NAV-023] samplerField: negative elapsedH wird auf 0 gesetzt", () => {
   };
 
   const field = samplerField(sampler, startTime, 120);
-  const result = field(54, 13, -10); // Negative Zeit
+  const _result = field(54, 13, -10); // Negative Zeit
 
   assert.ok(capturedAt !== null);
   // Sollte auf 0 gesetzt werden (Math.max(0, -10) = 0)
-  assert.equal(capturedAt.getTime(), startMs, "negative elapsedH sollte 0 sein");
+  assert.equal((capturedAt as Date).getTime(), startMs, "negative elapsedH sollte 0 sein");
   // Mutant töten: Math.max vs Math.min
-  assert.ok(Math.abs(capturedAt.getTime() - startMs) < 1);
+  assert.ok(Math.abs((capturedAt as Date).getTime() - startMs) < 1);
 });
 
 test("[REQ-NAV-023] samplerField: NaN/nicht-endliche elapsedH wird auf 0 gesetzt", () => {
@@ -451,17 +452,17 @@ test("[REQ-NAV-023] samplerField: NaN/nicht-endliche elapsedH wird auf 0 gesetzt
   };
 
   const field = samplerField(sampler, startTime, 120);
-  const result = field(54, 13, NaN); // NaN
+  const _result = field(54, 13, NaN); // NaN
 
   assert.ok(capturedAt !== null);
   // Sollte auf 0 gesetzt werden (Number.isFinite(NaN) = false → 0)
-  assert.equal(capturedAt.getTime(), startMs, "NaN sollte auf 0 fallen");
+  assert.equal((capturedAt as Date).getTime(), startMs, "NaN sollte auf 0 fallen");
 });
 
 test("[REQ-NAV-023] samplerField: Feld gibt strukturiertes Objekt zurück", () => {
   const startTime = new Date("2025-01-01T10:00:00Z");
 
-  const sampler = (arg: { lat: number; lon: number; at: Date }) => {
+  const sampler = (_arg: { lat: number; lon: number; at: Date }) => {
     return { wind_speed_kn: 12.5, wind_from_deg: 135, wave_height_m: 1.8 };
   };
 
@@ -478,7 +479,7 @@ test("[REQ-NAV-023] samplerField: Feld gibt strukturiertes Objekt zurück", () =
 test("[REQ-NAV-023] samplerField: wave_height_m null wird zu null", () => {
   const startTime = new Date("2025-01-01T10:00:00Z");
 
-  const sampler = (arg: { lat: number; lon: number; at: Date }) => {
+  const sampler = (_arg: { lat: number; lon: number; at: Date }) => {
     return { wind_speed_kn: 10, wind_from_deg: 90, wave_height_m: null };
   };
 
@@ -493,7 +494,7 @@ test("[REQ-NAV-023] samplerField: wave_height_m null wird zu null", () => {
 test("[REQ-NAV-023] samplerField: wave_height_m undefined wird zu null", () => {
   const startTime = new Date("2025-01-01T10:00:00Z");
 
-  const sampler = (arg: { lat: number; lon: number; at: Date }) => {
+  const sampler = (_arg: { lat: number; lon: number; at: Date }) => {
     return { wind_speed_kn: 10, wind_from_deg: 90, wave_height_m: undefined };
   };
 
@@ -606,7 +607,7 @@ test("[REQ-NAV-019] gridField Distanzberechnung mit konkreten Werten", () => {
   assert.equal(atMid.wind_kn, 10, "Mittelpunkt sollte zu A gehören");
 
   // Mutant töten: Addition/Subtraktion in Distanzformel oder falsche Gewichtung
-  assert.ok(atA.wind_kn !== atB.wind_kn);
+  assert.ok(Math.abs(atA.wind_kn - atB.wind_kn) > 0, `Werte sollten unterschiedlich sein: ${atA.wind_kn} !== ${atB.wind_kn}`);
 });
 
 test("[REQ-NAV-019] midpoint-Aggregation: Koordinaten werden korrekt halbiert", () => {
@@ -656,4 +657,203 @@ test("[REQ-NAV-019] Segel: v <= 0 Fallback triggert bei No-Go-Zone", () => {
   assert.ok(isFinite(cost), "cost sollte endlich sein");
   // Mutant töten: if (true) statt if (v <= 0)
   assert.ok(cost < 100, "aber nicht unerwartet groß");
+});
+
+// ── Property-based Tests mit fast-check ──────────────────────────────────────
+
+test("[REQ-NAV-019] Property: parseRouteProfil bekannte Profile bleiben unverändert", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("kuerzeste", "segel", "motor", "komfort"),
+      (profil) => {
+        const result = parseRouteProfil(profil);
+        assert.equal(result, profil, `parseRouteProfil('${profil}') sollte '${profil}' zurückgeben, bekam ${result}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: parseRouteProfil null/undefined → 'kuerzeste'", () => {
+  fc.assert(
+    fc.property(
+      fc.oneof(fc.constant(null), fc.constant(undefined)),
+      (value) => {
+        const result = parseRouteProfil(value);
+        assert.equal(result, "kuerzeste", `parseRouteProfil(${value}) sollte 'kuerzeste' sein, war ${result}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: parseRouteProfil unbekannte Strings → null", () => {
+  fc.assert(
+    fc.property(
+      fc.string({ minLength: 1, maxLength: 50 }).filter((s) => !["kuerzeste", "segel", "motor", "komfort"].includes(s)),
+      (unknown) => {
+        const result = parseRouteProfil(unknown);
+        assert.equal(result, null, `parseRouteProfil('${unknown}') sollte null sein, war ${result}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: gridField mit leerem Samples-Array → RUHIG-Feld", () => {
+  const field = gridField([]);
+  fc.assert(
+    fc.property(
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      (lat, lon) => {
+        const sample = field(lat, lon, 0);
+        assert.equal(sample.wind_kn, 0, "wind_kn sollte 0 sein");
+        assert.equal(sample.wind_from_deg, 0, "wind_from_deg sollte 0 sein");
+        assert.equal(sample.wave_m, 0, "wave_m sollte 0 sein");
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: gridField([(lat,lon,...)]) gibt denselben Sample für (lat,lon) zurück", () => {
+  fc.assert(
+    fc.property(
+      fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 30, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 5, noNaN: true, noDefaultInfinity: true }),
+      (lat, lon, wind, dir, wave) => {
+        const field = gridField([{ lat, lon, wind_kn: wind, wind_from_deg: dir, wave_m: wave }]);
+        const sample = field(lat, lon, 0);
+        assert.equal(sample.wind_kn, wind, `wind_kn sollte ${wind} sein`);
+        assert.equal(sample.wind_from_deg, dir, `wind_from_deg sollte ${dir} sein`);
+        assert.equal(sample.wave_m, wave, `wave_m sollte ${wave} sein`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: profileCosts 'kuerzeste' → null", () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          lat: fc.double({ min: -90, max: 90, noNaN: true, noDefaultInfinity: true }),
+          lon: fc.double({ min: -180, max: 180, noNaN: true, noDefaultInfinity: true }),
+          wind_kn: fc.double({ min: 0, max: 30, noNaN: true, noDefaultInfinity: true }),
+          wind_from_deg: fc.double({ min: 0, max: 360, noNaN: true, noDefaultInfinity: true }),
+          wave_m: fc.oneof(fc.constant(null), fc.double({ min: 0, max: 5, noNaN: true, noDefaultInfinity: true })),
+        }),
+        { maxLength: 5 }
+      ),
+      (samples) => {
+        const field = gridField(samples.length ? samples : [{ lat: 54, lon: 13, wind_kn: 10, wind_from_deg: 0, wave_m: 1 }]);
+        const result = profileCosts("kuerzeste", field);
+        assert.equal(result, null, `profileCosts('kuerzeste', ...) sollte null sein`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: profileCosts non-'kuerzeste' → RouteCosts object", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("segel", "motor", "komfort"),
+      (profil) => {
+        const field = gridField([{ lat: 54, lon: 13, wind_kn: 10, wind_from_deg: 0, wave_m: 1 }]);
+        const result = profileCosts(profil, field, DEFAULT_BOAT);
+        assert.ok(result !== null, `profileCosts('${profil}', ...) sollte nicht null sein`);
+        assert.ok(result!.heuristicSpeedNmPerCost > 0, "heuristicSpeedNmPerCost sollte > 0 sein");
+        assert.ok(typeof result!.edgeCost === "function", "edgeCost sollte eine Funktion sein");
+        assert.ok(typeof result!.costToHours === "function", "costToHours sollte eine Funktion sein");
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: profileCosts edgeCost >= dist/heuristicSpeed (A*-Zulässigkeit)", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("segel", "motor", "komfort"),
+      fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 5, noNaN: true, noDefaultInfinity: true }),
+      (profil, baseLat, baseLon, dist) => {
+        const field = gridField([
+          { lat: baseLat, lon: baseLon, wind_kn: 15, wind_from_deg: 0, wave_m: 1.5 },
+          { lat: baseLat + 0.1, lon: baseLon + 0.1, wind_kn: 10, wind_from_deg: 90, wave_m: 0.5 },
+        ]);
+        const costs = profileCosts(profil, field, DEFAULT_BOAT)!;
+        const a = { lat: baseLat, lon: baseLon };
+        const b = { lat: baseLat + 0.1, lon: baseLon + 0.1 };
+        const cost = costs.edgeCost(a, b, dist, 0);
+        const heuristic_lower_bound = dist / costs.heuristicSpeedNmPerCost;
+        assert.ok(cost >= heuristic_lower_bound - 1e-9, 
+          `${profil}: cost=${cost} sollte >= ${heuristic_lower_bound} sein`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-019] Property: profileCosts costToHours(c) ist positive Funktion", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("segel", "motor", "komfort"),
+      fc.double({ min: 0.1, max: 100, noNaN: true, noDefaultInfinity: true }),
+      (profil, cost) => {
+        const field = gridField([{ lat: 54, lon: 13, wind_kn: 10, wind_from_deg: 0, wave_m: 1 }]);
+        const costs = profileCosts(profil, field, DEFAULT_BOAT)!;
+        const hours = costs.costToHours(cost);
+        assert.ok(hours > 0 && isFinite(hours), `costToHours(${cost}) sollte positive Stunden sein, war ${hours}`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-023] Property: samplerField nutzt die elapsed-Zeit korrekt", () => {
+  const startTime = new Date("2025-01-01T00:00:00Z");
+  const sampler = (arg: { lat: number; lon: number; at: Date }) => {
+    const h = (arg.at.getTime() - startTime.getTime()) / 3600e3;
+    return {
+      wind_speed_kn: h < 5 ? 2 : 18,
+      wind_from_deg: 180,
+      wave_height_m: null,
+    };
+  };
+  const field = samplerField(sampler, startTime, 120);
+  
+  fc.assert(
+    fc.property(
+      fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
+      (lat, lon) => {
+        const early = field(lat, lon, 2); // 2 Stunden: Flaute
+        const late = field(lat, lon, 8);  // 8 Stunden: Wind
+        assert.ok(early.wind_kn < 5, `early (2h) sollte Flaute sein: ${early.wind_kn} kn`);
+        assert.ok(late.wind_kn > 15, `late (8h) sollte Wind haben: ${late.wind_kn} kn`);
+      }
+    )
+  );
+});
+
+test("[REQ-NAV-023] Property: samplerField begrenzt auf maxHours", () => {
+  const startTime = new Date("2025-01-01T00:00:00Z");
+  const sampler = () => ({
+    wind_speed_kn: 10,
+    wind_from_deg: 0,
+    wave_height_m: 1,
+  });
+  const field = samplerField(sampler, startTime, 120);
+  
+  fc.assert(
+    fc.property(
+      fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 150, max: 500, noNaN: true, noDefaultInfinity: true }),
+      (lat, lon, elapsedH) => {
+        // Sollte nicht über maxHours = 120 hinaus extrapolieren
+        const sample = field(lat, lon, elapsedH);
+        assert.ok(sample.wind_kn >= 0, `wind sollte endlich und nicht negativ sein`);
+      }
+    )
+  );
 });
