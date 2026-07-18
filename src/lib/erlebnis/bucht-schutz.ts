@@ -3,8 +3,10 @@
 //
 // Eine Bucht wird durch einen Öffnungssektor beschrieben: die Richtung, in die
 // die Bucht zum offenen Wasser hin offen ist (oeffnungsrichtung_deg, 0–360,
-// rechtweisend), und die Breite dieses Sektors (oeffnungsbreite_deg, z. B. 90 = 45°
-// links/rechts der Öffnung sind noch exponiert).
+// rechtweisend), und die Sektorbreite (oeffnungsbreite_deg). Die Breite wird fürs
+// Datenmodell mitgeführt, fließt aber in DIESER Phase NOCH NICHT in den Score ein
+// (Sektor-Gewichtung = Phase 2, siehe Übergabe REQ-EXP-005 in docs/feature-pipeline.md);
+// der Score ist aktuell rein richtungsbasiert.
 //
 // Windschutz-Konvention (meteorologisch): windAusDeg = Richtung, AUS der der Wind kommt.
 // Eine Bucht ist voll exponiert (score ≈ 0), wenn der Wind AUS der Öffnungsrichtung kommt
@@ -23,7 +25,12 @@ export interface BuchtSektor {
   name: string;
   /** Kompass-Richtung der Öffnung zur offenen See hin, 0–360°, rechtweisend. */
   oeffnungsrichtung_deg: number;
-  /** Breite des exponiert-Sektors, in Grad, z. B. 90 = 45° beidseitig der Öffnung. */
+  /**
+   * Breite des exponierten Sektors in Grad (z. B. 90 = 45° beidseitig der Öffnung).
+   * RESERVIERT für die Sektor-Gewichtung (Phase 2) — fließt NOCH NICHT in
+   * windschutzScore ein; der Score ist derzeit rein richtungsbasiert.
+   * Offene Entscheidung: siehe Übergabe REQ-EXP-005 (docs/feature-pipeline.md).
+   */
   oeffnungsbreite_deg: number;
 }
 
@@ -32,8 +39,8 @@ export interface BuchtSektor {
  *
  * @param bucht — Bucht mit Öffnungsrichtung und -breite.
  * @param windAusDeg — Richtung, AUS der der Wind kommt (0–360, rechtweisend).
- * @returns Score zwischen 0 (voll exponiert) und 1 (voll geschützt), oder NaN wenn
- *          Eingabe ungültig (robustes Verhalten statt throw).
+ * @returns Score zwischen 0 (voll exponiert) und 1 (voll geschützt); bei ungültiger/
+ *          nicht-endlicher Eingabe 0.5 (neutral, robust statt throw).
  *
  * Formel: Zirkuläre Winkeldistanz zwischen windAusDeg und oeffnungsrichtung_deg,
  * dann skaliert auf [0, 1] über die Spanne [0°, 180°].
