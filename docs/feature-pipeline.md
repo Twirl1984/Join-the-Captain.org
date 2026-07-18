@@ -71,7 +71,7 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 (REQ-PROC-002), eine Etappe zur Zeit.
 
 **Etappen-Queue (Reihenfolge: erst sicherer Prozess-Ausbau, dann Features):**
-1. [ ] P1 — peilung.ts Mutation-Härtung (überlebende Mutanten killen, Ziel ~90 %)
+1. [x] P1 — peilung.ts Mutation 80,24%→89,92% (25 harte Rest, verifiziert) ✓ 2026-07-18
 2. [ ] P2 — Property-Tests (fast-check) für peilung + route-profiles (Invarianten)
 3. [ ] P3 — CODEOWNERS für SAFE-*/Warnlogik-Pfade
 4. [ ] F1 — REQ-EXP-005 Buchten-Ranking nach vorhergesagter Abend-Windrichtung
