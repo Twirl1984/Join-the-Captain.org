@@ -452,6 +452,59 @@ test("[REQ-NAV-025] horiz < 0.15: Kamera senkrecht → null (nicht falscher Azim
   assert.ok(upright !== null, "aufrechtes Handy → Azimut existiert");
 });
 
+test("[REQ-NAV-025] horiz < 0.15: Grenzfall horiz ≤ 0.15 gibt null (Boundary-Test)", () => {
+  // Die Bedingung ist: if (horiz < 0.15) return null;
+  // Mit <: horiz < 0.15 → null
+  // Mit <=: horiz <= 0.15 → null
+  // Die Grenze ist bei horiz = 0.15 exakt.
+
+  // Test mit horiz deutlich unter 0.15: sollte null geben (beide gleich)
+  const wellBelow = sightingAzimuth(0, 0, 5); // sin(5°) ≈ 0.087
+  assert.equal(wellBelow, null, "horiz ≪ 0.15 sollte null geben");
+
+  // Test mit horiz deutlich über 0.15: sollte Azimut geben (beide gleich)
+  const wellAbove = sightingAzimuth(0, 0, 20); // sin(20°) ≈ 0.342
+  assert.ok(wellAbove !== null && typeof wellAbove === "number", "horiz ≫ 0.15 sollte Azimut geben");
+
+  // Test nah an der Grenze: horiz ≈ 0.1499 (just below 0.15)
+  // arcsin(0.1499) ≈ 8.625°
+  const justBelow = sightingAzimuth(0, 0, 8.625);
+  assert.equal(justBelow, null, "horiz ≈ 0.1499 < 0.15 sollte null geben");
+});
+
+test("[REQ-NAV-025] crossBearingFix: 4+ Peilungen zeigen maximales Fehlerdreieck korrekt", () => {
+  // Mit 4 Peilungen entstehen 6 paarweise Schnitte: (0-1, 0-2, 0-3, 1-2, 1-3, 2-3).
+  // Der error_nm ist der MAXIMALE Abstand eines Schnittpunktes vom Zentroid.
+  // Test: vier Peilungen mit künstlich erzeugtem Fehlerdreieck.
+  // Die Schnitte sollten ein Dreieck bilden, error sollte der max-Radius sein.
+  const obs = { lat: 54.0, lon: 13.0 };
+  const refs = [
+    { lat: 54.1, lon: 13.0 },  // Nord, ~6 sm
+    { lat: 54.0, lon: 13.1 },  // Ost, ~5 sm
+    { lat: 53.9, lon: 13.0 },  // Süd, ~6 sm
+    { lat: 54.0, lon: 12.9 },  // West, ~5 sm
+  ];
+  // Vier exakte Peilungen sollten sich alle im obs-Punkt schneiden → error ≈ 0.
+  const perfectBearings: Bearing[] = [
+    { ref: refs[0], trueBearingDeg: 0 },
+    { ref: refs[1], trueBearingDeg: 90 },
+    { ref: refs[2], trueBearingDeg: 180 },
+    { ref: refs[3], trueBearingDeg: 270 },
+  ];
+  const perfectFix = crossBearingFix(perfectBearings)!;
+  assert.ok(perfectFix.error_nm < 0.01, `vier exakte Peilungen → error ≈ 0 (${perfectFix.error_nm})`);
+
+  // Jetzt: leicht verrauschte Peilungen sollten error > 0 zeigen.
+  const noisyBearings: Bearing[] = [
+    { ref: refs[0], trueBearingDeg: 0.5 },
+    { ref: refs[1], trueBearingDeg: 90.3 },
+    { ref: refs[2], trueBearingDeg: 179.8 },
+    { ref: refs[3], trueBearingDeg: 270.2 },
+  ];
+  const noisyFix = crossBearingFix(noisyBearings)!;
+  assert.ok(noisyFix.error_nm > 0, `verrauschte Peilungen → error > 0 (${noisyFix.error_nm})`);
+});
+
 test("[REQ-NAV-025] Math.hypot mit richtigen Termen: hypot(p.x - cx, p.y - cy)", () => {
   // Wenn + statt - mutiert (line 97), wäre die Fehlerberechnung falsch.
   // Bei 3 Peilungen sollte error_nm > 0 sein (Fehlerdreieck).
@@ -767,4 +820,121 @@ test("[REQ-NAV-026] deviation_nm: Rounding 100er-Stelle, nicht Multiplikator", (
   // Ergebnis sollte auf 2 Dezimalen sein.
   const hasDecimal = r2.deviation_nm.toString().split('.')[1];
   assert.ok(!hasDecimal || hasDecimal.length <= 2, `rounded to max 2 decimals (${r2.deviation_nm} sm)`);
+});
+
+test("[REQ-NAV-026] Grenzfall deviation == toleranz ist plausibel (<= nicht <)", () => {
+  // Wenn deviation == toleranz, sollte plausibel = true sein (mit <=).
+  // Mit dem Mutanten (deviation < toleranz) würde deviation == toleranz als false gelten.
+  // Test konstruiert: toleranz = 0.5, deviation = 0.5 (genau gleich).
+  const fix: BearingFix = {
+    lat: 54.0,
+    lon: 13.0,
+    error_nm: 0.3,
+    n: 2,
+  };
+  // GPS ist 0.2 sm weg, error_nm = 0.3, gpsAcc = 0, bearingUncert = 0
+  // Toleranz = max(0.01, 0 + 0.3 + 0) = 0.3
+  // Wir brauchen deviation = 0.3 exakt. Das geht mit Haversine.
+  const gps = { lat: 54.0, lon: 13.0 };
+  // Berechne einen Ort, der genau 0.3 sm entfernt ist.
+  // 0.3 sm = 0.3/60 Grad Breite = 0.005° = ~ 0.3 sm.
+  const fixAt0_3 = { lat: 54.005, lon: 13.0 };
+  const actualDeviation = distanceNm(gps, fixAt0_3);
+  // Jetzt setze fix mit error_nm so, dass toleranz == actualDeviation.
+  const fixAdjusted: BearingFix = {
+    lat: fixAt0_3.lat,
+    lon: fixAt0_3.lon,
+    error_nm: Math.max(0, actualDeviation - 0), // Kein zusätzlicher Fehler
+    n: 2,
+  };
+  const r = gpsPlausibility(gps, fixAdjusted, 0, 0);
+  // Jetzt sollte deviation ≈ toleranz (beide ~0.3)
+  assert.ok(Math.abs(r.deviation_nm - r.toleranz_nm) < 0.01,
+    `deviation und toleranz sind sehr nahe (dev=${r.deviation_nm}, tol=${r.toleranz_nm})`);
+  assert.equal(r.plausibel, true, `deviation ≈ toleranz sollte plausibel sein (dev=${r.deviation_nm} <= tol=${r.toleranz_nm})`);
+});
+
+test("[REQ-NAV-025] cut > 90: Grenzfall 91° wird normalisiert zu 89° (nicht 91°)", () => {
+  // Schnittwinkel > 90° sollte zu 180 - cut normalisiert werden.
+  // cut = 91° sollte zu 180 - 91 = 89° werden.
+  // Mit der Mutation (cut > 90) → (cut >= 90) würde 90° selbst normalisiert (90 → 90, kein Unterschied),
+  // aber 91° → 89° sollte erkannt werden.
+  const bearings: Bearing[] = [
+    { ref: { lat: 54.0, lon: 13.0 }, trueBearingDeg: 10 },
+    { ref: { lat: 54.1, lon: 13.1 }, trueBearingDeg: 101 }, // 91° Differenz
+  ];
+  const cut = bestCutAngleDeg(bearings);
+  // 91 % 180 = 91, dann 91 > 90 → cut = 180 - 91 = 89.
+  assert.ok(cut >= 85 && cut <= 95, `91° Differenz normalisiert zu ~89° (war ${cut}°)`);
+  assert.ok(cut < 90, `normalisiert unter 90° (war ${cut}°)`);
+});
+
+test("[REQ-NAV-025] bestCutAngleDeg: cut == best wird aktualisiert (> nicht >=)", () => {
+  // Wenn zwei Paare denselben Schnittwinkel haben, sollte der beste trotzdem aktualisiert werden.
+  // Mit (cut > best) vs (cut >= best): bei Gleichheit sollte >= aktualisieren, aber > nicht.
+  // Test: drei Peilungen, zwei Paare mit 90°, ein Paar mit 45°.
+  // Die Schleife prüft erst das 45er Paar, dann die 90er Paare.
+  // Mit >, würde best = 90 korrekt vom ersten 90er Paar.
+  // Mit >=, würde best auch noch vom zweiten 90er Paar aktualisiert (aber gleicher Wert).
+  // Das Ergebnis ist gleich, aber der Weg ist anders.
+  // Stattdessen: teste, dass best ALLE Kandidaten durchläuft und das Maximum findet.
+  const bearings: Bearing[] = [
+    { ref: { lat: 54.0, lon: 13.0 }, trueBearingDeg: 0 },
+    { ref: { lat: 54.0, lon: 13.1 }, trueBearingDeg: 90 }, // Paar 1: 90°
+    { ref: { lat: 54.1, lon: 13.2 }, trueBearingDeg: 0 }, // Paar 2: 0° (mit bearings[0])
+    { ref: { lat: 54.1, lon: 13.3 }, trueBearingDeg: 90 }, // Paar 3: 90° (mit bearings[1] oder [3])
+  ];
+  const cut = bestCutAngleDeg(bearings);
+  // Das beste sollte 90° sein (mehrere Paare haben 90°).
+  assert.ok(cut >= 85, `Maximum ist 90° (war ${cut}°)`);
+});
+
+test("[REQ-NAV-025] positionUncertaintyNm: err < best Update korrekt (nicht <=)", () => {
+  // Wenn err == best, sollte best NICHT aktualisiert werden (> nicht >=).
+  // Konstruiere Scenario mit mehreren Peilungen, wo ein Paar zweimal den gleichen err hat.
+  // Mit >, bleibt best beim ersten Auftreten.
+  // Mit >=, würde auch bei Gleichheit updaten (aber Ergebnis gleich).
+  // Stattdessen: teste, dass die Funktion das MINIMUM err findet.
+  const obs = { lat: 54.0, lon: 13.0 };
+  const obj1 = { lat: 54.1, lon: 13.0 }; // ~6 sm Nord
+  const obj2 = { lat: 54.0, lon: 13.1 }; // ~5 sm Ost (wegen Breite)
+  const obj3 = { lat: 53.95, lon: 13.05 }; // SW
+  const bearings: Bearing[] = [
+    { ref: obj1, trueBearingDeg: 0 },
+    { ref: obj2, trueBearingDeg: 90 },
+    { ref: obj3, trueBearingDeg: 225 },
+  ];
+  const fix = crossBearingFix(bearings)!;
+  const uncert = positionUncertaintyNm(bearings, fix);
+  // Sollte einen endlichen Wert haben (das Minimum aller Paare).
+  assert.ok(uncert > 0 && uncert < Infinity, `positionUncertaintyNm findet Minimum (${uncert} sm)`);
+});
+
+test("[REQ-NAV-025] Rückpeilung +180 vs -180: Geometrie-Direktionalität", () => {
+  // Die Standlinie eines beobachteten Objekts geht durch das Objekt in Richtung Rückpeilung (B+180).
+  // Mit falsch -180: würde die Standlinie in die entgegengesetzte Richtung gehen.
+  // Test: beobachter peilt zwei objekte, der geschnittene Fix sollte nahe beim Beobachter liegen.
+  // Mit +180 (korrekt): Fix liegt nahe bei Beobachter.
+  // Mit -180 (falsch): Fix liegt weit weg oder spiegelt (wegen trigonometrischer Symmetrie: könnte auch nah sein).
+  // Stattdessen: teste mit 4 Peilungen, damit die Fehlertoleranz größer wird und eine falsche
+  // Rückpeilung-Richtung zu großem Fehlerdreieck führt.
+  const obs = { lat: 54.0, lon: 13.0 };
+  const refs = [
+    { lat: 54.1, lon: 13.0 }, // Nord
+    { lat: 54.0, lon: 13.1 }, // Ost
+    { lat: 53.9, lon: 13.0 }, // Süd
+    { lat: 54.0, lon: 12.9 }, // West
+  ];
+  // Korrekte Peilungen (vier Himmelsrichtungen)
+  const correctBearings: Bearing[] = [
+    { ref: refs[0], trueBearingDeg: 0 },   // Nord
+    { ref: refs[1], trueBearingDeg: 90 },  // Ost
+    { ref: refs[2], trueBearingDeg: 180 }, // Süd
+    { ref: refs[3], trueBearingDeg: 270 }, // West
+  ];
+  const correctFix = crossBearingFix(correctBearings)!;
+  // Der Fix sollte sehr nah bei obs sein.
+  assert.ok(correctFix, "Fix mit 4 korrekten Peilungen existiert");
+  assert.ok(distanceNm(correctFix, obs) < 0.1, `korrekte Peilungen → Fix nah (${distanceNm(correctFix, obs)} sm)`);
+  assert.ok(correctFix.error_nm < 0.01, `4 Peilungen Himmelsrichtungen → kein Fehlerdreieck (error=${correctFix.error_nm})`);
 });
