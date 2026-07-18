@@ -9,4 +9,4 @@ Spalte (fangen die Tests echte Bugs?); Coverage steht bewusst NICHT hier.
 |---|---|---|---|---|---|---|---|---|
 | 2026-07-16 | 60 | 53 | - | 163 | 27 | 44 | 2 | 75.7 (peilung 80 · route-profiles 63) |
 | 2026-07-17 | 60 | 53 | - | 191 | 27 | 44 | 2 | 83.9 |
-| 2026-07-18 | 60 | 53 | - | 261 | 27 | 44 | 2 | 91.2 |
+| 2026-07-18 | 60 | 53 | - | 286 | 27 | 44 | 2 | 89.9 (peilung 90 · route-profiles 94 · depth 86; Gate +depth.ts) |

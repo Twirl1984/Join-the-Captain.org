@@ -74,6 +74,7 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 1. [x] P1 — peilung.ts Mutation 80,24%→89,92% (25 harte Rest, verifiziert) ✓ 2026-07-18
 2. [x] P2 — Property-Tests (fast-check): 23 Invarianten, peilung 89,92%→90,32%, Kern-Libs 91,20% ✓ 2026-07-18
 3. [x] P3 — CODEOWNERS für Kern-Libs/Haftungs-Wording/Gates (Ebene-3-Gate) ✓ 2026-07-18
-4. [ ] F1 — REQ-EXP-005 Buchten-Ranking nach vorhergesagter Abend-Windrichtung
-5. [ ] F2 — REQ-EXP-003 Community-Bewertung „stimmt noch?" (poi_vote)
-6. [ ] (weitere Features EXP-006/007/008, NAV-022 — bei Produktentscheidung Übergabe)
+4. [x] F1 — REQ-EXP-005 Buchten-Ranking: reiner Kern + Flag verifiziert (Branch mvp2/exp-005-buchten) ✓ 2026-07-18
+5. [x] F2 — REQ-EXP-003 Community-Votum: Regel-Kern + Flag verifiziert (Branch mvp2/exp-003-votum) ✓ 2026-07-18
+6. [x] P4 — depth.ts ins Mutation-Gate + Härtung 75%→86,46% (Kern-Libs gesamt 89,9%); flachwasserCheck voll gedeckt (Rest-Survivor beweisbar äquivalent) ✓ 2026-07-18
+7. [ ] (weitere Features EXP-006/007/008, NAV-022, F1/F2-Verdrahtung — brauchen Produktentscheidung → STOPP+Übergabe, NICHT autonom gestartet)
