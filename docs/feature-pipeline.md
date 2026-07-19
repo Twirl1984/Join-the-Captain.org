@@ -31,7 +31,19 @@ nächste Feature NICHT. Sie werden vor dem `main`-Release abgeräumt.
 2. **dev↔qa-Loop** (`Workflow dev-qa-loop`, `dbSetup:true` bei DB-Features) bis
    zur 80%-Schwelle oder Max-Runden.
 3. Bei 80%: `mvp2/<feature>` → `mvp_2` mergen, `mvp_2` pushen.
-4. `mvp_2` auf **Staging** deployen (rsync + compose `jtc-org-staging`).
+4. `mvp_2` auf **Staging** deployen — DREI Schritte, der letzte wurde bis
+   2026-07-19 vergessen (die Staging-DB hing dadurch 10 Migrationen zurück,
+   `/` lieferte 500 wegen fehlender `creator_submissions`):
+   ```bash
+   rsync -az --delete --exclude .git --exclude node_modules --exclude .next \
+     --exclude reports --exclude .env ./ root@194.164.197.23:/srv/jtc-org-staging/repo/
+   ssh root@194.164.197.23 'cd /srv/jtc-org-staging/repo && \
+     docker compose -p jtc-org-staging -f docker-compose.staging.yml up -d --build'
+   # PFLICHT, sonst läuft neuer Code gegen altes Schema:
+   ssh root@194.164.197.23 'docker exec jtc-org-staging-web-1 npm run db:migrate'
+   ```
+   Danach Smoke: Seiten-Status + ein echter DB-Roundtrip (POST/GET `/api/toern/share`).
+   Öffentlich auf `:3200` ist Basic-Auth aktiv → 401 ohne Zugangsdaten ist KORREKT.
 5. Fortschritt + verbliebene `gering`-Findings hier eintragen. **Nicht** auf
    `main`, **nicht** public — das gibt der User frei.
 6. Nächstes Feature aus der Queue → zurück zu 1 (branch't vom neuen `mvp_2`).
