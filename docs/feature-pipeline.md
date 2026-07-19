@@ -58,17 +58,31 @@ Simulator-Build), 2.6 Android (TWA/AAB), REQ-NAV-027 AR-Kamera (Premium),
 _(Pipeline trägt hier die verbliebenen `gering`-Findings je Etappe ein; vor dem
 `main`-Release abräumen.)_
 
-### Übergabe REQ-EXP-005 (Buchten-Windschutz-Ranking) — Produktentscheidungen offen
+### Übergabe REQ-EXP-005 (Buchten-Windschutz-Ranking)
 Reiner Kern gebaut + verifiziert (`src/lib/erlebnis/bucht-schutz.ts`, Flag
-`NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING`, Branch `mvp2/exp-005-buchten`). Vor der
-Verdrahtung (UI/API/DB) braucht es zwei Entscheidungen vom Betreiber:
-1. **Datenquelle der Öffnungssektoren je Bucht:** (a) automatisch aus Küsten-
-   geometrie/Wassermaske ableiten, (b) kuratiertes Feld je Bucht, (c) Community.
-2. **Sektor-Gewichtung:** Soll `oeffnungsbreite_deg` den Score gewichten (der
+`NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING`). Stand der Entscheidungen:
+1. **Datenquelle der Öffnungssektoren — ENTSCHIEDEN (User 2026-07-19):** automatische
+   Ableitung aus Küstengeometrie/Wassermaske als flächendeckende Basis, darüber
+   kuratierte Community-Korrektur für die Fälle, in denen die Geometrie danebenliegt.
+   Umsetzung noch offen (Ableitungs-Algorithmus + Korrektur-Datenfeld/-Workflow).
+2. **Sektor-Gewichtung — offen:** Soll `oeffnungsbreite_deg` den Score gewichten (der
    ganze Öffnungssektor „exponiert"), oder bleibt es rein richtungsbasiert?
    Aktuell: richtungsbasiert, Breite ist reserviert/ungenutzt (bewusst, s. Code).
 Sicherheits-Wording (`WINDSCHUTZ_HINWEIS`, „keine Ankerplatz-Freigabe") ist gesetzt
 und muss bei der UI-Verdrahtung in den Footer (in-the-loop-Freigabe).
+
+### Übergabe REQ-EXP-003 (Community-Votum „stimmt noch?") — Wiring offen
+Reiner Kern gebaut + verifiziert (`src/lib/erlebnis/community-votum.ts`, Flag
+`NEXT_PUBLIC_FEATURE_COMMUNITY_VOTUM`). Regel exakt:
+`negativ >= 2 && positiv === 0` → zurückstufen. Offen vor der Verdrahtung:
+1. **Vote-Endpoint** (`POST /api/votum`): Auth/Identität nötig? IP-basiert? Doppelstimmen?
+   Vorschlag: kein Login, eine Stimme pro Eintrag pro Browser + IP-Rate-Limit.
+2. **Zurückstufungs-Aktion:** nur Query-Filter der Empfehlungen (reversibel) ODER
+   Status-Mutation `poi.status → "pruefen"` per Job — dann Kadenz + Revert-Regel klären.
+   Vorschlag: Query-Filter (reversibel, kein Job, Gegenstimme holt den Eintrag sofort zurück).
+3. **Verdrahtung** von `ohneZurueckgestufte` in `listPoisAmKorridor` etc.: automatisch oder opt-in?
+   Vorschlag: automatisch.
+4. `poi_vote.kommentar` bislang ungenutzt (Kurator-Dashboard-Kandidat).
 
 ## Wochenend-Autolauf (ab 2026-07-18, in der Chat-Session)
 
@@ -86,7 +100,8 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 1. [x] P1 — peilung.ts Mutation 80,24%→89,92% (25 harte Rest, verifiziert) ✓ 2026-07-18
 2. [x] P2 — Property-Tests (fast-check): 23 Invarianten, peilung 89,92%→90,32%, Kern-Libs 91,20% ✓ 2026-07-18
 3. [x] P3 — CODEOWNERS für Kern-Libs/Haftungs-Wording/Gates (Ebene-3-Gate) ✓ 2026-07-18
-4. [x] F1 — REQ-EXP-005 Buchten-Ranking: reiner Kern + Flag verifiziert (Branch mvp2/exp-005-buchten) ✓ 2026-07-18
-5. [x] F2 — REQ-EXP-003 Community-Votum: Regel-Kern + Flag verifiziert (Branch mvp2/exp-003-votum) ✓ 2026-07-18
+4. [x] F1 — REQ-EXP-005 Buchten-Ranking: reiner Kern + Flag verifiziert, Datenquelle entschieden (Küstengeometrie + kuratierte Community), Sektor-Gewichtung offen ✓ 2026-07-18
+5. [x] F2 — REQ-EXP-003 Community-Votum: Regel-Kern + Flag verifiziert, Wiring übergeben ✓ 2026-07-18
 6. [x] P4 — depth.ts ins Mutation-Gate + Härtung 75%→86,46% (Kern-Libs gesamt 89,9%); flachwasserCheck voll gedeckt (Rest-Survivor beweisbar äquivalent) ✓ 2026-07-18
-7. [ ] (weitere Features EXP-006/007/008, NAV-022, F1/F2-Verdrahtung — brauchen Produktentscheidung → STOPP+Übergabe, NICHT autonom gestartet)
+7. [x] Integration: alle drei Branches → `mvp_2` gemergt ✓ 2026-07-19
+8. [ ] (weitere Features EXP-006/007/008, NAV-022, F1/F2-Verdrahtung — brauchen Produktentscheidung → STOPP+Übergabe, NICHT autonom gestartet)

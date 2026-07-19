@@ -42,3 +42,13 @@ export function weatherSymbolsV2Enabled(): boolean {
 export function buchtenRankingEnabled(): boolean {
   return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING);
 }
+
+/**
+ * Community-Votum zur POI-Qualitätssicherung (REQ-EXP-003): Nutzer bewerten
+ * ‚stimmt noch / stimmt nicht mehr'. Ab 2 Negativ-Meldungen OHNE Gegenstimme
+ * wird der Eintrag zurückgestuft. Default an; `off/false/0` fällt auf
+ * Votum-freie Empfehlungen zurück (Rollback-Hebel, kein Code-Revert nötig).
+ */
+export function communityVotumEnabled(): boolean {
+  return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_COMMUNITY_VOTUM);
+}
