@@ -410,6 +410,36 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await page.getByTestId("nav-playback-slider").fill("3");
     await expect(page.locator(".wx-precip").first()).toBeVisible();
   });
+
+  test("[REQ-WET-017] Windsymbole umschaltbar: Fahne ⇄ Pfeil, Wahl überlebt den Reload", async ({
+    page,
+  }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+
+    // Startwert (Env-Flag im Test-Build an): Beaufort-Windfahnen.
+    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+
+    // Umschalten → Fahnen verschwinden, Pfeil-Marker bleiben auf der Karte.
+    await page.getByTestId("nav-symbol-toggle").click();
+    await expect(page.locator("svg.wx-barb")).toHaveCount(0);
+    expect(await page.locator(".wx-marker").count()).toBeGreaterThan(0);
+
+    // Die Wahl ist gespeichert: nach einem Reload bleibt es beim Pfeil.
+    await page.reload();
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+    await expect(page.locator("svg.wx-barb")).toHaveCount(0);
+
+    // Und zurück: zweimal umschalten ergibt wieder den Ausgangszustand.
+    await page.getByTestId("nav-symbol-toggle").click();
+    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+  });
 });
 
 test.describe("/navigation — Erlebnisse entlang der Route (REQ-EXP-004)", () => {

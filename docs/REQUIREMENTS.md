@@ -37,6 +37,7 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 
 ## NAV — Navigations-App
 
+- **REQ-WET-017** Windsymbole umschaltbar (Status: umgesetzt) — Die Darstellung des Windes auf der Karte ist zur LAUFZEIT wählbar: Beaufort-Windfahne (fachlich dicht, Richtung und Stärke in einem Glyph) oder Pfeil (auf einen Blick eindeutiger). Bis dahin war das eine Build-Zeit-Entscheidung über NEXT_PUBLIC_FEATURE_WX_SYMBOLS_V2; das Flag liefert jetzt nur noch den Startwert. Die Wahl bleibt im Browser gespeichert (localStorage, Schlüssel `jtc.wx-symbole`), ein kaputter Speicherwert fällt auf den Startwert zurück. Reine Logik in `src/lib/weather/wx-symbole.ts`, Schalter in der Zeitreise-Karte (`NavApp.tsx`). Quelle: User 2026-07-19 (Staging-Test: Pfeile werden als besser lesbar empfunden).
 - **REQ-NAV-001** Wasserweg-Routing (Status: umgesetzt) — Routen zwischen Wegpunkten führen über Wasser (A* auf Revier-Wassermaske + Sichtlinien-Glättung), nie über Land der Maske. Quelle: navigation-app-plan 2026-07-03.
 - **REQ-NAV-002** Server-Snap & Unreachable (Status: umgesetzt) — Wegpunkte ≤ 1,5 km neben dem Wasser werden zur nächsten Wasserzelle gesnappt; getrennte Becken/ferne Landpunkte liefern 422 mit verständlicher Meldung. Quelle: navigation-app-plan.
 - **REQ-NAV-003** Tiefen & Flachwasser-Check (Status: umgesetzt) — Tiefe je Routenpunkt aus EMODnet (Fallback GEBCO) mit Status ok/knapp/gefahr gegen den Tiefgang; Check läuft automatisch nach der Berechnung; Planungsdaten-Hinweis. Quelle: navigation-app-plan.

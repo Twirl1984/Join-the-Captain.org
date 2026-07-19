@@ -41,6 +41,13 @@ import {
   type Bearing,
 } from "@/lib/navigation/peilung";
 import { weatherSymbolsV2Enabled } from "@/lib/flags";
+import {
+  normalisiereSymbolWahl,
+  andereWahl,
+  umschaltBeschriftung,
+  WX_SYMBOL_KEY,
+  type WxSymbolWahl,
+} from "@/lib/weather/wx-symbole";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -49,7 +56,9 @@ const NavMap = dynamic(() => import("./NavMap"), {
 
 // Wetterzeichen v2 (REQ-WET-015/016): Windfahnen + Temperatur/Niederschlag statt
 // Pfeil. Env-Flag (NEXT_PUBLIC_*, build-eingebacken) → einmal je Build ausgewertet.
-const SYMBOLS_V2 = weatherSymbolsV2Enabled();
+// Seit REQ-WET-017 nur noch der STARTWERT: die Nutzerin schaltet zur Laufzeit um,
+// die Wahl bleibt im Browser gespeichert (siehe lib/weather/wx-symbole.ts).
+const SYMBOL_START: WxSymbolWahl = weatherSymbolsV2Enabled() ? "fahne" : "pfeil";
 
 interface Timeline {
   times: string[];
@@ -134,6 +143,29 @@ export function NavApp() {
     }
     setShowDisclaimer(false);
   };
+  // Windsymbol-Darstellung (REQ-WET-017): Pfeil oder Beaufort-Windfahne.
+  // SSR-sicher nach dem Muster des Disclaimers oben: erst der Startwert aus dem
+  // Env-Flag, dann im Effekt die gespeicherte Wahl nachziehen — beim
+  // Server-Rendern gibt es kein localStorage.
+  const [symbolWahl, setSymbolWahl] = useState<WxSymbolWahl>(SYMBOL_START);
+  useEffect(() => {
+    try {
+      setSymbolWahl(normalisiereSymbolWahl(localStorage.getItem(WX_SYMBOL_KEY), SYMBOL_START));
+    } catch {
+      /* Privat-Modus: dann eben der Startwert */
+    }
+  }, []);
+  const symbolsV2 = symbolWahl === "fahne";
+  const toggleSymbolWahl = () => {
+    const neu = andereWahl(symbolWahl);
+    setSymbolWahl(neu);
+    try {
+      localStorage.setItem(WX_SYMBOL_KEY, neu);
+    } catch {
+      /* Privat-Modus: Wahl gilt nur für diese Sitzung */
+    }
+  };
+
   const [suche, setSuche] = useState("");
   const [waypoints, setWaypoints] = useState<NavUiWaypoint[]>([]);
   const nextId = useRef(1);
@@ -1146,7 +1178,7 @@ export function NavApp() {
               peilObjekte={peilObjekte}
               peilLinien={peilLinien}
               peilFix={peilFix}
-              symbolsV2={SYMBOLS_V2}
+              symbolsV2={symbolsV2}
               erlebnisse={erlebnisse ?? undefined}
             />
             {peilPickRow != null && (
@@ -1177,7 +1209,18 @@ export function NavApp() {
             <div className="card stack" style={{ gap: 8 }} data-testid="nav-playback-panel">
               <div className="row-between">
                 <span className="section-label">
-                  {SYMBOLS_V2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                  {symbolsV2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                  {/* REQ-WET-017: Darstellung zur Laufzeit wählbar, Wahl bleibt gespeichert. */}
+                  <button
+                    type="button"
+                    data-testid="nav-symbol-toggle"
+                    className="nav-symbol-toggle"
+                    onClick={toggleSymbolWahl}
+                    title={umschaltBeschriftung(symbolWahl)}
+                    aria-label={umschaltBeschriftung(symbolWahl)}
+                  >
+                    {symbolsV2 ? "⇢ Pfeile" : "⇢ Windfahnen"}
+                  </button>
                 </span>
                 <span className="caption" data-testid="nav-playback-time">
                   {fmtEta(timeline.times[Math.min(playIdx, timeline.times.length - 1)])}
@@ -1213,7 +1256,7 @@ export function NavApp() {
                 />
               </div>
               <p className="caption">
-                {SYMBOLS_V2 ? (
+                {symbolsV2 ? (
                   <>
                     Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Windfahnen =
                     Richtung &amp; Stärke (Halbstrich 5 kn, Strich 10 kn, Wimpel 50 kn, Schaft zeigt
