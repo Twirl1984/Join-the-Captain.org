@@ -29,3 +29,16 @@ export function navigationEnabled(): boolean {
 export function weatherSymbolsV2Enabled(): boolean {
   return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_WX_SYMBOLS_V2);
 }
+
+/**
+ * Bucht-Windschutz-Ranking für Übernachtungsplanung (REQ-EXP-005): Ranking von
+ * Buchten nach Windschutz (meteorologische Windrichtung). Feature ist hinter einem
+ * Kill-Switch; Default an, `off/false/0` deaktiviert (Rollback-Hebel).
+ *
+ * Der pure Kern ist implementiert (reine Logik in lib/erlebnis/bucht-schutz.ts),
+ * aber die UI/API-Integration und die Datenquelle für Öffnungs-Sektoren sind noch
+ * offen (Feature-Flag erlaubt staged Rollout, wenn später verdrahtet).
+ */
+export function buchtenRankingEnabled(): boolean {
+  return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING);
+}

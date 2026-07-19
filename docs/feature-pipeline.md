@@ -58,6 +58,18 @@ Simulator-Build), 2.6 Android (TWA/AAB), REQ-NAV-027 AR-Kamera (Premium),
 _(Pipeline trägt hier die verbliebenen `gering`-Findings je Etappe ein; vor dem
 `main`-Release abräumen.)_
 
+### Übergabe REQ-EXP-005 (Buchten-Windschutz-Ranking) — Produktentscheidungen offen
+Reiner Kern gebaut + verifiziert (`src/lib/erlebnis/bucht-schutz.ts`, Flag
+`NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING`, Branch `mvp2/exp-005-buchten`). Vor der
+Verdrahtung (UI/API/DB) braucht es zwei Entscheidungen vom Betreiber:
+1. **Datenquelle der Öffnungssektoren je Bucht:** (a) automatisch aus Küsten-
+   geometrie/Wassermaske ableiten, (b) kuratiertes Feld je Bucht, (c) Community.
+2. **Sektor-Gewichtung:** Soll `oeffnungsbreite_deg` den Score gewichten (der
+   ganze Öffnungssektor „exponiert"), oder bleibt es rein richtungsbasiert?
+   Aktuell: richtungsbasiert, Breite ist reserviert/ungenutzt (bewusst, s. Code).
+Sicherheits-Wording (`WINDSCHUTZ_HINWEIS`, „keine Ankerplatz-Freigabe") ist gesetzt
+und muss bei der UI-Verdrahtung in den Footer (in-the-loop-Freigabe).
+
 ## Wochenend-Autolauf (ab 2026-07-18, in der Chat-Session)
 
 Getrieben aus der Haupt-Chat-Session (eine Engine, nachvollziehbar dort):
