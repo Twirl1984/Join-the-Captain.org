@@ -1,0 +1,33 @@
+# CODEOWNERS — sicherheitskritische Pfade brauchen die Freigabe des Betreibers.
+#
+# Das ist das MENSCHLICHE Gate aus docs/ki-verifikation.md (Ebene 3): der
+# KI-Autor/Prüfer-Loop und das deterministische Gate (Ebene 1+2) laufen autonom,
+# aber Änderungen an den unten gelisteten Pfaden erzwingen einen Review des
+# Betreibers. Wirkt scharf erst mit Branch-Protection auf `main`:
+# „Require review from Code Owners" aktivieren (Settings → Branches).
+
+# Standard-Owner (Fallback für alles ohne spezifischere Regel weiter unten)
+*                                       @Twirl1984
+
+# --- Sicherheitskritische Kern-Libs (Mutation-gated: Peilung, Routing, Tiefe) ---
+# Fehler hier gefährden Navigationsentscheidungen → nie ungeprüft ändern.
+/src/lib/navigation/peilung.ts          @Twirl1984
+/src/lib/navigation/route-profiles.ts   @Twirl1984
+/src/lib/navigation/depth.ts            @Twirl1984
+
+# --- Haftungs-/Sicherheits-Wording (Entscheidungshilfe, NICHT amtliche Seekarte) ---
+# CLAUDE.md-Regel: Änderungen am Haftungs-Wording vorher freigeben (in-the-loop).
+/src/components/navigation/NavApp.tsx   @Twirl1984
+/src/app/impressum/                     @Twirl1984
+/src/app/datenschutz/                   @Twirl1984
+
+# --- Reversibilität & Anforderungen ---
+/src/lib/flags.ts                       @Twirl1984
+/docs/REQUIREMENTS.md                   @Twirl1984
+
+# --- Der Prozess selbst: CI-Gates, Mutation-Gate, Traceability ---
+# Wer die Gates ändert, hebelt die Verifikation aus → Betreiber-Review Pflicht.
+/.github/workflows/                      @Twirl1984
+/.github/CODEOWNERS                      @Twirl1984
+/stryker.config.json                    @Twirl1984
+/scripts/trace-check.ts                 @Twirl1984

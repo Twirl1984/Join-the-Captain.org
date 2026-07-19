@@ -45,3 +45,7 @@ test-results/
 
 # Session-Worktrees (lokal, nie committen)
 .claude/worktrees/
+
+# Mutation-/Test-Reports (generiert)
+reports/
+.stryker-tmp/

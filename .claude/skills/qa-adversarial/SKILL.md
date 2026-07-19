@@ -58,3 +58,13 @@ Der Loop endet, wenn eine QA-Runde **nichts Neues** findet UND die volle Suite
 grün ist — oder nach der vereinbarten Maximalrunde (Default 10). Wird die Max-
 Runde erreicht, ohne dass es grün wird: NICHT durchwinken, sondern die
 verbleibenden Findings offen an den User übergeben.
+
+## Modell-Diversität & Mutation (Generator-Verifier-Asymmetrie)
+
+- **Prüfer ≠ Erzeuger — auch im Modell:** QA läuft auf einem ANDEREN, gleich
+  starken Modell als der Autor (nie Haiku). Gleiches Modell im gleichen Lauf
+  teilt seinen blinden Fleck. Im dev-qa-loop über `devModel`/`qaModel` gesetzt.
+- **Grün ist nicht genug — beweise, dass die Tests fangen:** KI-geschriebene
+  Tests spiegeln oft nur den Code (grün, fangen nichts) oder liefen nie echt.
+  Ein **Mutation Score** (Stryker/mutmut auf der Kern-Logik) ist der einzige
+  KI-unabhängige Beweis. Coverage genügt NICHT. Siehe docs/ki-verifikation.md.
