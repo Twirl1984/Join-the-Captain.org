@@ -37,7 +37,13 @@ const de: Woerterbuch = {
   "fuss.datenschutz": "Datenschutz",
 
   // Törnplanung — die Kernbedienung
-  "nav.berechnen": "Berechnen",
+  "nav.berechnen": "Route über Wasser berechnen",
+  "nav.berechne_laeuft": "Berechne …",
+  "nav.mindestens_zwei": "Mindestens 2 Wegpunkte setzen — auf die Karte oder einen Hafen tippen.",
+  "nav.revier_suchen": "Revier suchen (Name, Gruppe oder Hafen)",
+  "nav.tiefgang_label": "Tiefgang (m) — für den Flachwasser-Check",
+  "nav.gpx_titel": "Route als GPX für Plotter/Apps herunterladen",
+  "nav.teilen_titel": "Read-only Link zum Teilen erzeugen",
   "nav.zuruecksetzen": "Zurücksetzen",
   "nav.revier": "Revier",
   "nav.startzeit": "Startzeit",
@@ -51,6 +57,10 @@ const de: Woerterbuch = {
   "nav.karte_vollbild": "Karte im Vollbild",
   "nav.gpx_export": "GPX exportieren",
   "nav.toern_teilen": "Törn teilen",
+  "navseite.eyebrow": "JTC-Eigenbau · Beta",
+  "navseite.titel": "Navigation & Wetter",
+  "navseite.einleitung":
+    "Seekarte mit Tiefen, Route, die automatisch um Land herumführt, deine GPS-Position und echte Ankunftszeiten — dazu Strömung, Wind und Wolkenfelder über die Zeit.",
 
   // Wetter
   "wetter.wind": "Wind",
@@ -110,7 +120,13 @@ const en: Woerterbuch = {
   "fuss.datenschutz": "Privacy policy",
 
   // Passage planning — the core controls
-  "nav.berechnen": "Calculate",
+  "nav.berechnen": "Calculate route over water",
+  "nav.berechne_laeuft": "Calculating …",
+  "nav.mindestens_zwei": "Place at least 2 waypoints — tap the chart or a harbour.",
+  "nav.revier_suchen": "Search sailing area (name, group or harbour)",
+  "nav.tiefgang_label": "Draught (m) — for the shallow-water check",
+  "nav.gpx_titel": "Download the route as GPX for plotters and apps",
+  "nav.teilen_titel": "Create a read-only link to share",
   "nav.zuruecksetzen": "Reset",
   "nav.revier": "Sailing area",
   "nav.startzeit": "Departure time",
@@ -124,6 +140,10 @@ const en: Woerterbuch = {
   "nav.karte_vollbild": "Full-screen chart",
   "nav.gpx_export": "Export GPX",
   "nav.toern_teilen": "Share passage",
+  "navseite.eyebrow": "Built by JTC · Beta",
+  "navseite.titel": "Navigation & weather",
+  "navseite.einleitung":
+    "Nautical chart with depths, a route that automatically avoids land, your GPS position and realistic arrival times — plus current, wind and cloud cover over time.",
 
   // Weather
   "wetter.wind": "Wind",

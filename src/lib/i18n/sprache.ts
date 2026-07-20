@@ -79,6 +79,25 @@ export function fuelle(vorlage: string, werte: Readonly<Record<string, string | 
   );
 }
 
+/**
+ * Baut einen fertigen Übersetzer für eine Sprache.
+ *
+ * Bewusst hier und nicht in server.ts: Client-Komponenten (z. B. NavApp)
+ * können `next/headers` nicht nutzen. Sie bekommen die Sprache als Eigenschaft
+ * vom Server gereicht und bauen sich damit denselben Übersetzer — so gibt es
+ * nur EINE Nachschlage-Logik für beide Welten, und kein kurzes Aufblitzen der
+ * falschen Sprache beim ersten Rendern.
+ */
+export function macheUebersetzer(
+  woerterbuecher: Readonly<Record<Sprache, Woerterbuch>>,
+  sprache: Sprache,
+): (schluessel: string, werte?: Readonly<Record<string, string | number>>) => string {
+  return (schluessel, werte) => {
+    const text = uebersetze(woerterbuecher, schluessel, sprache);
+    return werte ? fuelle(text, werte) : text;
+  };
+}
+
 /** Die jeweils andere Sprache — für den Umschalter. */
 export function andereSprache(sprache: Sprache): Sprache {
   return sprache === "de" ? "en" : "de";

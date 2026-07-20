@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  macheUebersetzer,
   normalisiereSprache,
   uebersetze,
   fuelle,
@@ -93,4 +94,18 @@ test("[REQ-I18N-001] Sprachnamen stehen in der jeweiligen Sprache", () => {
 test("[REQ-I18N-001] Deutsch ist die Standardsprache und der Cookie ist projektspezifisch", () => {
   assert.equal(STANDARD_SPRACHE, "de");
   assert.ok(SPRACHE_COOKIE.startsWith("jtc."), `Cookie sollte mit jtc. beginnen: ${SPRACHE_COOKIE}`);
+});
+
+test("[REQ-I18N-001] Uebersetzer-Fabrik liefert dieselbe Logik wie das direkte Nachschlagen", () => {
+  // Wichtig: Client- und Server-Seite duerfen nicht auseinanderlaufen.
+  const t = macheUebersetzer(WB, "en");
+  assert.equal(t("nav.berechnen"), "Calculate");
+  assert.equal(t("nav.punkte", { n: 5 }), "5 waypoints set");
+  assert.equal(t("nur.de"), "Nur Deutsch", "Rueckfall auf Deutsch gilt auch hier");
+  assert.equal(t("gibt.es.nicht"), "gibt.es.nicht");
+});
+
+test("[REQ-I18N-001] Uebersetzer ohne Werte laesst Platzhalter unangetastet", () => {
+  const t = macheUebersetzer(WB, "de");
+  assert.equal(t("nav.punkte"), "{n} Punkte gesetzt");
 });

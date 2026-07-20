@@ -41,6 +41,8 @@ import {
   type Bearing,
 } from "@/lib/navigation/peilung";
 import { weatherSymbolsV2Enabled } from "@/lib/flags";
+import { macheUebersetzer, STANDARD_SPRACHE, type Sprache } from "@/lib/i18n/sprache";
+import { WOERTERBUECHER } from "@/lib/i18n/woerterbuch";
 import {
   normalisiereSymbolWahl,
   andereWahl,
@@ -122,7 +124,10 @@ function toLocalInput(d: Date): string {
 
 const DISCLAIMER_KEY = "jtc-nav-disclaimer-v1";
 
-export function NavApp() {
+// `sprache` kommt vom Server (siehe app/navigation/page.tsx), damit beim ersten
+// Rendern nicht kurz die falsche Sprache steht (REQ-I18N-001).
+export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
+  const t = macheUebersetzer(WOERTERBUECHER, sprache);
   const [revierId, setRevierId] = useState(REVIER_GRUPPEN[0].reviere[0].id);
   // Pflicht-Hinweis bei Erstnutzung: App ist NICHT als Navigationsmittel
   // zugelassen (Open-Source-Daten) — Nutzer muss das aktiv bestätigen.
@@ -1089,7 +1094,7 @@ export function NavApp() {
         <div className="stack" style={{ gap: 12 }}>
           <div className="stack" style={{ gap: 6 }}>
             <label className="stack" style={{ gap: 6 }}>
-              <span className="caption">Revier suchen (Name, Gruppe oder Hafen)</span>
+              <span className="caption">{t("nav.revier_suchen")}</span>
               <input
                 data-testid="nav-revier-search"
                 type="search"
@@ -1118,7 +1123,7 @@ export function NavApp() {
               </div>
             )}
             <label className="stack" style={{ gap: 6 }}>
-              <span className="caption">Revier</span>
+              <span className="caption">{t("nav.revier")}</span>
               <select
                 data-testid="nav-revier-select"
                 className="wetter-select"
@@ -1819,7 +1824,7 @@ export function NavApp() {
               </button>
             </div>
             <label className="stack" style={{ gap: 4 }}>
-              <span className="caption">Tiefgang (m) — für den Flachwasser-Check</span>
+              <span className="caption">{t("nav.tiefgang_label")}</span>
               <input
                 data-testid="nav-tiefgang"
                 type="number"
@@ -2027,12 +2032,12 @@ export function NavApp() {
             disabled={!canCalc || loading}
             onClick={() => void calculate()}
           >
-            {loading ? "Berechne …" : "Route über Wasser berechnen"}
+            {loading ? t("nav.berechne_laeuft") : t("nav.berechnen")}
             {!loading && <Icon name="arrow-right" size={16} />}
           </button>
             {!canCalc && (
               <p className="caption" data-testid="nav-calc-hint">
-                Mindestens 2 Wegpunkte setzen — auf die Karte oder einen Hafen tippen.
+                {t("nav.mindestens_zwei")}
               </p>
             )}
         </div>
@@ -2085,7 +2090,7 @@ export function NavApp() {
               type="button"
               data-testid="nav-gpx-export"
               className="pill"
-              title="Route als GPX für Plotter/Apps herunterladen"
+              title={t("nav.gpx_titel")}
               onClick={() => {
                 const pts = (routing?.points ?? effectiveWaypoints).map((p) => ({
                   lat: p.lat,
@@ -2106,7 +2111,7 @@ export function NavApp() {
               type="button"
               data-testid="nav-share-toern"
               className="pill"
-              title="Read-only Link zum Teilen erzeugen"
+              title={t("nav.teilen_titel")}
               disabled={shareState === "laden"}
               onClick={() => void shareToern()}
             >
