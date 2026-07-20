@@ -20,6 +20,10 @@ const de: Woerterbuch = {
   "kopf.podcast": "Podcast",
   "kopf.community": "Community",
   "kopf.startseite": "Startseite",
+  "kopf.wetter": "Wetter",
+  "kopf.entrepreneurs": "Entrepreneurs",
+  "kopf.zur_buchung": "Zur Buchung",
+  "kopf.menue_oeffnen": "Menü öffnen",
 
   // Törnplanung — die Kernbedienung
   "nav.berechnen": "Berechnen",
@@ -78,6 +82,10 @@ const en: Woerterbuch = {
   "kopf.podcast": "Podcast",
   "kopf.community": "Community",
   "kopf.startseite": "Home",
+  "kopf.wetter": "Weather",
+  "kopf.entrepreneurs": "Entrepreneurs",
+  "kopf.zur_buchung": "Book a trip",
+  "kopf.menue_oeffnen": "Open menu",
 
   // Passage planning — the core controls
   "nav.berechnen": "Calculate",
