@@ -1484,13 +1484,21 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               {t("nav.bearing_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
-              {/* Haftungstext: NICHT übersetzen — bleibt deutsch */}
-              <p className="caption" lang="de">
-                <strong>Handy aufrecht halten und mit der Kamera-Rückseite auf das Objekt zielen</strong>,
-                dann „Kompass“ tippen. Peile 2–3 markante Objekte an
-                — der Schnitt der Peilungen ergibt deinen Standort. Klassische Seemannschaft als
-                Rückfall, wenn die GPS-Position unplausibel wirkt. <strong>Planungshilfe</strong>,
-                ersetzt keinen Handpeilkompass und keine amtliche Seekarte.
+              {/*
+                Dieser Absatz war vollständig als Haftungstext markiert — zu grob.
+                Er ist GEMISCHT: vorne eine reine Bedienanleitung (wie halte ich
+                das Handy?), hinten die haftungsrelevante Abgrenzung. Wer nur
+                Englisch liest, konnte die Peilung dadurch nicht bedienen.
+                Jetzt getrennt: Anleitung übersetzt, der Haftungssatz bleibt
+                deutsch und ist als solcher ausgezeichnet (REQ-SAFE-002).
+              */}
+              <p className="caption">
+                <strong>{t("nav.bearing_howto_strong")}</strong>
+                {t("nav.bearing_howto_rest")}{" "}
+                <span lang="de">
+                  <strong>Planungshilfe</strong>, ersetzt keinen Handpeilkompass und keine amtliche
+                  Seekarte.
+                </span>
               </p>
               {peilRefs.length < 2 ? (
                 <p className="caption" data-testid="nav-peil-hint">
@@ -1548,7 +1556,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                               )
                             }
                           >
-                            <option value="">Objekt wählen …</option>
+                            <option value="">{t("nav.bearing_pick_object")}</option>
                             {peilRefs.map((h) => (
                               <option key={`${h.revier}::${h.name}`} value={`${h.revier}::${h.name}`}>
                                 {h.name} ({h.revier}) — {h.distance_nm} sm {h.kompass}

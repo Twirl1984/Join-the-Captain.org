@@ -174,6 +174,10 @@ const de: Woerterbuch = {
 
   // Peilung
   "nav.bearing_title": "Peilung — Standort-Backup (wenn GPS spinnt)",
+  "nav.bearing_howto_strong": "Handy aufrecht halten und mit der Kamera-Rückseite auf das Objekt zielen",
+  "nav.bearing_howto_rest":
+    ", dann „Kompass“ tippen. Peile 2–3 markante Objekte an — der Schnitt der Peilungen ergibt deinen Standort. Klassische Seemannschaft als Rückfall, wenn die GPS-Position unplausibel wirkt.",
+  "nav.bearing_pick_object": "Objekt wählen …",
   "nav.bearing_hint":
     "Keine Referenzpunkte in der Nähe — wähle ein passendes Revier oder aktiviere GPS.",
   "nav.bearing_declination_label": "Missweisung (° Ost, grobe Näherung)",
@@ -419,6 +423,10 @@ const en: Woerterbuch = {
 
   // Bearing
   "nav.bearing_title": "Bearing — position backup (if GPS fails)",
+  "nav.bearing_howto_strong": "Hold the phone upright and aim the back of the camera at the object",
+  "nav.bearing_howto_rest":
+    ", then tap “Compass”. Take bearings on 2–3 prominent objects — where the bearings cross is your position. Classic seamanship as a fallback when the GPS position looks implausible.",
+  "nav.bearing_pick_object": "Choose an object …",
   "nav.bearing_hint": "No reference objects nearby — select a suitable sailing area or enable GPS.",
   "nav.bearing_declination_label": "Magnetic variation (° East, rough estimate)",
 
