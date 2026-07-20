@@ -360,7 +360,7 @@ const en: Woerterbuch = {
   "nav.playback_symbols_flags": "⇢ Barbs",
   "nav.playback_time_input_label": "Time in forecast",
   "nav.playback_legend_v2":
-    "Grey shading = cloud cover (darker = more obscured) · Barbs = direction & strength (pennant = 50 kn, full barb = 10 kn, half barb = 5 kn, shaft points from) · Number = knots, ° = temperature · 🌦️/🌧️/⛈️ rain (light/moderate/heavy) · ☀️/🌙 clear (day/night), 🌤️ partly cloudy, ⛅ cloudy, ☁️ overcast · ⚡ thunderstorm · ⛵ approximate boat position at this time.",
+    "Grey shading = cloud cover (darker = more obscured) · Barbs = direction & strength (pennant = 50 kn, full barb = 10 kn, half barb = 5 kn, shaft points toward the source) · Number = knots, ° = temperature · 🌦️/🌧️/⛈️ rain (light/moderate/heavy) · ☀️/🌙 clear (day/night), 🌤️ partly cloudy, ⛅ cloudy, ☁️ overcast · ⚡ thunderstorm · ⛵ approximate boat position at this time.",
   "nav.playback_legend_v1":
     "Grey shading = cloud cover (darker = more obscured) · Arrows = wind · ☀️/🌙 clear (day/night), 🌤️ partly cloudy, ⛅ cloudy, ☁️ overcast · ⚡ thunderstorm · ⛵ approximate boat position at this time.",
 
@@ -374,10 +374,10 @@ const en: Woerterbuch = {
   "nav.gps_status_blocked": "Location is blocked for this page or browser.",
   "nav.gps_status_unavailable": "GPS is unavailable here.",
   "nav.gps_help_title": "How to enable location:",
-  "nav.gps_help_ios_safari_1": "Settings → Privacy & Security → Location Services → enable",
+  "nav.gps_help_ios_safari_1": "Settings → Privacy & Security → Location Services → turn on",
   "nav.gps_help_ios_safari_2": "Below that: Safari Websites → \"Allow While Using\"",
   "nav.gps_help_ios_safari_3": "Return here, reload the page, tap \"Enable GPS\"",
-  "nav.gps_help_ios_third_1": "Settings → Privacy & Security → Location Services → enable",
+  "nav.gps_help_ios_third_1": "Settings → Privacy & Security → Location Services → turn on",
   "nav.gps_help_ios_third_2":
     "Settings → {browser} → Location → \"Allow While Using the App\" (most people miss this step)",
   "nav.gps_help_ios_third_3": "Return here, reload the page, tap \"Enable GPS\"",
@@ -411,7 +411,7 @@ const en: Woerterbuch = {
   "nav.jetzt_warning_prefix": "⚠",
   "nav.jetzt_gale": "Gale",
   "nav.jetzt_thunderstorm": "Thunderstorm",
-  "nav.jetzt_high_wave": "high sea",
+  "nav.jetzt_high_wave": "high waves",
   "nav.jetzt_warning_caution": "— Exercise caution.",
   "nav.jetzt_under_keel": "Under the keel:",
   "nav.jetzt_depth": "m water depth",
@@ -462,7 +462,7 @@ const en: Woerterbuch = {
   "nav.profile_sail": "Sail-fast",
   "nav.profile_sail_hint": "avoids calm, crosses no-go zone",
   "nav.profile_motor": "Motor-fast",
-  "nav.profile_motor_hint": "cruising speed, high sea slows progress",
+  "nav.profile_motor_hint": "cruising speed, high waves slow progress",
   "nav.profile_comfort": "Comfort",
   "nav.profile_comfort_hint": "avoids seaway and strong wind, even if longer",
   "nav.profile_weather_hint":
