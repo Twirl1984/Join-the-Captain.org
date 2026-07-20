@@ -1,7 +1,7 @@
 # Traceability-Matrix — Anforderungen ↔ Tests
 
 GENERIERT von `npm run trace` (scripts/trace-check.ts) — nicht von Hand editieren.
-Stand: Requirements 62 · getaggte Zuordnungen 316.
+Stand: Requirements 63 · getaggte Zuordnungen 321.
 
 | Requirement | Status | Verifizierende Tests |
 |---|---|---|
@@ -66,4 +66,5 @@ Stand: Requirements 62 · getaggte Zuordnungen 316.
 | REQ-EXP-007 — Referral-Monetarisierung | geplant | — |
 | REQ-EXP-008 — Revier-Wiki mit Linting | geplant | — |
 | REQ-EXP-009 — Teilbarer Törn-Link | umgesetzt | `src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId liefert 8 Zeichen aus dem base36-Alphabet<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] generateShareId ist mit injiziertem Zufall deterministisch (Testbarkeit)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot kuerzt lange Punktfolgen auf maxPunkte, behaelt Start/End<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot laesst kurze Punktfolgen unveraendert<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot ohne Highlights ergibt null (kein leeres Array)<br>`src/lib/toern/__tests__/share.test.ts`: [REQ-EXP-009] buildShareSnapshot mit Highlights behaelt sie<br>`e2e/navigation.spec.ts`: [REQ-EXP-009] Törn teilen erzeugt einen read-only Link |
+| REQ-EXP-010 — Aufruf zum Selbstplanen auf geteilten Törns | umgesetzt | `src/lib/i18n/__tests__/share-cta.test.ts`: [REQ-EXP-010] der Aufruf existiert in beiden Sprachen<br>`src/lib/i18n/__tests__/share-cta.test.ts`: [REQ-EXP-010] der Aufruf fordert zum Handeln auf, statt nur zu beschreiben<br>`src/lib/i18n/__tests__/share-cta.test.ts`: [REQ-EXP-010] die Schaltflaeche bleibt kurz genug fuer schmale Handys<br>`src/lib/i18n/__tests__/share-cta.test.ts`: [REQ-EXP-010] der Aufruf nennt den Nutzen und die fehlende Huerde<br>`src/lib/i18n/__tests__/share-cta.test.ts`: [REQ-EXP-010] der Aufruf verspricht keine amtliche Seekarte |
 | REQ-AUTH-001 — Konto-System | geplant | — |

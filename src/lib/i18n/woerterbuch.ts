@@ -58,6 +58,15 @@ const de: Woerterbuch = {
   "nav.gpx_export": "GPX exportieren",
   "nav.toern_teilen": "Törn teilen",
   "navseite.eyebrow": "JTC-Eigenbau · Beta",
+
+  // Geteilter Törn — Aufruf zum Selbstplanen (REQ-EXP-010)
+  "share.cta_titel": "Plane deinen eigenen Törn",
+  "share.cta_text":
+    "Route über den Wasserweg, Wetter entlang der Strecke und Ankunftszeit je Etappe — kostenlos und ohne Anmeldung.",
+  "share.cta_knopf": "Törn planen",
+  "share.geteilter_toern": "Geteilter Törn",
+  "share.erlebnisse": "Erlebnisse entlang der Route",
+  "share.readonly_hinweis": "Diese Ansicht ist read-only.",
   "navseite.titel": "Navigation & Wetter",
   "navseite.einleitung":
     "Seekarte mit Tiefen, Route, die automatisch um Land herumführt, deine GPS-Position und echte Ankunftszeiten — dazu Strömung, Wind und Wolkenfelder über die Zeit.",
@@ -141,6 +150,15 @@ const en: Woerterbuch = {
   "nav.gpx_export": "Export GPX",
   "nav.toern_teilen": "Share passage",
   "navseite.eyebrow": "Built by JTC · Beta",
+
+  // Shared passage — call to action (REQ-EXP-010)
+  "share.cta_titel": "Plan your own passage",
+  "share.cta_text":
+    "Route over water, weather along the way and an arrival time for every leg — free and without signing up.",
+  "share.cta_knopf": "Plan a passage",
+  "share.geteilter_toern": "Shared passage",
+  "share.erlebnisse": "Places along the route",
+  "share.readonly_hinweis": "This view is read-only.",
   "navseite.titel": "Navigation & weather",
   "navseite.einleitung":
     "Nautical chart with depths, a route that automatically avoids land, your GPS position and realistic arrival times — plus current, wind and cloud cover over time.",
