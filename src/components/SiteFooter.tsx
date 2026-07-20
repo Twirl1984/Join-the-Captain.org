@@ -42,6 +42,7 @@ export async function SiteFooter() {
                   {t("fuss.zur_buchung_de")}
                 </a>
               </li>
+              <li><Link href="/preise">{t("kopf.preise")}</Link></li>
               <li><Link href="/impressum">{t("fuss.impressum")}</Link></li>
               <li><Link href="/datenschutz">{t("fuss.datenschutz")}</Link></li>
             </ul>

@@ -591,3 +591,19 @@ p { margin: 0; }
   color: var(--accent); font-size: 16px; line-height: 1;
   text-shadow: 0 0 3px rgba(255,255,255,0.9); cursor: default;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Produkt- & Preisseite (REQ-EXP-011)
+   ════════════════════════════════════════════════════════════════════ */
+/* Faehigkeiten und Abgrenzung stehen NEBENEINANDER, gleich breit — die
+   ehrliche Einschraenkung ist kein Kleingedrucktes, sondern Teil des
+   Angebots (REQ-SAFE-002). */
+.preis-zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.preis-pakete { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.preis-paket { padding: 18px; }
+.preis-paket--hervor { border-color: var(--accent); }
+.preis-betrag { font-family: var(--font-serif); font-size: 30px; line-height: 1.1; color: var(--fg); }
+@media (max-width: 768px) {
+  .preis-zwei { grid-template-columns: 1fr; }
+  .preis-pakete { grid-template-columns: 1fr; }
+}

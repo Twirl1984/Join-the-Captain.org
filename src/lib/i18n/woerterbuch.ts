@@ -22,6 +22,7 @@ const de: Woerterbuch = {
   "kopf.startseite": "Startseite",
   "kopf.wetter": "Wetter",
   "kopf.entrepreneurs": "Entrepreneurs",
+  "kopf.preise": "Preise",
   "kopf.zur_buchung": "Zur Buchung",
   "kopf.menue_oeffnen": "Menü öffnen",
 
@@ -60,6 +61,38 @@ const de: Woerterbuch = {
   "navseite.eyebrow": "JTC-Eigenbau · Beta",
 
   // Geteilter Törn — Aufruf zum Selbstplanen (REQ-EXP-010)
+  // Produkt- und Preisseite (REQ-EXP-011)
+  "preis.titel": "Was die Navigations-App kann — und was sie nicht ist",
+  "preis.eyebrow": "Produkt & Preise",
+  "preis.einleitung":
+    "Ein Törnplaner für die deutsche Ostsee und Nordsee: Route über den Wasserweg statt Luftlinie, Wetter entlang der Strecke mit Ankunftszeit je Etappe, Flachwasser-Check gegen deinen Tiefgang.",
+  "preis.kann_titel": "Was sie kann",
+  "preis.kann_1": "Route, die Land automatisch umfährt — keine Luftlinie über die Halbinsel",
+  "preis.kann_2": "Wetter zur voraussichtlichen Durchfahrtszeit je Streckenabschnitt, nicht nur zum Start",
+  "preis.kann_3": "Beste Abfahrtszeit im gewählten Zeitfenster finden",
+  "preis.kann_4": "Flachwasser-Check gegen deinen Tiefgang, mit Gezeiten",
+  "preis.kann_5": "Kreuzpeilung mit dem Handy, wenn die GPS-Position unplausibel wirkt",
+  "preis.kann_6": "Erlebnisse entlang der Route und teilbarer Törn-Link für die Crew",
+  "preis.nicht_titel": "Was sie ausdrücklich NICHT ist",
+  "preis.nicht_text":
+    "Kein Ersatz für amtliche Seekarten und keine Navigationsanlage. Die Tiefen stammen aus offenen Datenquellen (EMODnet, GEBCO) und sind Planungsdaten — grober als eine amtliche Karte und ohne Gewähr. Die Entscheidung an Bord trifft der Skipper.",
+  "preis.preise_titel": "Preise",
+  "preis.saison_name": "Saison",
+  "preis.saison_preis": "24 €",
+  "preis.saison_text": "Mai bis Oktober, alle Funktionen. Passt zur Segelsaison in Nord- und Ostsee.",
+  "preis.jahr_name": "Jahr",
+  "preis.jahr_preis": "39 €",
+  "preis.jahr_text": "Zwölf Monate, alle Funktionen. Günstiger als zwei Saisons.",
+  "preis.frei_name": "Kostenlos",
+  "preis.frei_preis": "0 €",
+  "preis.frei_text": "Planung im Browser ausprobieren, ohne Anmeldung.",
+  "preis.versprechen_titel": "Ein Versprechen",
+  "preis.versprechen_text":
+    "Was du bezahlt hast, bleibt nutzbar. Läuft dein Zugang aus, sperren wir dir keine Funktionen, für die du bereits bezahlt hast.",
+  "preis.status_hinweis":
+    "Die App ist in Arbeit. Die Preise stehen fest, der Starttermin noch nicht.",
+  "preis.cta": "Jetzt im Browser ausprobieren",
+
   "share.cta_titel": "Plane deinen eigenen Törn",
   "share.cta_text":
     "Route über den Wasserweg, Wetter entlang der Strecke und Ankunftszeit je Etappe — kostenlos und ohne Anmeldung.",
@@ -272,6 +305,7 @@ const en: Woerterbuch = {
   "kopf.startseite": "Home",
   "kopf.wetter": "Weather",
   "kopf.entrepreneurs": "Entrepreneurs",
+  "kopf.preise": "Pricing",
   "kopf.zur_buchung": "Book a trip",
   "kopf.menue_oeffnen": "Open menu",
 
@@ -310,6 +344,38 @@ const en: Woerterbuch = {
   "navseite.eyebrow": "Built by JTC · Beta",
 
   // Shared passage — call to action (REQ-EXP-010)
+  // Product and pricing page (REQ-EXP-011)
+  "preis.titel": "What the navigation app does — and what it is not",
+  "preis.eyebrow": "Product & pricing",
+  "preis.einleitung":
+    "A passage planner for the German Baltic and North Sea: a route over the water rather than a straight line, weather along the way with an arrival time for every leg, and a shallow-water check against your draught.",
+  "preis.kann_titel": "What it does",
+  "preis.kann_1": "Routes around land automatically — no straight line across the peninsula",
+  "preis.kann_2": "Weather for the time you will actually be on each leg, not just at departure",
+  "preis.kann_3": "Finds the best time to set off within the window you choose",
+  "preis.kann_4": "Shallow-water check against your draught, tides included",
+  "preis.kann_5": "Cross bearings with your phone when the GPS position looks implausible",
+  "preis.kann_6": "Places worth seeing along the route, and a shareable link for the crew",
+  "preis.nicht_titel": "What it is explicitly NOT",
+  "preis.nicht_text":
+    "It does not replace official nautical charts and it is not a navigation system. Depths come from open data (EMODnet, GEBCO); they are planning figures — coarser than an official chart and without warranty. The decision on board remains the skipper's.",
+  "preis.preise_titel": "Pricing",
+  "preis.saison_name": "Season",
+  "preis.saison_preis": "€24",
+  "preis.saison_text": "May to October, every feature. Matched to the sailing season in the North and Baltic Seas.",
+  "preis.jahr_name": "Year",
+  "preis.jahr_preis": "€39",
+  "preis.jahr_text": "Twelve months, every feature. Cheaper than two seasons.",
+  "preis.frei_name": "Free",
+  "preis.frei_preis": "€0",
+  "preis.frei_text": "Try the planner in your browser, no sign-up.",
+  "preis.versprechen_titel": "One promise",
+  "preis.versprechen_text":
+    "What you have paid for stays usable. When your access expires we do not lock you out of features you have already paid for.",
+  "preis.status_hinweis":
+    "The app is still being built. The prices are settled; the launch date is not.",
+  "preis.cta": "Try it in your browser",
+
   "share.cta_titel": "Plan your own passage",
   "share.cta_text":
     "Route over water, weather along the way and an arrival time for every leg — free and without signing up.",
