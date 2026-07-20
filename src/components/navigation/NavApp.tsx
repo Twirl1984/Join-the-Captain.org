@@ -1188,7 +1188,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
             />
             {peilPickRow != null && (
               <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
-                🎯 Tippe auf der Karte das Objekt an, das du anpeilst (Peilung {peilPickRow + 1}).
+                {t("nav.playback_pick_hint", { n: peilPickRow + 1 })}
               </p>
             )}
           </div>
@@ -1201,11 +1201,11 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 checked={showDepth}
                 onChange={(e) => setShowDepth(e.target.checked)}
               />
-              <span className="caption">Tiefen-Layer (EMODnet)</span>
+              <span className="caption">{t("nav.depth_layer_toggle")}</span>
             </label>
             <span className="caption">
-              Route: <span className="nav-legend-wasser">— Wasserweg</span> ·{" "}
-              <span className="nav-legend-luft">- - Luftlinie</span>
+              Route: <span className="nav-legend-wasser">{t("nav.depth_map_legend_water")}</span> ·{" "}
+              <span className="nav-legend-luft">{t("nav.depth_map_legend_straight")}</span>
             </span>
           </div>
 
@@ -1214,7 +1214,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
             <div className="card stack" style={{ gap: 8 }} data-testid="nav-playback-panel">
               <div className="row-between">
                 <span className="section-label">
-                  {symbolsV2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                  {symbolsV2 ? t("nav.playback_title_v2") : t("nav.playback_title_v1")}
                   {/* REQ-WET-017: Darstellung zur Laufzeit wählbar, Wahl bleibt gespeichert. */}
                   <button
                     type="button"
@@ -1224,7 +1224,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                     title={umschaltBeschriftung(symbolWahl)}
                     aria-label={umschaltBeschriftung(symbolWahl)}
                   >
-                    {symbolsV2 ? "⇢ Pfeile" : "⇢ Windfahnen"}
+                    {symbolsV2 ? t("nav.playback_symbols_arrows") : t("nav.playback_symbols_flags")}
                   </button>
                 </span>
                 <span className="caption" data-testid="nav-playback-time">
@@ -1257,25 +1257,11 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                     setPlaying(false);
                     setPlayIdx(Number(e.target.value));
                   }}
-                  aria-label="Zeitpunkt im Playback"
+                  aria-label={t("nav.playback_time_input_label")}
                 />
               </div>
               <p className="caption">
-                {symbolsV2 ? (
-                  <>
-                    Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Windfahnen =
-                    Richtung &amp; Stärke (Halbstrich 5 kn, Strich 10 kn, Wimpel 50 kn, Schaft zeigt
-                    zur Herkunft) · Zahl = Knoten, ° = Temperatur · 🌦️/🌧️/⛈️ Regen (leicht/mäßig/
-                    stark) · ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
-                    ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
-                  </>
-                ) : (
-                  <>
-                    Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Pfeile = Wind ·
-                    ☀️/🌙 klar (Tag/Nacht), 🌤️ heiter, ⛅ wolkig, ☁️ bedeckt · ⚡ Gewitter ·
-                    ⛵ ungefähre Bootsposition zu diesem Zeitpunkt.
-                  </>
-                )}
+                {symbolsV2 ? t("nav.playback_legend_v2") : t("nav.playback_legend_v1")}
               </p>
             </div>
           )}
@@ -1287,7 +1273,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               nicht nötig; wer die Live-Position will, klappt es auf. */}
           <details className="card nav-subtool">
             <summary className="section-label" data-testid="nav-tool-gps">
-              Meine Position (GPS)
+              {t("nav.gps_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -1298,54 +1284,51 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   className="btn btn-outline-teal"
                   onClick={gps.start}
                 >
-                  <Icon name="map-pin" size={14} /> GPS aktivieren
+                  <Icon name="map-pin" size={14} /> {t("nav.gps_activate")}
                 </button>
               ) : (
                 <button type="button" data-testid="nav-gps-stop" className="btn btn-outline-teal" onClick={gps.stop}>
-                  GPS stoppen
+                  {t("nav.gps_stop")}
                 </button>
               )}
               <span className="caption" data-testid="nav-gps-status" role="status">
-                {gps.status === "idle" && "aus"}
+                {gps.status === "idle" && t("nav.gps_status_off")}
                 {gps.status === "watching" &&
                   (gps.fix
-                    ? `aktiv · ±${Math.round(gps.fix.accuracy_m)} m${gps.fix.speed_kn != null ? ` · ${gps.fix.speed_kn} kn` : ""}`
-                    : "suche Satelliten …")}
-                {gps.status === "denied" && "Standort ist für diese Seite/den Browser blockiert."}
-                {gps.status === "unavailable" && "GPS hier nicht verfügbar."}
+                    ? `${t("nav.gps_status_active")} · ±${Math.round(gps.fix.accuracy_m)} m${gps.fix.speed_kn != null ? ` · ${gps.fix.speed_kn} kn` : ""}`
+                    : t("nav.gps_status_searching"))}
+                {gps.status === "denied" && t("nav.gps_status_blocked")}
+                {gps.status === "unavailable" && t("nav.gps_status_unavailable")}
               </span>
             </div>
             {(gps.status === "denied" || gps.status === "unavailable") && (
               <div className="wetter-warnband stack" style={{ gap: 6, fontSize: 12 }} data-testid="nav-gps-help">
-                <strong>So schaltest du den Standort frei:</strong>
+                <strong>{t("nav.gps_help_title")}</strong>
                 {geraet.os === "ios-safari" && (
                   <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-ios-safari">
-                    <li>Einstellungen → Datenschutz &amp; Sicherheit → <strong>Ortungsdienste</strong> einschalten</li>
-                    <li>Gleich darunter: <strong>Safari-Websites</strong> → „Beim Verwenden“</li>
-                    <li>Hierher zurück, Seite neu laden, „GPS aktivieren“ tippen</li>
+                    <li>{t("nav.gps_help_ios_safari_1")}</li>
+                    <li>{t("nav.gps_help_ios_safari_2")}</li>
+                    <li>{t("nav.gps_help_ios_safari_3")}</li>
                   </ol>
                 )}
                 {geraet.os === "ios-dritt" && (
                   <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-ios-dritt">
-                    <li>Einstellungen → Datenschutz &amp; Sicherheit → <strong>Ortungsdienste</strong> einschalten</li>
-                    <li>
-                      Einstellungen → <strong>{geraet.browser || "dein Browser"}</strong> → <strong>Standort</strong> →
-                      „Beim Verwenden der App“ <em>(diesen Schritt übersehen die meisten)</em>
-                    </li>
-                    <li>Hierher zurück, Seite neu laden, „GPS aktivieren“ tippen</li>
+                    <li>{t("nav.gps_help_ios_third_1")}</li>
+                    <li>{t("nav.gps_help_ios_third_2", { browser: geraet.browser || "dein Browser" })}</li>
+                    <li>{t("nav.gps_help_ios_third_3")}</li>
                   </ol>
                 )}
                 {geraet.os === "android" && (
                   <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-android">
-                    <li><strong>Schloss-Symbol</strong> in der Adresszeile → Berechtigungen → <strong>Standort</strong> → Zulassen</li>
-                    <li>Falls das fehlt: Android-Einstellungen → Apps → dein Browser → Berechtigungen → Standort</li>
-                    <li>Seite neu laden, „GPS aktivieren“ tippen</li>
+                    <li>{t("nav.gps_help_android_1")}</li>
+                    <li>{t("nav.gps_help_android_2")}</li>
+                    <li>{t("nav.gps_help_android_3")}</li>
                   </ol>
                 )}
                 {geraet.os === "desktop" && (
                   <ol className="stack" style={{ gap: 2, paddingLeft: 18, margin: 0 }} data-testid="nav-gps-help-desktop">
-                    <li><strong>Schloss-Symbol</strong> links in der Adresszeile → <strong>Standort</strong> → Zulassen</li>
-                    <li>Seite neu laden, „GPS aktivieren“ tippen</li>
+                    <li>{t("nav.gps_help_desktop_1")}</li>
+                    <li>{t("nav.gps_help_desktop_2")}</li>
                   </ol>
                 )}
                 <button
@@ -1355,11 +1338,10 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   style={{ alignSelf: "flex-start" }}
                   onClick={gps.start}
                 >
-                  Standort erneut anfragen
+                  {t("nav.gps_retry")}
                 </button>
                 <span className="caption">
-                  Ein direkter Link in die Einstellungen ist Webseiten von Apple/Google gesperrt —
-                  in unserer App fürs iPhone/Android kommt der Ein-Klick-Knopf.
+                  {t("nav.gps_help_note")}
                 </span>
               </div>
             )}
@@ -1372,7 +1354,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                     checked={followGps}
                     onChange={(e) => setFollowGps(e.target.checked)}
                   />
-                  <span className="caption">Karte folgt meiner Position</span>
+                  <span className="caption">{t("nav.gps_follow")}</span>
                 </label>
                 <label className="row" style={{ gap: 6 }}>
                   <input
@@ -1382,7 +1364,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                     onChange={(e) => setStartAtGps(e.target.checked)}
                   />
                   <span className="caption">
-                    Route startet an meiner Position (Abfahrt = jetzt → echte Ankunftszeiten)
+                    {t("nav.gps_start_at")}
                   </span>
                 </label>
                 {startAtGps && plan && (
@@ -1393,7 +1375,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                       checked={autoUpdate}
                       onChange={(e) => setAutoUpdate(e.target.checked)}
                     />
-                    <span className="caption">ETA automatisch aktualisieren (alle 60 s)</span>
+                    <span className="caption">{t("nav.gps_auto_update")}</span>
                   </label>
                 )}
               </>
@@ -1404,13 +1386,12 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Jetzt & hier (REQ-NAV-024): aktuelle Bedingungen an der Position */}
           <details className="card nav-subtool" data-testid="nav-jetzt">
             <summary className="section-label" data-testid="nav-tool-jetzt">
-              Jetzt &amp; hier — Position, Wetter, Häfen
+              {t("nav.jetzt_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
               {!gps.fix ? (
                 <p className="caption" data-testid="nav-jetzt-hint">
-                  Aktiviere oben „Meine Position (GPS)“, um aktuelles Wetter, die Tiefe unter dem
-                  Kiel und die nächsten Häfen an deiner Position zu sehen.
+                  {t("nav.jetzt_hint")}
                 </p>
               ) : (
                 <>
@@ -1420,21 +1401,20 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                       style={{ fontSize: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
                       data-testid="nav-jetzt-revier-vorschlag"
                     >
-                      Du bist am nächsten an <strong>{revierVorschlag.label}</strong> (
-                      {revierVorschlag.distance_nm} sm).
+                      {t("nav.jetzt_revier_suggestion", { revier: revierVorschlag.label, distance_nm: revierVorschlag.distance_nm })}
                       <button
                         type="button"
                         data-testid="nav-jetzt-revier-switch"
                         className="pill"
                         onClick={() => setRevierId(revierVorschlag.id)}
                       >
-                        Dorthin wechseln
+                        {t("nav.jetzt_switch")}
                       </button>
                     </div>
                   )}
                   <div className="row-between">
                     <span className="caption">
-                      Position {gps.fix.lat.toFixed(3)}, {gps.fix.lon.toFixed(3)}
+                      {t("nav.jetzt_position_label")} {gps.fix.lat.toFixed(3)}, {gps.fix.lon.toFixed(3)}
                     </span>
                     <button
                       type="button"
@@ -1443,39 +1423,39 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                       disabled={jetztState === "laden"}
                       onClick={() => void loadJetzt()}
                     >
-                      {jetztState === "laden" ? "Lade …" : jetztWx ? "Aktualisieren" : "Bedingungen laden"}
+                      {jetztState === "laden" ? t("nav.jetzt_loading") : jetztWx ? t("nav.jetzt_refresh") : t("nav.jetzt_load")}
                     </button>
                   </div>
                   {jetztState === "fehler" && (
                     <p className="caption" data-testid="nav-jetzt-error" role="alert">
-                      Bedingungen gerade nicht verfügbar — bitte später erneut.
+                      {t("nav.jetzt_error")}
                     </p>
                   )}
                   {jetztWx && (
                     <div className="stack" style={{ gap: 6 }} data-testid="nav-jetzt-result">
                       <p className="caption">
-                        <strong>Wetter:</strong> {jetztWx.wind_kn} kn aus{" "}
-                        {compassPoint(jetztWx.wind_from_deg)} · Böen {jetztWx.gust_kn} kn
-                        {jetztWx.wave_m != null ? ` · Welle ${jetztWx.wave_m} m` : ""}
+                        <strong>{t("nav.jetzt_weather_label")}</strong> {jetztWx.wind_kn} kn aus{" "}
+                        {compassPoint(jetztWx.wind_from_deg)} · {t("nav.jetzt_gusts")} {jetztWx.gust_kn} kn
+                        {jetztWx.wave_m != null ? ` · ${t("nav.jetzt_wave")} ${jetztWx.wave_m} m` : ""}
                         {jetztWx.current_kn != null && jetztWx.current_kn > 0
-                          ? ` · Strom ${jetztWx.current_kn} kn`
+                          ? ` · ${t("nav.jetzt_current")} ${jetztWx.current_kn} kn`
                           : ""}
                       </p>
                       {(jetztWx.gale || jetztWx.thunderstorm || jetztWx.high_wave) && (
                         <p className="wetter-warnband" style={{ fontSize: 12 }} data-testid="nav-jetzt-warn">
-                          {[
-                            jetztWx.gale && "Sturm",
-                            jetztWx.thunderstorm && "Gewitter",
-                            jetztWx.high_wave && "hohe Welle",
+                          {t("nav.jetzt_warning_prefix")} {[
+                            jetztWx.gale && t("nav.jetzt_gale"),
+                            jetztWx.thunderstorm && t("nav.jetzt_thunderstorm"),
+                            jetztWx.high_wave && t("nav.jetzt_high_wave"),
                           ]
                             .filter(Boolean)
                             .join(" · ")}{" "}
-                          — Vorsicht.
+                          {t("nav.jetzt_warning_caution")}
                         </p>
                       )}
                       {jetztDepth && (
                         <p className="caption" data-testid="nav-jetzt-depth">
-                          <strong>Unter dem Kiel:</strong> {jetztDepth.depth_m} m Wassertiefe
+                          <strong>{t("nav.jetzt_under_keel")}</strong> {jetztDepth.depth_m} {t("nav.jetzt_depth")}
                           {jetztDepth.check ? ` · ${jetztDepth.check}` : ""}
                         </p>
                       )}
@@ -1484,7 +1464,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   {jetztHaefen.length > 0 && (
                     <div className="stack" style={{ gap: 2 }} data-testid="nav-jetzt-haefen">
                       <span className="caption">
-                        <strong>Nächste Häfen:</strong>
+                        <strong>{t("nav.jetzt_harbors_label")}</strong>
                       </span>
                       {jetztHaefen.map((h) => (
                         <span key={`${h.revier}-${h.name}`} className="caption">
@@ -1501,10 +1481,11 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Peilung — Kreuzpeilung als GPS-Backup (REQ-NAV-025/026) */}
           <details className="card nav-subtool" data-testid="nav-peilung">
             <summary className="section-label" data-testid="nav-tool-peilung">
-              Peilung — Standort-Backup (wenn GPS spinnt)
+              {t("nav.bearing_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
-              <p className="caption">
+              {/* Haftungstext: NICHT übersetzen — bleibt deutsch */}
+              <p className="caption" lang="de">
                 <strong>Handy aufrecht halten und mit der Kamera-Rückseite auf das Objekt zielen</strong>,
                 dann „Kompass“ tippen. Peile 2–3 markante Objekte an
                 — der Schnitt der Peilungen ergibt deinen Standort. Klassische Seemannschaft als
@@ -1513,12 +1494,12 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               </p>
               {peilRefs.length < 2 ? (
                 <p className="caption" data-testid="nav-peil-hint">
-                  Keine Referenzpunkte in der Nähe — wähle ein passendes Revier oder aktiviere GPS.
+                  {t("nav.bearing_hint")}
                 </p>
               ) : (
                 <>
                   <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                    <span className="caption">Missweisung (° Ost, grobe Näherung)</span>
+                    <span className="caption">{t("nav.bearing_declination_label")}</span>
                     <input
                       data-testid="nav-peil-missweisung"
                       type="number"
@@ -1687,16 +1668,16 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
 
           {/* Wegpunkte */}
           <div className="card stack" style={{ gap: 8 }}>
-            <span className="section-label">Route</span>
+            <span className="section-label">{t("nav.route_title")}</span>
             {startAtGps && gps.fix && (
               <p className="caption row" style={{ gap: 6 }} data-testid="nav-gps-startpoint">
-                <Icon name="map-pin" size={13} /> Start: Meine Position (
+                <Icon name="map-pin" size={13} /> {t("nav.route_gps_startpoint")} (
                 {gps.fix.lat.toFixed(3)}, {gps.fix.lon.toFixed(3)})
               </p>
             )}
             {waypoints.length === 0 ? (
               <p className="muted" style={{ fontSize: 13 }}>
-                Karte oder Hafen anklicken — die Route weicht Land automatisch aus.
+                {t("nav.route_map_hint")}
               </p>
             ) : (
               <ol className="wetter-wp-list">
@@ -1712,7 +1693,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                       <button
                         type="button"
                         className="wetter-remove"
-                        aria-label={`Wegpunkt ${i + 1} entfernen`}
+                        aria-label={t("nav.route_remove_label", { n: i + 1 })}
                         onClick={() => removeWaypoint(w.id)}
                       >
                         <Icon name="x" size={14} />
@@ -1724,15 +1705,15 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                       <div className="stack" style={{ gap: 4, paddingLeft: 28 }}>
                         {arrivals[w.id] ? (
                           <span className="caption" data-testid="nav-arrival">
-                            Ankunft {fmtEta(arrivals[w.id])}
+                            {t("nav.route_arrival_time")} {fmtEta(arrivals[w.id])}
                           </span>
                         ) : (w.stay_min != null || w.depart_at) && (
                           <span className="caption" data-testid="nav-arrival-pending">
-                            Dauer und Uhrzeit werden nach „Route berechnen“ gekoppelt.
+                            {t("nav.route_arrival_pending")}
                           </span>
                         )}
                         <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                          <span className="caption">Liegezeit</span>
+                          <span className="caption">{t("nav.route_stay_label")}</span>
                           <input
                             type="number"
                             min={0}
@@ -1763,7 +1744,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                           <span className="caption">min</span>
                         </label>
                         <label className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                          <span className="caption">Weiterfahrt ab</span>
+                          <span className="caption">{t("nav.route_depart_label")}</span>
                           <input
                             type="datetime-local"
                             data-testid="nav-depart-at"
@@ -1791,7 +1772,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           <div className="card stack" style={{ gap: 12 }}>
             {!startAtGps && (
               <label className="stack" style={{ gap: 6 }}>
-                <span className="caption">Abfahrt (bis 7 Tage voraus)</span>
+                <span className="caption">{t("nav.departure_label")}</span>
                 <input
                   data-testid="nav-start-time"
                   type="datetime-local"
@@ -1802,16 +1783,16 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 />
               </label>
             )}
-            <div className="row" style={{ gap: 8 }} role="radiogroup" aria-label="Fahrmodus">
+            <div className="row" style={{ gap: 8 }} role="radiogroup" aria-label={t("nav.departure_mode_label")}>
               <button
                 type="button"
                 role="radio"
                 className={`pill ${mode === "sail" ? "active" : ""}`}
                 aria-checked={mode === "sail"}
                 onClick={() => setMode("sail")}
-                title="So viel wie möglich segeln — Motor nur bei Flaute oder hart am Wind"
+                title={t("nav.departure_sail_title")}
               >
-                Segeln (Motor wenn nötig)
+                {t("nav.departure_sail")}
               </button>
               <button
                 type="button"
@@ -1820,7 +1801,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 aria-checked={mode === "motor"}
                 onClick={() => setMode("motor")}
               >
-                Motor
+                {t("nav.departure_motor")}
               </button>
             </div>
             <label className="stack" style={{ gap: 4 }}>
@@ -1841,7 +1822,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Boot (REQ-NAV-008): Presets + Ableitung — fließt in die ETA ein */}
           <details className="card nav-subtool">
             <summary className="section-label" data-testid="nav-tool-boot">
-              Boot anpassen (optional)
+              {t("nav.boat_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
               <div className="pills">
@@ -1858,18 +1839,18 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 ))}
               </div>
               <p className="caption" data-testid="nav-boat-derived">
-                → Rumpfgeschwindigkeit {boat.hull_speed_kn} kn ·{" "}
-                {boat.has_engine ? `Marschfahrt ${boat.cruise_speed_motor_kn} kn` : "ohne Motor"}
-                {boat.min_wind_kn != null ? ` · min ${boat.min_wind_kn} kn Wind` : ""}
-                {boat.max_wind_kn != null ? ` · max ${boat.max_wind_kn} kn` : ""}
-                {" "}· Preset setzt auch den Tiefgang
+                {t("nav.boat_hull_speed", { speed: boat.hull_speed_kn })} ·{" "}
+                {boat.has_engine ? t("nav.boat_cruise_motor", { speed: boat.cruise_speed_motor_kn }) : t("nav.boat_no_motor")}
+                {boat.min_wind_kn != null ? ` · ${t("nav.boat_wind_min", { wind: boat.min_wind_kn })}` : ""}
+                {boat.max_wind_kn != null ? ` · ${t("nav.boat_wind_max", { wind: boat.max_wind_kn })}` : ""}
+                {" "}· {t("nav.boat_preset_note")}
               </p>
             </div>
           </details>
 
           {/* Warn-Empfindlichkeit (REQ-NAV-015) */}
           <div className="card stack" style={{ gap: 10 }}>
-            <span className="section-label">Warn-Empfindlichkeit</span>
+            <span className="section-label">{t("nav.sensitivity_title")}</span>
             <input
               data-testid="risk-slider"
               type="range"
@@ -1879,16 +1860,14 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               value={sensitivity}
               onChange={(e) => setSensitivity(Number(e.target.value))}
               className="wetter-slider"
-              aria-label="Warn-Empfindlichkeit: 0 risikofreudig bis 1 vorsichtig"
+              aria-label={t("nav.sensitivity_title")}
             />
             <div className="row-between" style={{ fontSize: 11 }}>
-              <span className="muted">Risikofreudig — wenige Fehlalarme</span>
-              <span className="muted">Vorsichtig — keine verpasste Warnung</span>
+              <span className="muted">{t("nav.sensitivity_risk")}</span>
+              <span className="muted">{t("nav.sensitivity_caution")}</span>
             </div>
             <p className="caption">
-              Fehlalarm (FP) heißt: unnötig in den Hafen. Verpasste Warnung (FN) heißt: ungewarnt
-              im Sturm — schwere Stürme (≥&nbsp;9&nbsp;Bft) warnen deshalb immer, unabhängig vom
-              Regler.
+              {t("nav.sensitivity_explanation")}
             </p>
             {/* Wettermodell — transparent wählbar, mit gemessener Revier-Empfehlung */}
             <label className="stack" style={{ gap: 6 }}>
@@ -1927,14 +1906,14 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
 
           {/* Routen-Profil (REQ-NAV-019): kürzester / Segel- / Motor- / Komfort-Weg */}
           <div className="card stack" style={{ gap: 8 }}>
-            <span className="section-label">Welcher Weg?</span>
-            <div className="pills" role="radiogroup" aria-label="Routen-Profil">
+            <span className="section-label">{t("nav.profile_title")}</span>
+            <div className="pills" role="radiogroup" aria-label={t("nav.profile_title")}>
               {(
                 [
-                  ["kuerzeste", "Kürzester", "reiner Wasserweg, ohne Wetter"],
-                  ["segel", "Segel-schnell", "meidet Flaute, kreuzt durch die No-Go-Zone"],
-                  ["motor", "Motor-schnell", "Marschfahrt, hohe Welle bremst"],
-                  ["komfort", "Komfort", "meidet Seegang und Starkwind, auch per Umweg"],
+                  ["kuerzeste", t("nav.profile_shortest"), t("nav.profile_shortest_hint")],
+                  ["segel", t("nav.profile_sail"), t("nav.profile_sail_hint")],
+                  ["motor", t("nav.profile_motor"), t("nav.profile_motor_hint")],
+                  ["komfort", t("nav.profile_comfort"), t("nav.profile_comfort_hint")],
                 ] as const
               ).map(([wert, label, hint]) => (
                 <button
@@ -1953,8 +1932,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
             </div>
             {routeProfil !== "kuerzeste" && (
               <p className="caption" data-testid="nav-profil-hinweis">
-                Wetter-bepreister Weg zur Abfahrtszeit — Planungshilfe, ersetzt keine
-                laufende Wetterbeobachtung unterwegs.
+                {t("nav.profile_weather_hint")}
               </p>
             )}
           </div>
@@ -1962,11 +1940,11 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Abfahrts-Scan (REQ-NAV-009) — Sub-Tool (REQ-NAV-024), eingeklappt */}
           <details className="card nav-subtool">
             <summary className="section-label" data-testid="nav-tool-scan">
-              Beste Abfahrt finden
+              {t("nav.scan_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
             <label className="stack" style={{ gap: 4 }}>
-              <span className="caption">spätester Start</span>
+              <span className="caption">{t("nav.scan_label")}</span>
               <input
                 data-testid="nav-departure-to"
                 type="datetime-local"
@@ -1982,7 +1960,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               disabled={!canCalc || loading}
               onClick={() => void calculate({ scanWindowEnd: new Date(scanTo).toISOString() })}
             >
-              Abfahrt empfehlen (über Wasserweg)
+              {t("nav.scan_button")}
             </button>
             {scan && (
               <div className="stack" style={{ gap: 6 }} data-testid="nav-departure-result">
@@ -2157,7 +2135,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Flachwasser-Check */}
           <div className="card stack" style={{ gap: 8 }}>
             <div className="row-between">
-              <span className="section-label">Tiefen entlang der Route</span>
+              <span className="section-label">{t("nav.depth_title")}</span>
               <button
                 type="button"
                 data-testid="nav-depth-check"
@@ -2165,7 +2143,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 disabled={depthLoading}
                 onClick={() => void checkDepths()}
               >
-                {depthLoading ? "Prüfe …" : `Erneut gegen ${tiefgang} m Tiefgang prüfen`}
+                {depthLoading ? t("nav.depth_check_loading") : t("nav.depth_check_button", { tiefgang })}
               </button>
             </div>
             {depthLoading && !depths && (
@@ -2214,13 +2192,12 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
           {/* Erlebnisse entlang der Route (REQ-EXP-004) */}
           <details className="card nav-subtool" data-testid="nav-erlebnisse">
             <summary className="section-label" data-testid="nav-tool-erlebnisse">
-              Erlebnisse entlang der Route
+              {t("nav.experiences_title")}
             </summary>
             <div className="stack" style={{ gap: 10, marginTop: 10 }}>
               <div className="row-between">
                 <p className="caption">
-                  Buchten, Sehenswürdigkeiten und Versorgung im Korridor um den Wasserweg —
-                  kuratiert mit Quellenangabe, keine amtliche Freigabe.
+                  {t("nav.experiences_desc")}
                 </p>
                 <button
                   type="button"
@@ -2229,7 +2206,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   disabled={erlebnisseLoading}
                   onClick={() => void loadErlebnisse()}
                 >
-                  {erlebnisseLoading ? "Lädt …" : "Erlebnisse laden"}
+                  {erlebnisseLoading ? t("nav.experiences_loading") : t("nav.experiences_load")}
                 </button>
               </div>
               {erlebnisseError && (
@@ -2277,17 +2254,17 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
 
       {plan && !loading && (
         <div className="card stack" style={{ gap: 10 }} data-testid="feedback-card">
-          <span className="section-label">Dein Feedback</span>
+          <span className="section-label">{t("nav.feedback_title")}</span>
           {fbState === "done" ? (
             <p data-testid="feedback-thanks" className="muted" style={{ fontSize: 13 }}>
-              Danke! Dein Feedback fließt in die Kalibrierung der Warnungen ein.
-              {" "}Direkter Draht: <a href="mailto:support@join-the-captain.org">support@join-the-captain.org</a>
+              {t("nav.feedback_thanks")}
+              {" "}{t("nav.feedback_contact")} <a href="mailto:support@join-the-captain.org">support@join-the-captain.org</a>
             </p>
           ) : (
             <>
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                 <span className="caption" style={{ minWidth: 130 }}>
-                  Hat die Vorhersage gepasst?
+                  {t("nav.feedback_question")}
                 </span>
                 <button
                   type="button"
@@ -2295,7 +2272,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   className={`pill ${fbOk === true ? "active" : ""}`}
                   onClick={() => setFbOk(fbOk === true ? null : true)}
                 >
-                  👍 passte
+                  {t("nav.feedback_ok")}
                 </button>
                 <button
                   type="button"
@@ -2303,7 +2280,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   className={`pill ${fbOk === false ? "active" : ""}`}
                   onClick={() => setFbOk(fbOk === false ? null : false)}
                 >
-                  👎 lag daneben
+                  {t("nav.feedback_not_ok")}
                 </button>
               </div>
               {fbOk === false && (
@@ -2326,7 +2303,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
               )}
               <div className="row" style={{ gap: 4, flexWrap: "wrap" }}>
                 <span className="caption" style={{ minWidth: 130 }}>
-                  Wie zufrieden bist du?
+                  {t("nav.feedback_satisfaction")}
                 </span>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -2335,7 +2312,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                     data-testid={`feedback-star-${n}`}
                     className="wetter-star"
                     style={{ minWidth: 48, minHeight: 48 }}
-                    aria-label={`${n} von 5 Sternen`}
+                    aria-label={t("nav.feedback_star_label", { n })}
                     aria-pressed={fbRating != null && n <= fbRating}
                     onClick={() => setFbRating(fbRating === n ? null : n)}
                   >
@@ -2352,13 +2329,13 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 className="wish-input"
                 rows={2}
                 maxLength={2000}
-                placeholder="Was war falsch, was wünschst du dir noch?"
+                placeholder={t("nav.feedback_text_placeholder")}
                 value={fbText}
                 onChange={(e) => setFbText(e.target.value)}
               />
               <div className="wetter-specs-grid">
                 <label className="stack" style={{ gap: 4 }}>
-                  <span className="caption">Name (optional)</span>
+                  <span className="caption">{t("nav.feedback_name_label")}</span>
                   <input
                     data-testid="feedback-name"
                     type="text"
@@ -2369,7 +2346,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                   />
                 </label>
                 <label className="stack" style={{ gap: 4 }}>
-                  <span className="caption">E-Mail (optional, für Rückfragen)</span>
+                  <span className="caption">{t("nav.feedback_email_label")}</span>
                   <input
                     data-testid="feedback-email"
                     type="email"
@@ -2387,7 +2364,7 @@ export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
                 disabled={fbState === "sending" || (fbRating == null && fbOk == null && !fbText.trim())}
                 onClick={sendFeedback}
               >
-                {fbState === "sending" ? "Sende …" : "Feedback senden"}
+                {fbState === "sending" ? t("nav.feedback_sending") : t("nav.feedback_submit")}
               </button>
             </>
           )}
