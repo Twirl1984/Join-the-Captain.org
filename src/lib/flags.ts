@@ -9,6 +9,18 @@
 // Stunden). Für Server-Komponenten (page.tsx, SiteHeader) reicht das Flag auch
 // zur Laufzeit des Node-Prozesses.
 
+/**
+ * Umkehrung von `flagEnabled`: AUS, bis jemand ausdrücklich einschaltet.
+ *
+ * Für Features, bei denen ein versehentliches Anschalten schadet — konkret die
+ * Erhebung personenbezogener Daten (REQ-EXP-012). Der Default-an-Ansatz des
+ * restlichen Projekts ist dort genau falsch herum.
+ */
+export function flagExplizitAn(raw: string | undefined): boolean {
+  const v = (raw ?? "").trim().toLowerCase();
+  return v === "on" || v === "true" || v === "1";
+}
+
 /** true, wenn der Flag-Wert das Feature aktiv lässt (Default an). */
 export function flagEnabled(raw: string | undefined): boolean {
   const v = (raw ?? "").trim().toLowerCase();
@@ -51,4 +63,17 @@ export function buchtenRankingEnabled(): boolean {
  */
 export function communityVotumEnabled(): boolean {
   return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_COMMUNITY_VOTUM);
+}
+
+/**
+ * Interessenten-Vormerkung für den App-Start (REQ-EXP-012).
+ *
+ * ACHTUNG — bewusst AUS, solange nichts anderes gesagt ist. Das ist die
+ * Umkehrung aller anderen Flags hier und kein Versehen: Hinter diesem Schalter
+ * werden personenbezogene Daten erhoben. Er darf erst auf `on`, wenn die
+ * Datenschutzerklärung diese Verarbeitung abdeckt (Zweck, Rechtsgrundlage,
+ * Speicherdauer, Löschung). Dieser Text gehört von einem Menschen geschrieben.
+ */
+export function appInteresseEnabled(): boolean {
+  return flagExplizitAn(process.env.NEXT_PUBLIC_FEATURE_APP_INTERESSE);
 }
