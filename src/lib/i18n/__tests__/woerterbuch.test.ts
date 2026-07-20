@@ -50,6 +50,7 @@ test("[REQ-I18N-001] englische Texte sind nicht versehentlich die deutschen", ()
     "wetter.wind",
     "wetter.pause", // "Pause" ist auch im Englischen die uebliche Beschriftung
     "kopf.entrepreneurs", // Eigenname des Bereichs, bleibt in beiden Sprachen gleich
+    "fuss.support", // "Support" ist auch im Englischen das uebliche Wort
   ]);
   const verdaechtig = Object.keys(de).filter(
     (k) => !erlaubtGleich.has(k) && de[k] === en[k],

@@ -25,6 +25,17 @@ const de: Woerterbuch = {
   "kopf.zur_buchung": "Zur Buchung",
   "kopf.menue_oeffnen": "Menü öffnen",
 
+  // Fußbereich (ohne den Affiliate-Pflichthinweis — der bleibt deutsch)
+  "fuss.beschreibung":
+    "Geprüfte Tools, ehrliche Empfehlungen und Stimmen aus der Szene. Von Seglern für Segler — von der Planung bis nach dem Anlegen.",
+  "fuss.bereiche": "Bereiche",
+  "fuss.mehr": "Mehr",
+  "fuss.nav_wetter": "Navigation & Wetter",
+  "fuss.support": "Support",
+  "fuss.zur_buchung_de": "Zur Buchung (.de)",
+  "fuss.impressum": "Impressum",
+  "fuss.datenschutz": "Datenschutz",
+
   // Törnplanung — die Kernbedienung
   "nav.berechnen": "Berechnen",
   "nav.zuruecksetzen": "Zurücksetzen",
@@ -86,6 +97,17 @@ const en: Woerterbuch = {
   "kopf.entrepreneurs": "Entrepreneurs",
   "kopf.zur_buchung": "Book a trip",
   "kopf.menue_oeffnen": "Open menu",
+
+  // Footer (excluding the mandatory affiliate notice — that stays German)
+  "fuss.beschreibung":
+    "Tested tools, honest recommendations and voices from the scene. By sailors, for sailors — from planning to after you have moored.",
+  "fuss.bereiche": "Sections",
+  "fuss.mehr": "More",
+  "fuss.nav_wetter": "Navigation & weather",
+  "fuss.support": "Support",
+  "fuss.zur_buchung_de": "Book a trip (.de)",
+  "fuss.impressum": "Legal notice",
+  "fuss.datenschutz": "Privacy policy",
 
   // Passage planning — the core controls
   "nav.berechnen": "Calculate",
