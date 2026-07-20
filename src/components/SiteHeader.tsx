@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
+import { SprachUmschalter } from "./SprachUmschalter";
 import { navigationEnabled } from "@/lib/flags";
 
 // Globaler Header der .org-Site (Navy in beiden Themes, Gold-Akzent).
@@ -27,6 +28,7 @@ export function SiteHeader() {
           <Link href="/entrepreneurs">Entrepreneurs</Link>
         </nav>
         <div className="header-actions">
+          <SprachUmschalter />
           <ThemeToggle />
           <a
             className="header-cta"

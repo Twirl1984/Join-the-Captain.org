@@ -183,6 +183,17 @@ p { margin: 0; }
   color: var(--fg-on-deep); cursor: pointer; transition: border-color 0.2s, color 0.2s;
 }
 .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Sprachumschalter (REQ-I18N-001): steht neben dem Theme-Schalter, zeigt das
+   ZIEL des Klicks. Breiter als der Icon-Knopf, weil hier Text steht. */
+.sprach-umschalter {
+  display: inline-grid; place-items: center; height: 38px; padding: 0 12px;
+  background: transparent; border: 1px solid rgba(242, 237, 228, 0.2);
+  color: var(--fg-on-deep); cursor: pointer; font-size: 12px; letter-spacing: 0.06em;
+  transition: border-color 0.2s, color 0.2s;
+}
+.sprach-umschalter:hover { border-color: var(--accent); color: var(--accent); }
+.sprach-umschalter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .burger { display: none; background: none; border: none; color: var(--fg-on-deep); cursor: pointer; }
 
 .site-footer {
