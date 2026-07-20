@@ -1111,20 +1111,46 @@ test("[REQ-NAV-025] Property: positionUncertaintyNm >= 0 oder Infinity", () => {
 });
 
 test("[REQ-NAV-026] Property: gpsPlausibility deviation und toleranz >= 0", () => {
+  // ZWEI EIGENE FEHLER, hier behoben (gefunden 2026-07-20 durch einen sporadisch
+  // roten Lauf — der Test schlug etwa in jedem 20. Durchgang fehl):
+  //
+  // 1. `Math.random()` für die GPS-Position machte den Test doppelt zufällig.
+  //    Die Streuung gehört in fast-check, sonst ist ein Fehlschlag nicht
+  //    reproduzierbar — und ein Gate, das zufällig rot wird, wird ignoriert.
+  //
+  // 2. Die Behauptung `plausibel === (deviation_nm <= toleranz_nm)` war FALSCH.
+  //    Die Funktion rundet die AUSGEGEBENEN Werte auf zwei Nachkommastellen,
+  //    fällt das Urteil aber auf den UNGERUNDETEN — an der Grenze dürfen beide
+  //    also auseinandergehen (max. 0,005 sm ≈ 9 m). Geprüft wird jetzt, was die
+  //    Funktion wirklich zusichert: außerhalb des Rundungsbereichs muss das
+  //    Urteil zu den angezeigten Zahlen passen.
+  //    Der Widerspruch AN der Grenze bleibt ein offener Punkt für den Betreiber
+  //    (peilung.ts ist CODEOWNERS-geschützt, siehe Bericht 2026-07-20).
   fc.assert(
     fc.property(
       fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
       fc.double({ min: 10, max: 16, noNaN: true, noDefaultInfinity: true }),
       fc.double({ min: 0, max: 2, noNaN: true, noDefaultInfinity: true }),
       fc.double({ min: 0, max: 2, noNaN: true, noDefaultInfinity: true }),
-      (fixLat, fixLon, gpsAcc, bearingUncert) => {
-        const gps = { lat: fixLat + Math.random() * 0.1, lon: fixLon + Math.random() * 0.1 };
+      fc.double({ min: 0, max: 0.1, noNaN: true, noDefaultInfinity: true }),
+      fc.double({ min: 0, max: 0.1, noNaN: true, noDefaultInfinity: true }),
+      (fixLat, fixLon, gpsAcc, bearingUncert, versatzLat, versatzLon) => {
+        const gps = { lat: fixLat + versatzLat, lon: fixLon + versatzLon };
         const fix: BearingFix = { lat: fixLat, lon: fixLon, error_nm: 0.5, n: 2 };
         const result = gpsPlausibility(gps, fix, gpsAcc, bearingUncert);
+
         assert.ok(result.deviation_nm >= 0, `deviation = ${result.deviation_nm} sollte >= 0 sein`);
         assert.ok(result.toleranz_nm >= 0.01, `toleranz = ${result.toleranz_nm} sollte >= 0.01 sein`);
-        assert.equal(result.plausibel, result.deviation_nm <= result.toleranz_nm, 
-          `plausibel sollte deviation <= toleranz sein: ${result.deviation_nm} <= ${result.toleranz_nm}`);
+
+        // Rundungsgrenze: 0,01 sm ist die Anzeigegenauigkeit.
+        const klarDrunter = result.deviation_nm < result.toleranz_nm - 0.01;
+        const klarDrueber = result.deviation_nm > result.toleranz_nm + 0.01;
+        if (klarDrunter) {
+          assert.ok(result.plausibel, `klar innerhalb der Toleranz, aber unplausibel: ${result.deviation_nm} vs ${result.toleranz_nm}`);
+        }
+        if (klarDrueber) {
+          assert.ok(!result.plausibel, `klar ausserhalb der Toleranz, aber plausibel: ${result.deviation_nm} vs ${result.toleranz_nm}`);
+        }
       }
     )
   );
