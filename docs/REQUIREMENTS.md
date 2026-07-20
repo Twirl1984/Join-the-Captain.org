@@ -1,7 +1,7 @@
 # Anforderungskatalog — JTC Wetter & Navigation
 
-Stand: 2026-07-06 · Schema: `REQ-<BEREICH>-<NNN>` (NAV Navigation · WET Wetter-Kern ·
-SAFE Sicherheit/Recht · PROC Prozess) · Vorgehen: [.claude/skills/aspice-istqb-workflow](../.claude/skills/aspice-istqb-workflow/SKILL.md)
+Stand: 2026-07-20 · Schema: `REQ-<BEREICH>-<NNN>` (NAV Navigation · WET Wetter-Kern ·
+SAFE Sicherheit/Recht · PROC Prozess · EXP Erlebnis-System) · Vorgehen: [.claude/skills/aspice-istqb-workflow](../.claude/skills/aspice-istqb-workflow/SKILL.md)
 
 **Traceability-Konvention:** Jeder `test()`-/`test.describe()`-Titel, der ein
 Requirement verifiziert, trägt den Tag `[REQ-XXX-NNN]`. `npm run trace`
@@ -92,3 +92,5 @@ Status: `umgesetzt` (Test-Pflicht) · `in-arbeit` · `geplant` (kein Test nötig
 - **REQ-EXP-007** Referral-Monetarisierung (Status: geplant) — Erlebnisse tragen gekennzeichnete Referral-/Affiliate-Links (Stufenlogik des Research-Scout); das Ranking der Empfehlungen bleibt provisionsfrei. Quelle: User 2026-07-10.
 - **REQ-EXP-008** Revier-Wiki mit Linting (Status: geplant) — Je Revier ein LLM-kompilierter Wiki-Artikel als Quelle der Website-Inhalte; ein Linting-Zyklus findet Widersprüche, Lücken und Veraltetes (Karpathy-Pipeline, docs/erlebnis-system.md). Quelle: User 2026-07-10 (IMG_7029).
 - **REQ-EXP-009** Teilbarer Törn-Link (Status: geplant) — Eine geplante Route ist als read-only Link teilbar (Karte in Vogelperspektive + Highlights) und dient als Anreiz für Crew-Bewerbungen auf der .de-Plattform. Quelle: PDF-Plan Crew-Matching 2026-07-10.
+- **REQ-EXP-010** Reel-Ingest-Kanal (Status: geplant) — Manueller Ingest-Kanal für das Erlebnis-System (Stage 1, ergänzt Overpass/OpenSeaMap): eine feature-geflaggte In-App-Seite (`/tools/reel-ingest`, `NEXT_PUBLIC_FEATURE_REEL_INGEST`) nimmt Reel-URL + Caption/Transkript entgegen und erzeugt über den zentralen Anthropic-Client (`src/lib/anthropic.ts`, geloggt) 1..n POI-Kandidaten als `revier_poi` mit `status='entwurf'`. Human-in-the-loop wie discovery.ts (kein Auto-Publish), Quellenpflicht = Reel-Link + Abrufdatum in `quellen_json` (KEIN Videofile — Recht/„nur Embed"), unsichere Geokodierung wird markiert, Buchten-Windschutz bleibt Info (keine Ankerfreigabe, REQ-SAFE), harter Kostendeckel je Lauf wie Discovery. Quelle: User 2026-07-20 (Instagram-Reels als Reisetipp-Quelle). Verzahnt mit REQ-EXP-001/002.
+- **REQ-EXP-011** Reel-Marketing-/Wiki-Output (Status: geplant) — Derselbe Extraktionslauf liefert zusätzlich (a) einen Marketing-Vorschlagsblock (Repost-/Caption-Winkel in JTC-Tonalität, Content-Lücke, Affiliate-Anknüpfung nach Research-Scout-Stufenlogik) als Report/Backlog — kein DB-Publish — und (b) optionale Revier-Wiki-Anreicherung (Karpathy Stage 3, REQ-EXP-008) mit Quellenangabe. Affiliate-Kennzeichnung Pflicht, Empfehlungs-Ranking bleibt provisionsfrei (README/REQ-EXP-007). Quelle: User 2026-07-20 (App-Ausbau + Marketing aus Reels). Verzahnt mit REQ-EXP-007/008.
