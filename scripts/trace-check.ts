@@ -39,10 +39,33 @@ function collectTestFiles(): string[] {
 
 function main() {
   // 1) Requirements einlesen
+  //
+  // Zeilen, die wie ein Requirement AUSSEHEN, aber nicht dem Schema entsprechen,
+  // werden NICHT stillschweigend übersprungen — sonst verschwindet eine
+  // Anforderung unbemerkt aus der Traceability. Genau das war am 2026-07-20 bei
+  // drei Einträgen passiert (`(Status: geplant, Premium)`, `(Status: in Arbeit)`):
+  // Sie standen im Dokument, das Gate kannte sie nicht. Ein Gate, das wegschaut,
+  // ist kein Gate.
   const reqs = new Map<string, Req>();
-  for (const line of fs.readFileSync(REQ_FILE, "utf8").split("\n")) {
+  const unparsed: Array<{ zeile: number; id: string; text: string }> = [];
+  const zeilen = fs.readFileSync(REQ_FILE, "utf8").split("\n");
+  zeilen.forEach((line, i) => {
     const m = line.match(REQ_RE);
-    if (m) reqs.set(m[1], { id: m[1], titel: m[2], status: m[3] });
+    if (m) {
+      reqs.set(m[1], { id: m[1], titel: m[2], status: m[3] });
+      return;
+    }
+    const grob = line.match(/^- \*\*(REQ-[A-Z]+-\d{3})\*\*/);
+    if (grob) unparsed.push({ zeile: i + 1, id: grob[1], text: line.slice(0, 120) });
+  });
+  if (unparsed.length) {
+    console.error(
+      `trace: ${unparsed.length} Requirement-Zeile(n) entsprechen nicht dem Schema und waeren\n` +
+        `unsichtbar geblieben. Erwartet: "- **REQ-XXX-NNN** Titel (Status: umgesetzt|in-arbeit|geplant)"\n` +
+        `— der Status muss EXAKT eines dieser Woerter sein, direkt gefolgt von ")".\n`,
+    );
+    for (const u of unparsed) console.error(`  Zeile ${u.zeile}: ${u.id}\n    ${u.text}`);
+    process.exit(1);
   }
   if (!reqs.size) {
     console.error("trace: keine Requirements in docs/REQUIREMENTS.md gefunden.");
