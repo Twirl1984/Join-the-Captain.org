@@ -49,3 +49,6 @@ test-results/
 # Mutation-/Test-Reports (generiert)
 reports/
 .stryker-tmp/
+
+# Test-/Verify-Protokolle (versehentlich in c927350 gelandet)
+*.log
