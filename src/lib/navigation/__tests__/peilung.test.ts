@@ -1124,8 +1124,9 @@ test("[REQ-NAV-026] Property: gpsPlausibility deviation und toleranz >= 0", () =
   //    also auseinandergehen (max. 0,005 sm ≈ 9 m). Geprüft wird jetzt, was die
   //    Funktion wirklich zusichert: außerhalb des Rundungsbereichs muss das
   //    Urteil zu den angezeigten Zahlen passen.
-  //    Der Widerspruch AN der Grenze bleibt ein offener Punkt für den Betreiber
-  //    (peilung.ts ist CODEOWNERS-geschützt, siehe Bericht 2026-07-20).
+  //    BEHOBEN am 2026-07-20: Der Betreiber hat entschieden, das Urteil auf die
+  //    gerundeten Werte zu stellen. Anzeige und Urteil passen jetzt immer
+  //    zusammen, die Prüfung unten ist deshalb wieder streng.
   fc.assert(
     fc.property(
       fc.double({ min: 50, max: 56, noNaN: true, noDefaultInfinity: true }),
@@ -1142,15 +1143,14 @@ test("[REQ-NAV-026] Property: gpsPlausibility deviation und toleranz >= 0", () =
         assert.ok(result.deviation_nm >= 0, `deviation = ${result.deviation_nm} sollte >= 0 sein`);
         assert.ok(result.toleranz_nm >= 0.01, `toleranz = ${result.toleranz_nm} sollte >= 0.01 sein`);
 
-        // Rundungsgrenze: 0,01 sm ist die Anzeigegenauigkeit.
-        const klarDrunter = result.deviation_nm < result.toleranz_nm - 0.01;
-        const klarDrueber = result.deviation_nm > result.toleranz_nm + 0.01;
-        if (klarDrunter) {
-          assert.ok(result.plausibel, `klar innerhalb der Toleranz, aber unplausibel: ${result.deviation_nm} vs ${result.toleranz_nm}`);
-        }
-        if (klarDrueber) {
-          assert.ok(!result.plausibel, `klar ausserhalb der Toleranz, aber plausibel: ${result.deviation_nm} vs ${result.toleranz_nm}`);
-        }
+        // Seit der Betreiber-Entscheidung 2026-07-20 faellt das Urteil auf
+        // denselben gerundeten Zahlen, die angezeigt werden. Die Aussage darf
+        // also wieder streng sein: Was dasteht, begruendet das Urteil.
+        assert.equal(
+          result.plausibel,
+          result.deviation_nm <= result.toleranz_nm,
+          `Urteil muss zu den angezeigten Zahlen passen: ${result.deviation_nm} vs ${result.toleranz_nm} -> ${result.plausibel}`,
+        );
       }
     )
   );

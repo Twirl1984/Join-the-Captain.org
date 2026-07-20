@@ -70,7 +70,7 @@ Simulator-Build), 2.6 Android (TWA/AAB), REQ-NAV-027 AR-Kamera (Premium),
 _(Pipeline trägt hier die verbliebenen `gering`-Findings je Etappe ein; vor dem
 `main`-Release abräumen.)_
 
-### Offener Befund: gpsPlausibility widerspricht sich an der Rundungsgrenze
+### ERLEDIGT 2026-07-20: gpsPlausibility widersprach sich an der Rundungsgrenze
 Gefunden 2026-07-20 durch einen sporadisch roten Property-Test (etwa jeder
 20. Lauf). `src/lib/navigation/peilung.ts` gibt `deviation_nm` und `toleranz_nm`
 auf zwei Nachkommastellen gerundet aus, faellt das Urteil `plausibel` aber auf
@@ -78,8 +78,8 @@ den UNGERUNDETEN Werten. An der Grenze kann die App daher anzeigen
 "Abweichung 1,50 sm - Toleranz 1,50 sm" und trotzdem "unplausibel" melden.
 Groesse des Effekts: hoechstens 0,005 sm, also rund 9 Meter.
 
-NICHT eigenmaechtig geaendert: `peilung.ts` ist sicherheitskritisch und
-CODEOWNERS-geschuetzt. Zwei Wege stehen zur Wahl:
+Betreiber-Entscheidung: Urteil auf die gerundeten Werte gestellt. Umgesetzt.
+Zur Wahl standen:
 - **Urteil auf die gerundeten Werte stellen** - Anzeige und Urteil passen immer
   zusammen, die Warnung wird um bis zu 9 m nachsichtiger. Der bestehende
   Toleranzboden von 0,01 sm (18 m) faengt Rundungsrauschen ohnehin schon ab.
