@@ -1,0 +1,546 @@
+
+> join-the-captain-org@0.1.0 verify
+> npm run lint && npm run typecheck && npm run test:lib && npm run test:weather && npm run test:navigation && npm run test:erlebnis && npm run test:toern && npm run trace
+
+
+> join-the-captain-org@0.1.0 lint
+> next lint
+
+`next lint` is deprecated and will be removed in Next.js 16.
+For new projects, use create-next-app to choose your preferred linter.
+For existing projects, migrate to the ESLint CLI:
+npx @next/codemod@canary next-lint-to-eslint-cli .
+
+
+./src/app/page.tsx
+26:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+57:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+
+> join-the-captain-org@0.1.0 typecheck
+> tsc --noEmit
+
+
+> join-the-captain-org@0.1.0 test:lib
+> node --import tsx --test src/lib/__tests__/*.test.ts
+
+✔ Default (undefined/leer) ist AN (0.569667ms)
+✔ off/false/0 (case-insensitiv, getrimmt) schalten AUS (0.056417ms)
+✔ alles andere bleibt AN (on, true, 1, Tippfehler) (0.050291ms)
+✔ [REQ-API-FORMAT] ok() returns NextResponse with 200 status (1.673083ms)
+✔ [REQ-API-FORMAT] BUG-050: fehler() returns JSON with German 'fehler' key, not English 'error' (0.491292ms)
+✔ [REQ-API-FORMAT] fehler() uses default status 400 when not specified (0.103416ms)
+✔ [REQ-API-FORMAT] fehler() uses custom status code when provided (0.167958ms)
+✔ [REQ-SAFE-004] erlaubt bis zum Limit, blockt danach, Fenster läuft ab (0.642417ms)
+✔ [REQ-SAFE-004] Schlüssel sind unabhängig (eine IP blockt nicht die andere) (0.062084ms)
+✔ [REQ-SAFE-004] Speicher wächst nicht unbegrenzt: abgelaufene Einträge werden geräumt (1.5835ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 283.012666
+
+> join-the-captain-org@0.1.0 test:weather
+> node --import tsx --test src/lib/weather/__tests__/*.test.ts
+
+✔ [REQ-NAV-017] parseWaypoints: stay_min wird übernommen und gerundet (1.438833ms)
+✔ [REQ-NAV-017] parseWaypoints: stay_min 0 wird zu undefined (keine Liegezeit) (0.083416ms)
+✔ [REQ-NAV-017] parseWaypoints: ungültige stay_min werden abgelehnt (0.081291ms)
+✔ [REQ-NAV-017] staySumError: Summe der Liegezeiten über 7 Tage wird abgelehnt (0.18025ms)
+✔ Confusion bei s=0 (Schwelle 40 kn): C (36) wird verpasst → 1 FN (1.246166ms)
+✔ Confusion bei s=0.5 (Schwelle 34 kn): alles korrekt (0.076041ms)
+✔ Confusion bei s=1 (Schwelle 28 kn): B (30) wird Fehlalarm → 1 FP (0.071542ms)
+✔ [REQ-WET-013] Sweep: FNR fällt monoton, FPR steigt monoton mit der Sensitivität (0.400125ms)
+✔ recommendSensitivity hält FNR-Deckel ein und minimiert Kosten (FN teurer) (0.381584ms)
+✔ costFor: verpasste schwere Bö kostet mehr als verpasste 34-kn-Bö (0.085625ms)
+✔ ratesFor ist robust gegen leere Nenner (keine NaN) (0.043666ms)
+✔ hullSpeedKn: 10 m Wasserlinie ≈ 7.7 kn (0.793791ms)
+✔ motorCruiseFromPower: 40 PS / 8 t / 10 m ≈ Charterboot-Marschfahrt (0.194459ms)
+✔ motorCruiseFromPower: schwacher Motor fährt deutlich langsamer (0.140958ms)
+✔ [REQ-WET-006] boatFromSpecs: direkte Marschfahrt gewinnt gegen PS-Ableitung (0.193625ms)
+✔ boatFromSpecs: ohne Angaben = Default-Charterboot (0.879125ms)
+✔ boatFromSpecs: Marschfahrt nie über Rumpfgeschwindigkeit (0.062875ms)
+✔ planRoute: depart_at am Zwischenstopp erzeugt Liegezeit und schiebt die ETA (1.242458ms)
+✔ planRoute: depart_at in der Vergangenheit der Ankunft ändert nichts (0.14475ms)
+✔ [REQ-WET-004] [REQ-WET-005] scanDepartures: empfiehlt Sonntagmorgen statt Samstag im Gewitter (0.563292ms)
+✔ scanDepartures: all_windy, wenn es im ganzen Fenster stürmt (0.188958ms)
+✔ scanDepartures: ruhigere Slots bekommen kleinere Scores (Monotonie im Score) (0.143583ms)
+✔ Jolle ohne Motor: Flaute crasht nicht, Kriechfahrt statt Motor-Fallback (0.044375ms)
+✔ [REQ-WET-007] planRoute (Jolle): zu wenig Wind erzeugt Flaute-Warnung, endliche Dauer (0.092625ms)
+✔ planRoute (Jolle): Mittelwind über Bootslimit warnt (0.054167ms)
+✔ scanDepartures (Jolle am Brombachsee): Flaute-Morgen wird gemieden, segelbarer Mittag empfohlen (0.1325ms)
+✔ compassPoint: Herkunfts-Kürzel (aus N/O/S/W + Zwischenrichtungen) (0.673917ms)
+✔ windArrowRotationDeg: Icon zeigt die Flow-Richtung (wohin der Wind weht) (0.066167ms)
+✔ windArrowRotationDeg: Nordwind → Pfeil zeigt nach Süden (Flow) (0.039917ms)
+✔ [REQ-WET-014] skyCondition: Bänder klar/heiter/wolkig/bedeckt aus dem Bedeckungsgrad (0.063375ms)
+✔ [REQ-WET-014] skyCondition: klar/heiter sind nachtabhängig (Sonne am Tag, Mond nachts) (0.04875ms)
+✔ [REQ-WET-014] skyCondition: ohne Bedeckungsdaten kein Icon; is_day-Default = Tag (0.039584ms)
+✔ [REQ-WET-015] windBarb: Zerlegung in Wimpel(50)/Vollstrich(10)/Halbstrich(5), auf 5 kn gerundet (0.64225ms)
+✔ [REQ-WET-015] barbSvgPaths: Federzahl entspricht der Zerlegung; calm ohne Federn (0.148083ms)
+✔ [REQ-WET-015] windBarbRotationDeg: Schaft zeigt zur Herkunft (Nordwind → oben), normalisiert (0.075125ms)
+✔ [REQ-WET-016] formatTemp: Rundung auf ganze Grad; null/NaN → null (0.087583ms)
+✔ [REQ-WET-016] precipInfo: Bänder leicht/mäßig/stark; trocken → null (0.068625ms)
+﹣ buildSampler holt echte Daten und liefert plausible Werte (0.583875ms) # SKIP
+﹣ Multi-Location: mehrere Punkte in einem Request (0.042875ms) # SKIP
+✔ [REQ-WET-009] isArchiveWindow: Vergangenheit → Archiv, Zukunft → Forecast (1.266833ms)
+✔ [REQ-WET-010] vor Abfahrt: Boot am Startpunkt (1.186042ms)
+✔ [REQ-WET-010] Mitte von Leg 1: halber Weg zwischen A und B (0.246ms)
+✔ [REQ-WET-010] Liegezeit (13 Uhr): Boot liegt am Zwischen-Wegpunkt B (0.130208ms)
+✔ [REQ-WET-010] Mitte von Leg 2: halber Weg zwischen B und C (0.669042ms)
+✔ [REQ-WET-010] nach Ankunft: Boot am Ziel (0.095ms)
+✔ polar: No-Go-Zone am Wind → 0 Knoten (0.779375ms)
+✔ polar: Halbwind schneller als hart am Wind (0.208ms)
+✔ polar: Rumpfgeschwindigkeit kappt bei viel Wind (0.098375ms)
+✔ polar: effectiveSpeed schaltet bei Flaute/am-Wind auf Motor (0.339209ms)
+✔ polar: mode=motor ignoriert Wind (0.128292ms)
+✔ polar: twaFromCourse faltet auf 0..180 (0.134625ms)
+✔ geometrie: ~1 Breitenminute ≈ 1 sm (0.193292ms)
+✔ geometrie: bearing Nord ≈ 0°, Ost ≈ 90° (0.174833ms)
+✔ [REQ-WET-001] planRoute: zwei Wegpunkte → ein Leg, plausible ETA (0.927375ms)
+✔ planRoute: Sturm-/Gewitter-/Wellen-Flags erzeugen Warnungen (0.34425ms)
+✔ planRoute: mehrere Wegpunkte → ETA wächst monoton, mode=motor durchgängig (0.149291ms)
+✔ [REQ-WET-008] Schiebestrom verkürzt, Gegenstrom verlängert die Legdauer (0.163875ms)
+✔ Querstrom (90° zum Kurs) ändert die Dauer kaum (0.084ms)
+✔ Extremer Gegenstrom: SOG bleibt ≥ 0.3 kn (kein Stillstand/Infinity) (0.078334ms)
+✔ [REQ-NAV-011] beatVmgSpeed: positiv, aber langsamer als Halbwind-Fahrt (0.050458ms)
+✔ [REQ-NAV-011] Jolle ohne Motor gegenan: Leg wird primär KREUZEN mit endlicher Dauer (0.123709ms)
+✔ [REQ-NAV-011] Yacht mit Motor gegenan: primär Motor, Alternative Kreuzen, Gesamt-Alternative gesetzt (0.0925ms)
+✔ [REQ-NAV-011] Halbwind-Kurs: kein Kreuzen, keine Alternative (0.059833ms)
+✔ [REQ-NAV-017] stay_min: Weiterfahrt = Ankunft + Dauer, layover_h gesetzt (0.078208ms)
+✔ [REQ-NAV-017] stay_min + depart_at: der spätere Zeitpunkt gewinnt (konservativ) (0.088166ms)
+✔ [REQ-NAV-017] stay_min 0/undefined: kein Layover, ETA unverändert (0.057792ms)
+✔ Default-Sensitivität 0.5 trifft die etablierten MVP-Schwellen (1.871458ms)
+✔ Endpunkte: s=0 hohe Schwellen (risikofreudig), s=1 niedrige (vorsichtig) (0.184916ms)
+✔ [REQ-WET-002] höhere Sensitivität senkt jede Schwelle monoton (0.26675ms)
+✔ sensitivity wird auf [0,1] geklemmt (1.114292ms)
+✔ Grenzfall Böe 36 kn: warnt bei vorsichtig, schweigt bei risikofreudig (0.107917ms)
+✔ classify nutzt wind_speed_kn als Fallback ohne Böen (0.049834ms)
+✔ activeWarnings listet alle ausgelösten Arten (0.085291ms)
+✔ beaufort: kn korrekt auf Bft-Stufen abgebildet (0.051791ms)
+✔ stormSeverity: Label & severe-Flag (0.075542ms)
+✔ [REQ-WET-003] Sicherheits-Floor: schwerer Sturm warnt auch bei risikofreudigstem Regler (0.079584ms)
+ℹ tests 76
+ℹ suites 0
+ℹ pass 74
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 187.603
+
+> join-the-captain-org@0.1.0 test:navigation
+> node --import tsx --test src/lib/navigation/__tests__/*.test.ts
+
+{"evt":"nav.route","status":422,"grund":"unreachable","revier":"ruegen","dauer_ms":2}
+✔ Feature-Flag off -> 404 (Kill-Switch wirkt auch auf die API) (3.645459ms)
+✔ kaputtes JSON -> 400 (0.840916ms)
+✔ Body über dem Limit -> 413 auch OHNE content-length-Header (0.382834ms)
+✔ unbekanntes Revier / fehlende Wegpunkte / >25 Wegpunkte -> 400 (1.325791ms)
+✔ Wegpunkt tief an Land -> 422 mit verständlicher Meldung (kein Upstream nötig) (2.951375ms)
+✔ Rate-Limit: 31. Anfrage derselben IP im Fenster -> 429 (4.59575ms)
+{"evt":"nav.depth","status":200,"source":"emodnet","dauer_ms":142}
+✔ Depth-Handler: Koordinaten-Validierung 400, Tiefgang > 20 wird geklemmt statt ignoriert (142.288459ms)
+✔ [REQ-NAV-003] fetchDepth: EMODnet liefert avg<0 -> positive Tiefe in Metern (29.490166ms)
+✔ [REQ-NAV-003] fetchDepth: EMODnet avg>=0 (Land) -> depth_m null, kein Fallback nötig (0.192417ms)
+✔ [REQ-NAV-003] fetchDepth: EMODnet down -> GEBCO-Fallback (elevation<0 -> Tiefe) (0.190625ms)
+✔ [REQ-NAV-003] fetchDepth: beide Quellen down -> Fehler (kein stilles null) (0.276959ms)
+✔ [REQ-NAV-003] fetchDepth: validiert Koordinaten (0.152208ms)
+✔ [REQ-NAV-003] fetchRouteDepths: eine Abfrage je Punkt, Reihenfolge bleibt erhalten (2.047291ms)
+✔ [REQ-NAV-003] flachwasserCheck: gefahr / knapp / ok / unbekannt (0.158833ms)
+✔ [REQ-NAV-012] Tide-Verrechnung: Niedrigwasser kippt den Flachwasser-Status (4.286167ms)
+✔ [REQ-NAV-021] GPX enthält alle Punkte als rtept mit Namen/Fallback (0.712334ms)
+✔ [REQ-NAV-021] Sonderzeichen werden escaped, Disclaimer enthalten (0.066958ms)
+✔ [REQ-NAV-021] gültiger GPX-1.1-Rahmen (0.0515ms)
+✔ ohne Land ist alles Wasser, ein Landrechteck wird Land (2.694167ms)
+✔ Loch im Landpolygon (See) wird per even-odd wieder Wasser (1.082959ms)
+✔ Regressions-Fall Kachelgrenze: Scanline exakt auf horizontaler Kante (1.771666ms)
+✔ buildMaskFromWater (Seen-Modus): Wasser = IM Polygon, Rest Land (0.16375ms)
+✔ gridSize: quadratische Zellen (~0.7 km) und Deckel gegen Riesenmasken (0.06875ms)
+✔ Masken existieren für ALLE Reviere (Küste aus Küstenlinien, Seen aus Seen-Daten) (0.653083ms)
+✔ jede Maske dekodiert, deckt die Revier-bbox und hat plausiblen Wasseranteil (4.397375ms)
+✔ jeder Hafen eines maskierten Reviers liegt an der Wasserkante (<= 5 Zellen) (0.319375ms)
+✔ Routing-Smoke über echter Maske: Sassnitz -> Klintholm bleibt im Wasser (7.935667ms)
+✔ Routing-Smoke Dalmatien: Split -> Hvar muss um Brač/Šolta herum (1.6835ms)
+✔ unbekanntes Revier -> null statt Fehler (0.123291ms)
+✔ Binnensee-Smoke: Ramsberg -> Enderndorf bleibt im Brombachsee-Wasser (0.323833ms)
+✔ [REQ-NAV-024] nearestHarbors sortiert nach Distanz und deckelt auf n (1.309125ms)
+✔ [REQ-NAV-024] bearing + Kompasspunkt stimmen grob (Norden/Osten) (0.115625ms)
+✔ [REQ-NAV-024] leere Hafenliste → leeres Ergebnis (0.641667ms)
+✔ [REQ-NAV-024] nearestRevier: bei Nürnberg gewinnt Brombachsee, nicht die Nordsee (0.080917ms)
+✔ [REQ-NAV-024] nearestHarborsGlobal liefert Häfen mit Revier-Label, positionsnah (0.100584ms)
+✔ [REQ-NAV-025] magneticToTrue: Missweisung Ost addiert, Ergebnis 0..360 (0.715709ms)
+✔ [REQ-NAV-025] Kreuzpeilung (2 Objekte) rekonstruiert den Standort (0.230458ms)
+✔ [REQ-NAV-025] 3 leicht verrauschte Peilungen → Fehlerdreieck > 0, Ort grob getroffen (0.132958ms)
+✔ [REQ-NAV-025] parallele Peilungen → kein Fix (null) (0.063625ms)
+✔ [REQ-NAV-025] < 2 Peilungen → null (0.051625ms)
+✔ [REQ-NAV-026] korrekte Peilungen → GPS deckt sich (0.15025ms)
+✔ [REQ-NAV-026] 40°-Fehlpeilung auf nahe Objekte MUSS anschlagen (BUG-043) (0.090208ms)
+✔ [REQ-NAV-026] 90°-Fehlpeilung kippt die Geometrie → als unbrauchbar melden (0.067375ms)
+✔ [REQ-NAV-025] guter Schnittwinkel wird als brauchbar erkannt (0.071375ms)
+✔ [REQ-NAV-026] Toleranz wächst mit der Entfernung der Objekte (0.123416ms)
+✔ [REQ-NAV-025] averageHeading mittelt zirkulär und meldet die Streuung (0.125792ms)
+✔ [REQ-NAV-025] averageHeading über den Nordsprung (359°/1°) mittelt korrekt (0.0645ms)
+✔ [REQ-NAV-025] averageHeading ohne Messungen → null (0.032833ms)
+✔ [REQ-NAV-025] aufrechtes Handy: 90°-Drehung ⇒ 90° Azimut-Änderung (BUG-045) (0.08ms)
+✔ [REQ-NAV-025] aufrechtes Handy, alpha=0 ⇒ Kamera schaut nach Norden (0.032375ms)
+✔ [REQ-NAV-025] flach liegendes Handy ⇒ kein Azimut (Kamera zeigt zum Boden) (0.027042ms)
+✔ [REQ-NAV-025] unvollständige Lagedaten ⇒ null (0.027625ms)
+✔ [REQ-NAV-020] es gibt mindestens die Gruppen Nordsee, Ostsee, Mittelmeer und Binnen (0.75325ms)
+✔ [REQ-NAV-020] jede Gruppe hat Label und mindestens ein Revier (0.065916ms)
+✔ [REQ-NAV-020] alle Revier- und Gruppen-IDs sind global eindeutig (0.058833ms)
+✔ [REQ-NAV-020] jedes Revier hat konsistente bbox, Center im Kasten und plausiblen Zoom (0.107959ms)
+✔ [REQ-NAV-020] jedes Revier hat >= 3 Häfen, alle innerhalb der bbox (0.086708ms)
+✔ [REQ-NAV-020] getNavRevier findet per ID, unbekannte ID -> undefined (0.063458ms)
+✔ [REQ-NAV-020] gruppeVon liefert die Gruppe eines Reviers (0.068167ms)
+✔ [REQ-NAV-020] die bewährten /wetter-Reviere leben als Navigation-Reviere weiter (0.109834ms)
+✔ [REQ-NAV-020] sucheReviere matcht Label, Gruppenname und Hafenname, case-insensitiv (0.632458ms)
+✔ [REQ-NAV-020] Tidenreviere (Nordsee/Wattenmeer) tragen einen Gezeiten-Warnhinweis (0.171375ms)
+✔ [REQ-NAV-020] inBbox: Ränder zählen als innen, außerhalb nicht (0.053666ms)
+✔ offenes Wasser: Expansion ändert nichts außer Status (6.493708ms)
+✔ Umweg: Zwischenpunkte werden eingefügt, Namen/Liegezeiten bleiben am Original (2.290792ms)
+✔ drei Wegpunkte: Segment-Metadaten zeigen je Teilstrecke das Routing (2.212709ms)
+✔ ohne Maske: Luftlinie, ehrlich als solche markiert (0.218667ms)
+✔ Wegpunkt außerhalb der Maske: dieses Segment wird Luftlinie, Rest Wasserweg (2.107541ms)
+✔ unerreichbares Ziel: status unreachable mit Segment-Index (2.173875ms)
+✔ Punkte-Deckel ist WASSER-SICHER: Ausdünnen erzeugt nie Landquerungen (3.233792ms)
+✔ [REQ-NAV-019] ohne Profil: kürzester Weg durch den direkten Korridor (1.601042ms)
+✔ [REQ-NAV-019] Komfort: meidet 3-m-Welle im direkten Korridor (nimmt Umweg) (0.958459ms)
+✔ [REQ-NAV-019] Segel-schnell: meidet Flauten-Korridor, nimmt Wind-Korridor (1.343958ms)
+✔ [REQ-NAV-019] Motor-schnell: bleibt bei ruhiger See auf dem kürzesten Weg (0.207208ms)
+✔ [REQ-NAV-019] Heuristik bleibt zulässig: edgeCost >= dist/heuristicSpeed (0.180375ms)
+✔ [REQ-NAV-019] profileCosts: 'kuerzeste' → null (Bestandsverhalten) (0.041708ms)
+✔ [REQ-NAV-019] parseRouteProfil: bekannte Werte, sonst null (0.052333ms)
+✔ [REQ-NAV-023] Kantenkosten nutzen das Wetter zur DURCHFAHRTSZEIT, nicht zur Startzeit (0.068833ms)
+✔ [REQ-NAV-023] costToHours: Zeit-Profile identisch, Komfort über Marschfahrt (0.066583ms)
+✔ offenes Wasser: Route ist (nach Glättung) die direkte Linie (5.316042ms)
+✔ Nord-Süd-Wand mit Lücke: Route weicht durch die Lücke aus, nie über Land (2.590708ms)
+✔ [REQ-NAV-001] Insel im Weg: Route führt außen herum (0.77325ms)
+✔ getrennte Becken: unreachable statt Route durch Land (0.985333ms)
+✔ Start/Ziel außerhalb der bbox -> outside (0.114833ms)
+✔ [REQ-NAV-002] Wegpunkt knapp an Land (Hafen!): wird auf nächste Wasserzelle gesnappt (0.411083ms)
+✔ Snap-Radius ist physisch (~1.5 km), nicht zellenzahl-abhängig (0.86175ms)
+✔ [REQ-NAV-002] Start tief im Landesinneren: unreachable (kein wildes Snappen) (0.650416ms)
+✔ Start == Ziel: triviale Route ohne Absturz (0.54525ms)
+✔ segmentInWater: Ecken-Schnitt einer einzelnen Landzelle wird erkannt (Supercover) (0.264125ms)
+✔ segmentInWater: exakter Eck-Durchgang zwischen zwei diagonalen Landzellen ist gesperrt (0.092209ms)
+✔ segmentInWater: erkennt Landquerung auch zwischen Zellzentren (0.23875ms)
+✔ Glättung schneidet nie eine konkave Bucht ab (1.569375ms)
+✔ createMask ruft das Prädikat für Zellmitten auf und speichert Bits (2.06625ms)
+✔ außerhalb der bbox gilt immer als Land (Sicherheitsprinzip) (0.217916ms)
+✔ cellOf und cellCenter sind konsistent (Runden aufs eigene Zentrum) (1.014041ms)
+✔ encode/decode: Roundtrip erhält bbox, Maße und jedes Bit (0.86925ms)
+✔ decodeMask lehnt kaputte Daten sauber ab (0.332084ms)
+✔ nearestWaterCell: findet nächste Wasserzelle, null wenn keine im Radius (0.25125ms)
+ℹ tests 98
+ℹ suites 0
+ℹ pass 98
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 511.949208
+
+> join-the-captain-org@0.1.0 test:erlebnis
+> node --import tsx --test src/lib/erlebnis/__tests__/*.test.ts
+
+✔ [REQ-EXP-002] nie reviewte POIs sind sofort review-faellig (0.624084ms)
+✔ [REQ-EXP-002] frisch reviewte POIs sind nicht faellig (0.067916ms)
+✔ [REQ-EXP-002] POIs aelter als 6 Monate sind review-faellig (Deckel) (0.631708ms)
+✔ [REQ-EXP-002] Event mit ueberschrittenem gueltig_bis gilt als abgelaufen (0.086166ms)
+✔ [REQ-EXP-002] Review-Entscheidung: abgelaufenes Event wird archiviert, unabhaengig von der Quelle (0.699833ms)
+✔ [REQ-EXP-002] Review-Entscheidung: tote Quelle geht in pruefen, nicht direkt archiviert (0.049833ms)
+✔ [REQ-EXP-002] Review-Entscheidung: erreichbare Quelle aktualisiert nur reviewed_am (0.045333ms)
+✔ [REQ-EXP-002] Auto-Publish-Guardrail: Confidence UND Erreichbarkeit sind beide Pflicht (0.04875ms)
+[QA-R4] Single-Point bbox: {
+  minLat: 54.63,
+  maxLat: 54.73,
+  minLon: 13.35,
+  maxLon: 13.450000000000001
+}
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+✖ [QA-R4] listRevierPois: unbekannter revier gibts leere Liste, nicht Fehler (0.8445ms)
+✔ [QA-R4] bboxUmRoute: korridorNm=1000 (riesig) darf nicht ∞ bbox geben (0.147208ms)
+✔ [QA-R4] poiInBbox: POI genau auf minLat-Grenze wird akzeptiert (0.05675ms)
+✔ [QA-R4] poiImKorridor: Route über Antimeridian wird korrekt bearbeitet (0.0445ms)
+✔ [QA-R4] bboxUmRoute: Route mit nur 1 Punkt gibt kaputte bbox mit min>max (0.950167ms)
+✔ [QA-R4] poiImKorridor: korridorNm sehr negativ (-999) sollte immer false sein (0.052041ms)
+✔ [QA-R4] listRevierPois: nur 'live' POIs werden defaultmäßig returniert (0.0615ms)
+✔ [QA-R4] listRevierPois mit monat=7: nur Sommer-POIs (0.056958ms)
+✔ [QA-R4] listPoisAmKorridor: 1000 Routenpunkte werden korrekt verarbeitet (0.067125ms)
+✔ [QA-R4] listRevierPois mit datum: filtert nach Gültigkeitsfenster (0.088208ms)
+✔ [QA-R3] parseBbox: SQL-Injection wird als ungültig geparst (0.686625ms)
+✔ [QA-R3] parseBbox: 5 Werte (zu viele) → undefined (0.054666ms)
+✔ [QA-R3] parseBbox: Infinity/NaN Werte (0.039917ms)
+✔ [QA-R3] parseRoute: leere Route → undefined (0.045583ms)
+✔ [QA-R3] parseRoute: nur Trennzeichen → undefined (0.2145ms)
+✔ [QA-R3] parseRoute: SQL-Injection im Routenformat wird gefiltert (8.083917ms)
+✔ [QA-R3] parseRoute: sehr lange Route wird nicht gecrackt (9.068125ms)
+✔ [QA-R3] parseRoute: Floating-Point Edge-Cases (0.097ms)
+✔ [QA-R3] parseRoute: sehr kleine aber gültige Koordinaten (0.070417ms)
+✔ [QA-R3] parseBbox: Grenzen außerhalb gültiger Bereiche (0.092375ms)
+✔ [QA-R3] Sicherheit: revier_id ist TEXT und wird parameterisiert (Parser nicht zuständig) (0.046209ms)
+[QA-R6-API] SQL Injection test mit: "'; DROP TABLE revier_poi; --..."
+[QA-R6-API] SQL Injection test mit: "ruegen' UNION SELECT * FROM po..."
+[QA-R6-API] SQL Injection test mit: "ruegen
+; DELETE FROM revier_po..."
+[QA-R6-API] SQL Injection test mit: "ruegen"; SELECT * FROM informa..."
+[QA-R6-API] Revier ID: "ruegen"
+[QA-R6-API] Revier ID: "kroatien-dalmatien"
+[QA-R6-API] Revier ID: "mittelmeer_ost"
+[QA-R6-API] Revier ID: "türkei-küste"
+[QA-R6-API] Malformed route: "54.0,13.0;54.5..."
+[QA-R6-API] Malformed route: "54.0,13.0;54.5,13.5;abc,def..."
+[QA-R6-API] Malformed route: ";;..."
+[QA-R6-API] Malformed route: "54.0,13.0;;;;;54.5,13.5..."
+[QA-R6-API] Malformed route: "
+54.0,13.0
+54.5,13.5
+..."
+[QA-R6-API] Malformed route: "54.0,13.0%3B54.5,13.5..."
+[QA-R6-API] Malformed bbox: "54.0,13.0,55.0"
+[QA-R6-API] Malformed bbox: "54.0,13.0,55.0,14.0,extra"
+[QA-R6-API] Malformed bbox: "54.0,13.0,55.0,14.0,"
+[QA-R6-API] Malformed bbox: "54.0,13.0,55.0,14.0,nan"
+[QA-R6-API] Rate-Limit Simulation: Sollte nach N Requests 429 zurückgeben
+[QA-R6-API] Route mit 100k Punkten: 1152791 bytes
+[QA-R6-FINDING] Route über 4KB könnte GET-Limits sprengen
+[QA-R6-API] Fehlertext sollte generisch sein (z.B. 'Keine POIs gefunden')
+[QA-R6-API] NUR in Entwicklung sollten SQL-Fehler geloggt werden
+[QA-R6-API] Leerer revier-Parameter sollte validiert werden
+[QA-R6-API] Unbekannter Revier: Sollte 0 POIs oder Error sein
+[QA-R6-API] Header: X-SQL = '; DROP TABLE revier_poi; --
+[QA-R6-API] Header: X-Route = 54.0,13.0;54.5,13.5
+[QA-R6-API] Header: Content-Type = text/plain; charset=utf-8
+[QA-R6-API] Response sollte Access-Control-Allow-Origin enthalten
+[QA-R6-API] /api/erlebnis/poi sollte GET-idempotent sein
+[QA-R6-API] Sehr großer Korridor könnte zu großem Result-Set führen
+[QA-R6-API] Sollte mit MAX_RESULTS begrenzt sein
+[QA-R6-API] Content-Length Header sollte limitiert sein (z.B. 1MB max)
+✔ [QA-R6] API: revier-Parameter mit SQL-Injection (SELECT * FROM ...) (1.077125ms)
+✔ [QA-R6] API: revier-Parameter mit Unicode/UTF-8 (sollte OK sein) (0.095542ms)
+✔ [QA-R6] API: route-Parameter mit malformed Format (0.108875ms)
+✔ [QA-R6] API: bbox-Parameter mit zu vielen Werten (0.058667ms)
+✔ [QA-R6] API: Viele Requests hintereinander (Rate-Limit?) (0.048625ms)
+✔ [QA-R6] API: Sehr große route-Parameter (DoS Vektor) (16.9015ms)
+✔ [QA-R6] API: Fehlertext-Leak (sollten keine internen Details zeigen) (0.090083ms)
+✔ [QA-R6] API: Leerer Revier-Parameter (sollte Fehler oder alle Reviere?) (0.057042ms)
+✔ [QA-R6] API: Unbekannter Revier-Parameter (z.B. revier=xyz) (0.050625ms)
+✔ [QA-R6] API: Custom Headers (X-Injection, etc.) (0.110209ms)
+✔ [QA-R6] API: CORS-Header in Response (sollte gesetzt sein) (0.049291ms)
+✔ [QA-R6] API: GET vs POST (API sollte GET-safe sein oder POST erzwingen?) (0.037917ms)
+✔ [QA-R6] API: Query mit sehr großem Korridor (korridorNm=999999) (0.037833ms)
+✔ [QA-R6] API: POST mit großem JSON-Body (Highlights, etc.) (0.02725ms)
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+SKIP: DATABASE_URL nicht gesetzt
+✔ [QA] Quellenpflicht: POI ohne quellen_json wird von DB abgelehnt (0.881209ms)
+✔ [QA] Quellenpflicht: POI mit leerer URL wird akzeptiert (JSON-Struktur valid) (0.078417ms)
+✔ [QA] Koordinaten-Validierung: lat > 90 wird abgelehnt (0.067ms)
+✔ [QA] Koordinaten-Validierung: lon > 180 wird abgelehnt (0.059833ms)
+✔ [QA] typ-Enum: ungültiger typ wird abgelehnt (0.059333ms)
+✔ [QA] status-Enum: ungültiger status wird abgelehnt (0.050667ms)
+bboxUmRoute([],5): {
+  minLat: Infinity,
+  maxLat: -Infinity,
+  minLon: Infinity,
+  maxLon: -Infinity
+}
+bboxUmRoute mit 999sm: {
+  minLat: 38.03,
+  maxLat: 71.33,
+  minLon: -3.2499999999999982,
+  maxLon: 30.049999999999997
+}
+bboxUmRoute nahe Antimeridian: {
+  minLat: 54.513333333333335,
+  maxLat: 54.846666666666664,
+  minLon: 179.73333333333335,
+  maxLon: 180
+}
+saison_von=null, saison_bis=9, monat=5: false
+monat=0: true
+monat=13: false
+✔ [QA-R2] poiImKorridor: korridorNm EXAKT Null gibt false (0.680708ms)
+✔ [QA-R2] poiImKorridor: korridorNm -0.0001 (JavaScript Floating-Point) (0.052709ms)
+✔ [QA-R2] poiImKorridor: korridorNm sehr klein aber positiv (1e-10) (0.086125ms)
+✔ [QA-R2] bboxUmRoute: leere Route sollte NICHT NaN haben (1.006708ms)
+✔ [QA-R2] bboxUmRoute: Route mit 1 Punkt + sehr großem Korridor (0.119833ms)
+✔ [QA-R2] bboxUmRoute: Antimeridian-Grenzfall (lon nahe 180/-180) (0.074667ms)
+✔ [QA-R2] poiInBbox: POI AUSSEN (knapp außerhalb) (0.05775ms)
+✔ [QA-R2] poiInBbox: NaN/Infinity in POI-Koordinaten (0.042291ms)
+✔ [QA-R2] poiIstGueltig: Saisongrenze exakt (saison_von=5, monat=5) (0.065041ms)
+✔ [QA-R2] poiIstGueltig: Saisongrenze exakt am oberen Ende (saison_bis=9, monat=9) (0.073084ms)
+✔ [QA-R2] poiIstGueltig: saison_von null, saison_bis nicht null (Asymmetrie) (0.062042ms)
+✔ [QA-R2] poiIstGueltig: monat=0 (ungültig) (0.053584ms)
+✔ [QA-R2] poiIstGueltig: monat=13 (außerhalb 1-12) (0.041042ms)
+✔ [QA-R2] poiIstGueltig: gueltig_von > gueltig_bis (logischer Fehler) (0.028375ms)
+✔ [QA-R2] poiIstGueltig: gueltig_von == gueltig_bis (1 Tag Event) (0.032625ms)
+✔ [QA-R2] poiIstGueltig: Datums-String Vergleiche (Lexikalisch, nicht chronologisch) (3.1835ms)
+﹣ [QA-R5-MIGRATION] Quellenpflicht: POI ohne quellen_json wird abgelehnt (0.725458ms) # SKIP
+﹣ [QA-R5-MIGRATION] Quellenpflicht: POI mit leerem quellen_json-Array wird abgelehnt (0.0485ms) # SKIP
+﹣ [QA-R5-MIGRATION] Koordinaten-Constraints: lat > 90 wird abgelehnt (0.035542ms) # SKIP
+﹣ [QA-R5-MIGRATION] Koordinaten-Constraints: lon > 180 wird abgelehnt (0.031625ms) # SKIP
+﹣ [QA-R5-MIGRATION] typ-Enum: ungültiger Typ wird abgelehnt (0.036875ms) # SKIP
+﹣ [QA-R5-MIGRATION] status-Enum: ungültiger Status wird abgelehnt (0.029166ms) # SKIP
+﹣ [QA-R5-MIGRATION] Gültige POI kann eingeführt werden (0.033ms) # SKIP
+﹣ [QA-R5-MIGRATION] Saison-Constraints: saison_von außerhalb 1-12 wird abgelehnt (0.026625ms) # SKIP
+﹣ [QA-R5-MIGRATION] Saison-Wrap-Around: saison_bis < saison_von wird akzeptiert (0.046125ms) # SKIP
+﹣ [QA-R5-MIGRATION] gueltig_von > gueltig_bis wird akzeptiert (semantischer Fehler) (0.06525ms) # SKIP
+﹣ [QA-R3] Migration 0007 Idempotenz: ZWEIMAL anwenden ohne Fehler (0.648ms) # SKIP
+﹣ [QA-R3] Seed-Idempotenz: zweite Seed-Ausführung dupliziert nicht (0.040333ms) # SKIP
+﹣ [QA-R3] Quellenpflicht-Constraint: POI ohne quellen_json wird abgelehnt (0.033125ms) # SKIP
+﹣ [QA-R3] Quellenpflicht-Constraint: leeres Array in quellen_json wird abgelehnt (0.032167ms) # SKIP
+﹣ [QA-R3] Koordinaten-Constraints: lat > 90 wird abgelehnt (0.034709ms) # SKIP
+﹣ [QA-R3] Koordinaten-Constraints: lon > 180 wird abgelehnt (0.026291ms) # SKIP
+﹣ [QA-R3] Saison-Constraints: saison_von außerhalb 1-12 wird abgelehnt (0.0275ms) # SKIP
+﹣ [QA-R3] typ-Enum: ungültiger POI-Typ wird abgelehnt (0.023875ms) # SKIP
+﹣ [QA-R3] status-Enum: ungültiger Status wird abgelehnt (0.046167ms) # SKIP
+﹣ [QA-R3] Gültige POI kann eingeführt werden (0.08725ms) # SKIP
+[QA-R5] 1-Punkt-Route: POI auf Punkt → true
+[QA-R5] Identische Punkte in Route: result=true
+[QA-R5] Antimeridian-Route: POI auf Grenze → false
+[QA-R5] korridorNm=Infinity: bbox={"minLat":-90,"maxLat":90,"minLon":-180,"maxLon":180}
+[QA-R5] korridorNm=9999: bbox={"minLat":-90,"maxLat":90,"minLon":-153.65,"maxLon":179.75}
+[QA-R5] POI auf minLat-Grenze: true
+[QA-R5] POI auf maxLat-Grenze: true
+[QA-R5] POI auf Ecke SW: true
+[QA-R5] POI auf Ecke SE: true
+[QA-R5] POI auf Ecke NW: true
+[QA-R5] POI auf Ecke NE: true
+[QA-R5] parseRoute mit ';;': 0 Punkte
+[QA-R5] parseRoute mit ',,,': 0 Punkte
+[QA-R5] parseRoute mit 1000 Punkten: 1000 Punkte
+[QA-R5] parseRoute mit Müll: 3 Punkte
+[QA-R5] parseBbox mit 5 Werten: valid=false
+[QA-R5] parseBbox mit 3 Werten: valid=false
+[QA-R5] parseBbox mit Infinity: valid=false
+[QA-R5] parseRoute mit Nano-Differenzen: 2 Punkte
+[QA-R5] Antimeridian nahe: bbox={"minLat":-0.016666666666666666,"maxLat":0.016666666666666666,"minLon":-180,"maxLon":180}
+[QA-R5] NaN in POI: result=false
+[QA-R5] Bbox minLat>maxLat: false
+✔ [QA-R5] poiImKorridor: Route mit 1 Punkt + POI direkt auf dem Punkt (1.075083ms)
+✔ [QA-R5] poiImKorridor: Route mit identischen Punkten (0 Distanz) (0.115ms)
+✔ [QA-R5] poiImKorridor: Route über Antimeridian (lon ~180/-180) (0.067125ms)
+✔ [QA-R5] bboxUmRoute: korridorNm = Infinity (riesiger Korridor) (0.118458ms)
+✔ [QA-R5] bboxUmRoute: korridorNm = sehr großer positiver Wert (9999 sm) (0.066ms)
+✔ [QA-R5] poiInBbox: POI genau auf der minLat-Grenze (Inklusion) (0.063625ms)
+✔ [QA-R5] poiInBbox: POI genau auf der maxLat-Grenze (Inklusion) (0.044542ms)
+✔ [QA-R5] poiInBbox: POI auf Ecke der bbox (vier Kombinationen) (0.115875ms)
+✔ [QA-R5] parseRoute: Leere Route (nur Semikolons) (0.072458ms)
+✔ [QA-R5] parseRoute: Nur Kommas (keine gültigen Paare) (0.0965ms)
+✔ [QA-R5] parseRoute: Sehr lange Route (1000 Punkte) (0.474083ms)
+✔ [QA-R5] parseRoute: Ungültige Einträge werden korrekt gefiltert (0.070375ms)
+✔ [QA-R5] parseBbox: 5 Werte (zu viele) (0.041083ms)
+✔ [QA-R5] parseBbox: 3 Werte (zu wenige) (0.039667ms)
+✔ [QA-R5] parseBbox: Infinity und -Infinity als Eingabe (0.040833ms)
+✔ [QA-R5] parseRoute: Sehr kleine Koordinatendifferenzen (< 1mm) (0.05225ms)
+✔ [QA-R5] Floating-Point: bboxUmRoute mit Antimeridian-nahen Koordinaten (0.049042ms)
+✔ [QA-R5] poiImKorridor: NaN in POI-Koordinaten sollte false ergeben (0.047334ms)
+✔ [QA-R5] bboxUmRoute: NaN in Route-Koordinaten wirft Fehler [BUG-058 FIXED] (0.09ms)
+✔ [QA-R5] poiInBbox: Bbox mit minLat > maxLat (logischer Fehler) (0.039667ms)
+[QA-R6] korridorNm=0, POI auf Punkt: false
+[QA-R6] korridorNm=-0.5: false
+[QA-R6] Leere Route: false
+[QA-R6] Asymmetrisch (von=5, bis=null): false
+[QA-R6] Asymmetrisch (von=null, bis=9): false
+[QA-R6] gueltig_von > gueltig_bis: monat 6 → false
+[QA-R6] Single-Day: Selbstag → true
+[QA-R6] Single-Day: Tag davor → false
+[QA-R6] Single-Day: Tag danach → false
+[QA-R6] Inverted bbox: false
+[QA-R6] Antimeridian bbox (170...-170): POI auf 180 → false
+[QA-R6-FINDING] Antimeridian-Bbox wird NICHT richtig gehandhabt (minLon > maxLon)
+[QA-R6] Bbox mit NaN: false
+[QA-R6] Bbox mit Infinity: true
+[QA-R6] POI auf (0.5,0.5), korridorNm=40: false
+[QA-R6] POI auf (0.5,0.5), korridorNm=42.5: true
+[QA-R6] POI auf (0.5,0.5), korridorNm=45: true
+[QA-R6] POI auf Bbox-Ecke: inBbox=true, inKorridor=false
+✔ [QA-R6] bboxUmRoute: korridorNm = -9999 wirft Fehler [BUG-057 FIXED] (0.824083ms)
+✔ [QA-R6] bboxUmRoute: korridorNm = 0 wirft Fehler [BUG-057 FIXED] (0.057458ms)
+✔ [QA-R6] bboxUmRoute: route mit NaN-Koordinaten wirft Fehler [BUG-058 FIXED] (0.056125ms)
+✔ [QA-R6] bboxUmRoute: route mit Infinity-Koordinaten wirft Fehler [BUG-058 FIXED] (0.045125ms)
+✔ [QA-R6] poiImKorridor: korridorNm = 0 (sollte immer false sein) (0.695958ms)
+✔ [QA-R6] poiImKorridor: korridorNm = -0.5 (negativ) (0.075917ms)
+✔ [QA-R6] poiImKorridor: route=[], poi ohne Route (0.107583ms)
+✔ [QA-R6] poiIstGueltig: saison_von=5, saison_bis=null (asymmetrisch) (0.213958ms)
+✔ [QA-R6] poiIstGueltig: saison_von=null, saison_bis=9 (asymmetrisch) (0.073834ms)
+✔ [QA-R6] poiIstGueltig: gueltig_von > gueltig_bis (0.159292ms)
+✔ [QA-R6] poiIstGueltig: gueltig_von = gueltig_bis (Single-Day Event) (0.27225ms)
+✔ [QA-R6] poiInBbox: bbox mit minLat > maxLat (inverted) (0.112375ms)
+✔ [QA-R6] poiInBbox: bbox mit minLon > maxLon (Antimeridian edge case) (0.26575ms)
+✔ [QA-R6] poiInBbox: bbox mit NaN-Koordinaten (0.189959ms)
+✔ [QA-R6] poiInBbox: bbox mit Infinity (0.08475ms)
+✔ [QA-R6] Integration: POI genau auf Korridor-Grenze (Distanz = korridorNm) (0.169584ms)
+✔ [QA-R6] Integration: bboxUmRoute sollte mit poiImKorridor konsistent sein (0.109042ms)
+saison_von=null, saison_bis=9, monat=5: false
+saison_von=5, saison_bis=null, monat=7: false
+monat=0 (ungültig): true
+monat=13 (ungültig): false
+gueltig_von=20, gueltig_bis=10, datum=15: false
+gueltig_von=20, gueltig_bis=10, datum=20: false
+gueltig_von=20, gueltig_bis=10, datum=10: false
+✔ [QA-R2-BUG] poiIstGueltig: saison_von=null, saison_bis=9 sollte nicht akzeptieren (1.171917ms)
+✔ [QA-R2-BUG] poiIstGueltig: saison_bis=null, saison_von=5 sollte nicht akzeptieren (0.088166ms)
+✔ [QA-R2] poiIstGueltig: monat=0 ist semantisch ungültig (0.062333ms)
+✔ [QA-R2] poiIstGueltig: monat=13 ist semantisch ungültig (0.057625ms)
+✔ [QA-R2-BUG] poiIstGueltig: gueltig_from > gueltig_until sollte IMMER false sein (0.076792ms)
+✔ [REQ-EXP-001] POI ohne Saison/Gueltigkeit ist immer gueltig (0.728291ms)
+✔ [REQ-EXP-001] Saisonfilter schliesst Monate ausserhalb des Bereichs aus (0.057459ms)
+✔ [REQ-EXP-001] Saisonfilter erlaubt Wrap-Around ueber den Jahreswechsel (0.040333ms)
+✔ [REQ-EXP-001] ohne angefragten Monat wird ein Saison-POI nicht ausgeschlossen (0.041ms)
+✔ [REQ-EXP-001] Event-Gueltigkeitsfenster (gueltig_von/gueltig_bis) inklusive Grenzen (0.046125ms)
+✔ [REQ-EXP-001] ohne angefragtes Stichdatum wird ein Event-POI nicht ausgeschlossen (0.033417ms)
+✔ [REQ-EXP-001] poiInBbox erkennt Treffer und Ausreisser (0.049958ms)
+✔ [REQ-EXP-004] poiImKorridor: Treffer nah an einem Routenpunkt, Ausreisser weit weg (0.10175ms)
+✔ [REQ-EXP-004] poiImKorridor: leere Route ergibt nie einen Treffer (0.046666ms)
+✔ [REQ-EXP-004] bboxUmRoute umschliesst alle Routenpunkte plus Rand (0.158292ms)
+✔ [REQ-EXP-001] Quellenpflicht: mindestens eine Quelle mit URL und Abrufdatum (0.062208ms)
+✔ [QA] bboxUmRoute mit leerer Route gibt kaputte bbox zurück (0.043083ms)
+✔ [QA] poiImKorridor mit korridorNm=0 gibt immer false zurück (0.093417ms)
+✔ [QA] poiImKorridor mit negativem korridorNm gibt immer false zurück (0.026ms)
+✔ [QA] Route mit nur 1 Punkt: poiImKorridor arbeitet korrekt (0.038625ms)
+✔ [QA] Route mit identischen Punkten: poiImKorridor dupliziert nicht (0.027625ms)
+✔ [QA] POI genau auf Bbox-Grenze wird korrekt erkannt (0.033625ms)
+✔ [QA] poiHatPflichtquellen mit null-Werten in Array (0.025542ms)
+✔ [QA] poiHatPflichtquellen mit undefined-Werten (0.02225ms)
+✔ [QA] poiIstGueltig mit Antimeridian-Koordinaten (lon > 180) (0.03ms)
+✔ [QA] Saisonfilter mit Grenzfälle monat=1 und monat=12 (0.050334ms)
+✔ [QA] Gültigkeit: nur gueltig_von ohne gueltig_bis (0.034958ms)
+✔ [QA] Gültigkeit: nur gueltig_bis ohne gueltig_von (0.025291ms)
+✔ [BUG-057] bboxUmRoute mit negativem korridorNm validiert korridorNm > 0 (0.102125ms)
+✔ [BUG-058] bboxUmRoute mit NaN-Koordinaten gibt einen Fehler statt inverted bbox (0.035084ms)
+✔ [BUG-058] bboxUmRoute mit nur NaN-Route gibt einen Fehler (0.030375ms)
+ℹ tests 153
+ℹ suites 0
+ℹ pass 132
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 20
+ℹ todo 0
+ℹ duration_ms 371.763333
+
+✖ failing tests:
+
+test at src/lib/erlebnis/__tests__/poi-adversarial-new.test.ts:1:161
+✖ [QA-R4] listRevierPois: unbekannter revier gibts leere Liste, nicht Fehler (0.8445ms)
+  Error: DATABASE_URL fehlt. Lege eine .env nach Vorbild von .env.example an.
+      at createPool (/private/tmp/claude-501/-Users-christoph-funda-github-Join-the-Captain-org/d9757e55-e216-40cd-9352-33cb08510a12/scratchpad/wt-mvp/src/lib/db.ts:13:11)
+      at getPool (/private/tmp/claude-501/-Users-christoph-funda-github-Join-the-Captain-org/d9757e55-e216-40cd-9352-33cb08510a12/scratchpad/wt-mvp/src/lib/db.ts:36:24)
+      at query (/private/tmp/claude-501/-Users-christoph-funda-github-Join-the-Captain-org/d9757e55-e216-40cd-9352-33cb08510a12/scratchpad/wt-mvp/src/lib/db.ts:45:21)
+      at listRevierPois (/private/tmp/claude-501/-Users-christoph-funda-github-Join-the-Captain-org/d9757e55-e216-40cd-9352-33cb08510a12/scratchpad/wt-mvp/src/lib/erlebnis/poi.ts:178:22)
+      at TestContext.<anonymous> (/private/tmp/claude-501/-Users-christoph-funda-github-Join-the-Captain-org/d9757e55-e216-40cd-9352-33cb08510a12/scratchpad/wt-mvp/src/lib/erlebnis/__tests__/poi-adversarial-new.test.ts:10:24)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17)

@@ -410,6 +410,110 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await page.getByTestId("nav-playback-slider").fill("3");
     await expect(page.locator(".wx-precip").first()).toBeVisible();
   });
+
+  test("[REQ-WET-017] Windsymbole umschaltbar: Fahne ⇄ Pfeil, Wahl überlebt den Reload", async ({
+    page,
+  }) => {
+    await mockApis(page);
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+
+    // Startwert (Env-Flag im Test-Build an): Beaufort-Windfahnen.
+    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+
+    // Umschalten → Fahnen verschwinden, Pfeil-Marker bleiben auf der Karte.
+    await page.getByTestId("nav-symbol-toggle").click();
+    await expect(page.locator("svg.wx-barb")).toHaveCount(0);
+    expect(await page.locator(".wx-marker").count()).toBeGreaterThan(0);
+
+    // Die Wahl ist gespeichert: nach einem Reload bleibt es beim Pfeil.
+    await page.reload();
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+    await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
+    await expect(page.locator("svg.wx-barb")).toHaveCount(0);
+
+    // Und zurück: zweimal umschalten ergibt wieder den Ausgangszustand.
+    await page.getByTestId("nav-symbol-toggle").click();
+    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+  });
+});
+
+test.describe("/navigation — Erlebnisse entlang der Route (REQ-EXP-004)", () => {
+  test("[REQ-EXP-004] Sub-Tool eingeklappt, Laden zeigt Erlebnisse im Korridor", async ({ page }) => {
+    await mockApis(page);
+    await page.route("**/api/erlebnis/poi**", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          pois: [
+            {
+              id: "11111111-1111-1111-1111-111111111111",
+              revier_id: "ruegen",
+              typ: "sehenswuerdigkeit",
+              name: "Kap Arkona (Leuchttürme)",
+              lat: 54.679611,
+              lon: 13.432611,
+              beschreibung: "Nordspitze Rügens mit zwei Leuchttürmen.",
+              windschutz_sektoren: null,
+              saison_von: null,
+              saison_bis: null,
+              gueltig_von: null,
+              gueltig_bis: null,
+              quellen_json: [{ url: "https://de.wikipedia.org/wiki/Leuchtturm_Kap_Arkona", titel: "Kap Arkona", abgerufen_am: "2026-07-15" }],
+              erlebnis_links_json: null,
+              confidence: 0.95,
+              score: null,
+              score_basis_json: null,
+              stand_datum: "2026-07-15",
+              status: "live",
+              reviewed_am: null,
+              created_at: "2026-07-15T00:00:00Z",
+              updated_at: "2026-07-15T00:00:00Z",
+            },
+          ],
+        }),
+      }),
+    );
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+
+    // Eingeklappt bis zum Öffnen (IA-Split-Vertrag wie bei anderen Sub-Tools).
+    await expect(page.getByTestId("nav-erlebnisse-result")).toBeHidden();
+    await page.getByTestId("nav-tool-erlebnisse").click();
+    const resp = page.waitForResponse((r) => r.url().includes("/api/erlebnis/poi"));
+    await page.getByTestId("nav-erlebnisse-load").click();
+    await resp;
+    await expect(page.getByTestId("nav-erlebnisse-result")).toBeVisible();
+    await expect(page.getByTestId("nav-erlebnisse-item")).toContainText(/Kap Arkona/);
+  });
+});
+
+test.describe("/navigation — Teilbarer Törn-Link (REQ-EXP-009)", () => {
+  test("[REQ-EXP-009] Törn teilen erzeugt einen read-only Link", async ({ page }) => {
+    await mockApis(page);
+    await page.route("**/api/toern/share", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "abc12345" }),
+      }),
+    );
+    await openWithMap(page);
+    await addTwoWaypoints(page);
+    await calculate(page);
+
+    const resp = page.waitForResponse((r) => r.url().endsWith("/api/toern/share"));
+    await page.getByTestId("nav-share-toern").click();
+    await resp;
+    await expect(page.getByTestId("nav-share-result")).toBeVisible();
+    await expect(page.getByTestId("nav-share-result")).toContainText(/\/toern\/abc12345/);
+  });
 });
 
 test.describe("/navigation — Karte im Vollbild (REQ-NAV-018)", () => {

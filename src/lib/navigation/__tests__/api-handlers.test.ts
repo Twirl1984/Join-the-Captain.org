@@ -69,9 +69,9 @@ test("Wegpunkt tief an Land -> 422 mit verstÃ¤ndlicher Meldung (kein Upstream nÃ
     }),
   );
   assert.equal(res.status, 422);
-  const body = (await res.json()) as { error: string };
-  assert.match(body.error, /Kein Wasserweg/);
-  assert.match(body.error, /Acker/);
+  const body = (await res.json()) as { fehler: string };
+  assert.match(body.fehler, /Kein Wasserweg/);
+  assert.match(body.fehler, /Acker/);
 });
 
 test("Rate-Limit: 31. Anfrage derselben IP im Fenster -> 429", async () => {

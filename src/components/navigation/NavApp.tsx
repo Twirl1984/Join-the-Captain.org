@@ -23,6 +23,7 @@ import { compassPoint, windArrowRotationDeg } from "@/lib/weather/format";
 import { boatPositionAt } from "@/lib/weather/playback";
 import type { TimelinePoint } from "@/lib/weather/open-meteo";
 import type { Waypoint, RoutePlan, RouteLeg } from "@/lib/weather/route-forecast";
+import type { RevierPoi } from "@/lib/types";
 import { useGeolocation } from "./useGeolocation";
 import type { NavOverlay, NavRoutedLine, NavUiWaypoint } from "./NavMap";
 import { gpxFromRoute } from "@/lib/navigation/gpx";
@@ -40,6 +41,13 @@ import {
   type Bearing,
 } from "@/lib/navigation/peilung";
 import { weatherSymbolsV2Enabled } from "@/lib/flags";
+import {
+  normalisiereSymbolWahl,
+  andereWahl,
+  umschaltBeschriftung,
+  WX_SYMBOL_KEY,
+  type WxSymbolWahl,
+} from "@/lib/weather/wx-symbole";
 
 const NavMap = dynamic(() => import("./NavMap"), {
   ssr: false,
@@ -48,7 +56,9 @@ const NavMap = dynamic(() => import("./NavMap"), {
 
 // Wetterzeichen v2 (REQ-WET-015/016): Windfahnen + Temperatur/Niederschlag statt
 // Pfeil. Env-Flag (NEXT_PUBLIC_*, build-eingebacken) → einmal je Build ausgewertet.
-const SYMBOLS_V2 = weatherSymbolsV2Enabled();
+// Seit REQ-WET-017 nur noch der STARTWERT: die Nutzerin schaltet zur Laufzeit um,
+// die Wahl bleibt im Browser gespeichert (siehe lib/weather/wx-symbole.ts).
+const SYMBOL_START: WxSymbolWahl = weatherSymbolsV2Enabled() ? "fahne" : "pfeil";
 
 interface Timeline {
   times: string[];
@@ -133,6 +143,29 @@ export function NavApp() {
     }
     setShowDisclaimer(false);
   };
+  // Windsymbol-Darstellung (REQ-WET-017): Pfeil oder Beaufort-Windfahne.
+  // SSR-sicher nach dem Muster des Disclaimers oben: erst der Startwert aus dem
+  // Env-Flag, dann im Effekt die gespeicherte Wahl nachziehen — beim
+  // Server-Rendern gibt es kein localStorage.
+  const [symbolWahl, setSymbolWahl] = useState<WxSymbolWahl>(SYMBOL_START);
+  useEffect(() => {
+    try {
+      setSymbolWahl(normalisiereSymbolWahl(localStorage.getItem(WX_SYMBOL_KEY), SYMBOL_START));
+    } catch {
+      /* Privat-Modus: dann eben der Startwert */
+    }
+  }, []);
+  const symbolsV2 = symbolWahl === "fahne";
+  const toggleSymbolWahl = () => {
+    const neu = andereWahl(symbolWahl);
+    setSymbolWahl(neu);
+    try {
+      localStorage.setItem(WX_SYMBOL_KEY, neu);
+    } catch {
+      /* Privat-Modus: Wahl gilt nur für diese Sitzung */
+    }
+  };
+
   const [suche, setSuche] = useState("");
   const [waypoints, setWaypoints] = useState<NavUiWaypoint[]>([]);
   const nextId = useRef(1);
@@ -197,6 +230,14 @@ export function NavApp() {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // Erlebnisse entlang der Route (REQ-EXP-004): POIs im Korridor um den Wasserweg.
+  const [erlebnisse, setErlebnisse] = useState<RevierPoi[] | null>(null);
+  const [erlebnisseLoading, setErlebnisseLoading] = useState(false);
+  const [erlebnisseError, setErlebnisseError] = useState<string | null>(null);
+  const erlebnisseSeq = useRef(0);
+  // Teilbarer Törn-Link (REQ-EXP-009): read-only Snapshot per Kurz-ID.
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareState, setShareState] = useState<"idle" | "laden" | "fehler">("idle");
   // „Jetzt & hier" (REQ-NAV-024): aktuelle Bedingungen an der eigenen Position.
   const [jetztWx, setJetztWx] = useState<JetztWetter | null>(null);
   const [jetztDepth, setJetztDepth] = useState<{ depth_m: number; check?: FlachwasserStatus } | null>(null);
@@ -450,6 +491,63 @@ export function NavApp() {
     }
   }
 
+  // Erlebnisse entlang der Route (REQ-EXP-004): POIs im Korridor um den
+  // gerouteten Wasserweg, gefiltert nach Saison/Gültigkeit des Abfahrtsmonats.
+  async function loadErlebnisse() {
+    if (!routing) return;
+    const myId = ++erlebnisseSeq.current;
+    setErlebnisseLoading(true);
+    setErlebnisseError(null);
+    try {
+      const pts = thin(routing.points, 20);
+      const route = pts.map((p) => `${p.lat},${p.lon}`).join(";");
+      const monat = new Date(startTime).getUTCMonth() + 1;
+      const res = await fetch(
+        `/api/erlebnis/poi?route=${encodeURIComponent(route)}&korridorNm=5&monat=${monat}`,
+      );
+      if (myId !== erlebnisseSeq.current) return;
+      if (!res.ok) {
+        setErlebnisseError("Erlebnisse gerade nicht verfügbar — später erneut versuchen.");
+        return;
+      }
+      const data = (await res.json()) as { pois: RevierPoi[] };
+      setErlebnisse(data.pois);
+    } catch {
+      if (myId === erlebnisseSeq.current)
+        setErlebnisseError("Erlebnisse gerade nicht verfügbar — später erneut versuchen.");
+    } finally {
+      if (myId === erlebnisseSeq.current) setErlebnisseLoading(false);
+    }
+  }
+
+  // Teilbarer Törn-Link (REQ-EXP-009): Snapshot der aktuellen Route anlegen.
+  async function shareToern() {
+    if (!routing || !plan) return;
+    setShareState("laden");
+    setShareUrl(null);
+    try {
+      const res = await fetch("/api/toern/share", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          revierId: revier.id,
+          punkte: routing.points,
+          plan,
+          highlights: (erlebnisse ?? []).map((e) => ({ name: e.name, lat: e.lat, lon: e.lon, typ: e.typ })),
+        }),
+      });
+      if (!res.ok) {
+        setShareState("fehler");
+        return;
+      }
+      const data = (await res.json()) as { id: string };
+      setShareUrl(`${window.location.origin}/toern/${data.id}`);
+      setShareState("idle");
+    } catch {
+      setShareState("fehler");
+    }
+  }
+
   const addWaypoint = (w: Waypoint) => {
     // Peilungs-Auswahlmodus (REQ-NAV-025): Karten-/Hafen-Klick setzt das
     // angepeilte OBJEKT der wartenden Zeile — kein Wegpunkt, kein Snap (das
@@ -685,6 +783,8 @@ export function NavApp() {
       setSource((data as { source?: string }).source ?? null);
       setFbState("idle");
       setDepths(null);
+      setErlebnisse(null);
+      setErlebnisseError(null);
       // Timeline zuerst (liefert die Tide fürs Flachwasser, REQ-NAV-012),
       // dann automatischer Tiefen-Check mit Tide-Verrechnung.
       void (async () => {
@@ -1078,7 +1178,8 @@ export function NavApp() {
               peilObjekte={peilObjekte}
               peilLinien={peilLinien}
               peilFix={peilFix}
-              symbolsV2={SYMBOLS_V2}
+              symbolsV2={symbolsV2}
+              erlebnisse={erlebnisse ?? undefined}
             />
             {peilPickRow != null && (
               <p className="nav-map-toast" data-testid="nav-peil-pick-hint" role="status">
@@ -1108,7 +1209,18 @@ export function NavApp() {
             <div className="card stack" style={{ gap: 8 }} data-testid="nav-playback-panel">
               <div className="row-between">
                 <span className="section-label">
-                  {SYMBOLS_V2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                  {symbolsV2 ? "Wetter über die Zeit" : "Wolken & Wind über die Zeit"}
+                  {/* REQ-WET-017: Darstellung zur Laufzeit wählbar, Wahl bleibt gespeichert. */}
+                  <button
+                    type="button"
+                    data-testid="nav-symbol-toggle"
+                    className="nav-symbol-toggle"
+                    onClick={toggleSymbolWahl}
+                    title={umschaltBeschriftung(symbolWahl)}
+                    aria-label={umschaltBeschriftung(symbolWahl)}
+                  >
+                    {symbolsV2 ? "⇢ Pfeile" : "⇢ Windfahnen"}
+                  </button>
                 </span>
                 <span className="caption" data-testid="nav-playback-time">
                   {fmtEta(timeline.times[Math.min(playIdx, timeline.times.length - 1)])}
@@ -1144,7 +1256,7 @@ export function NavApp() {
                 />
               </div>
               <p className="caption">
-                {SYMBOLS_V2 ? (
+                {symbolsV2 ? (
                   <>
                     Graue Flächen = Wolkenfelder (je dichter, desto dunstiger) · Windfahnen =
                     Richtung &amp; Stärke (Halbstrich 5 kn, Strich 10 kn, Wimpel 50 kn, Schaft zeigt
@@ -1990,6 +2102,16 @@ export function NavApp() {
             >
               GPX ↓
             </button>
+            <button
+              type="button"
+              data-testid="nav-share-toern"
+              className="pill"
+              title="Read-only Link zum Teilen erzeugen"
+              disabled={shareState === "laden"}
+              onClick={() => void shareToern()}
+            >
+              {shareState === "laden" ? "Erzeuge Link …" : "Törn teilen"}
+            </button>
             {startAtGps && (
               <span className="tag phase-auf_dem_toern" data-testid="nav-live-badge">
                 ab eigener Position
@@ -2002,6 +2124,20 @@ export function NavApp() {
             {luftlinienSegmente > 0 &&
               ` · ${luftlinienSegmente} Teilstrecke(n) als Luftlinie (außerhalb der Maske).`}
           </p>
+
+          {shareState === "fehler" && (
+            <p className="caption" role="status" data-testid="nav-share-error">
+              Link konnte gerade nicht erzeugt werden — später erneut versuchen.
+            </p>
+          )}
+          {shareUrl && (
+            <p className="caption" data-testid="nav-share-result">
+              Geteilter Törn-Link:{" "}
+              <a href={shareUrl} target="_blank" rel="noreferrer">
+                {shareUrl}
+              </a>
+            </p>
+          )}
 
           {plan.warnings.length > 0 && (
             <div className="wetter-warnband stack" style={{ gap: 6 }}>
@@ -2069,6 +2205,52 @@ export function NavApp() {
               </div>
             )}
           </div>
+
+          {/* Erlebnisse entlang der Route (REQ-EXP-004) */}
+          <details className="card nav-subtool" data-testid="nav-erlebnisse">
+            <summary className="section-label" data-testid="nav-tool-erlebnisse">
+              Erlebnisse entlang der Route
+            </summary>
+            <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+              <div className="row-between">
+                <p className="caption">
+                  Buchten, Sehenswürdigkeiten und Versorgung im Korridor um den Wasserweg —
+                  kuratiert mit Quellenangabe, keine amtliche Freigabe.
+                </p>
+                <button
+                  type="button"
+                  data-testid="nav-erlebnisse-load"
+                  className="btn btn-outline-teal"
+                  disabled={erlebnisseLoading}
+                  onClick={() => void loadErlebnisse()}
+                >
+                  {erlebnisseLoading ? "Lädt …" : "Erlebnisse laden"}
+                </button>
+              </div>
+              {erlebnisseError && (
+                <p className="caption" role="status" data-testid="nav-erlebnisse-error">
+                  {erlebnisseError}
+                </p>
+              )}
+              {erlebnisse && (
+                <div className="stack" style={{ gap: 6 }} data-testid="nav-erlebnisse-result">
+                  {erlebnisse.length === 0 ? (
+                    <p className="caption">Keine kuratierten Erlebnisse im Korridor gefunden.</p>
+                  ) : (
+                    erlebnisse.map((e) => (
+                      <div key={e.id} className="row" style={{ gap: 8 }} data-testid="nav-erlebnisse-item">
+                        <Icon name="anchor" size={14} />
+                        <span>
+                          {e.name}
+                          <span className="caption"> — {e.beschreibung}</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </details>
 
           <div className="grid-features">
             {plan.legs.map((leg) => (

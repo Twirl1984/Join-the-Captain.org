@@ -124,6 +124,27 @@ p { margin: 0; }
 }
 .muted { color: var(--fg-muted); }
 .caption { font-size: 11px; color: var(--fg-muted); }
+
+/* Umschalter Windsymbole (REQ-WET-017): sitzt neben dem Abschnittslabel und
+   nennt das ZIEL des Klicks. Bewusst zurueckhaltend — er soll das Label nicht
+   uebertoenen, aber als Knopf erkennbar und gross genug zum Antippen sein. */
+.nav-symbol-toggle {
+  margin-left: 10px;
+  padding: 3px 8px;
+  min-height: 24px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+  border-radius: 999px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.nav-symbol-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.nav-symbol-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .stack { display: flex; flex-direction: column; }
 .row { display: flex; align-items: center; gap: 8px; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -541,4 +562,10 @@ p { margin: 0; }
 .nav-peilfix-marker {
   color: #d9534f; font-size: 22px; font-weight: 700; line-height: 1;
   text-shadow: 0 0 4px rgba(255,255,255,0.95);
+}
+
+/* Erlebnis-POI entlang der Route (REQ-EXP-004). */
+.nav-erlebnis-marker {
+  color: var(--accent); font-size: 16px; line-height: 1;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9); cursor: default;
 }

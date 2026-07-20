@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Vorlage — NICHT auto-installiert. Siehe scripts/pipeline/README.md.
+     Pfade (WorkingDirectory, ProgramArguments) auf die echte Arbeitskopie und
+     die Shell des Users anpassen, dann nach ~/Library/LaunchAgents kopieren. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.jtc.pipeline</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>/PFAD/ZUM/repo/scripts/pipeline/run.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
+  <!-- Nicht mehrfach parallel; verpasste Läufe (Mac war aus) NICHT nachholen. -->
+  <key>StandardOutPath</key>
+  <string>/tmp/jtc-pipeline.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/jtc-pipeline.err.log</string>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

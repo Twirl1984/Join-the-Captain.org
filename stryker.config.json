@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation-Gate (docs/ki-verifikation.md): beweist, dass die Tests echte Bugs fangen. Bewusst NUR die sicherheitskritischen reinen Kern-Libs — Mutation aufs ganze Repo waere unbezahlbar. Command-Runner, weil die Suite node:test/tsx nutzt (kein Stryker-Plugin noetig).",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "npm run test:mutation"
+  },
+  "mutate": [
+    "src/lib/navigation/peilung.ts",
+    "src/lib/navigation/route-profiles.ts",
+    "src/lib/navigation/depth.ts"
+  ],
+  "coverageAnalysis": "off",
+  "concurrency": 4,
+  "timeoutMS": 20000,
+  "reporters": [
+    "json",
+    "html",
+    "progress",
+    "clear-text"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "tempDirName": ".stryker-tmp",
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  },
+  "_thresholds_plan": "break bewusst null (nur Report, docs/ki-verifikation.md Reihenfolge). Nach ~3 stabilen Woechen break auf den gemessenen Ist-Boden (z.B. 70) heben."
+}
