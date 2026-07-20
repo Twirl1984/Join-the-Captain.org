@@ -116,4 +116,51 @@ Gate urteilt, bei unklarer/widersprüchlicher Anforderung STOPP + Übergabe
 5. [x] F2 — REQ-EXP-003 Community-Votum: Regel-Kern + Flag verifiziert, Wiring übergeben ✓ 2026-07-18
 6. [x] P4 — depth.ts ins Mutation-Gate + Härtung 75%→86,46% (Kern-Libs gesamt 89,9%); flachwasserCheck voll gedeckt (Rest-Survivor beweisbar äquivalent) ✓ 2026-07-18
 7. [x] Integration: alle drei Branches → `mvp_2` gemergt ✓ 2026-07-19
-8. [ ] (weitere Features EXP-006/007/008, NAV-022, F1/F2-Verdrahtung — brauchen Produktentscheidung → STOPP+Übergabe, NICHT autonom gestartet)
+8. [x] REQ-WET-017 Windsymbole umschaltbar (Pfeil ⇄ Windfahne, Wahl gespeichert) ✓ 2026-07-19
+
+## Autolauf-Queue ab 2026-07-20 — MIT PR und Auto-Merge nach `mvp_2`
+
+Entscheidungen des Betreibers vom 2026-07-20 sind eingearbeitet; diese Queue ist
+die verbindliche Quelle für die Cloud-Routine. **Pro Lauf GENAU EINE Etappe.**
+
+**Neu gegenüber dem Wochenende:** Die Routine öffnet jetzt eine **Pull Request**
+und merged nach **`mvp_2`**, sobald `agentic-gate` grün ist (das Gate läuft auf
+ALLEN PRs und fährt dort `chromium + webkit`, also die volle 4-Geräte-Matrix).
+`main` bleibt Mensch-Gate. Ist das Gate rot, bleibt die PR offen stehen — lieber
+offen als kaputt gemergt.
+
+1. [ ] A1 — **Postgres-Dienst in die CI** (`.github/workflows/agentic-gate.yml`):
+   `services: postgres:16` + `DATABASE_URL` + `npm run db:migrate` vor den Tests.
+   Schließt die Lücke, dass 21 DB-Tests still übersprungen werden. Zuerst, weil
+   es alle folgenden Etappen belastbarer macht.
+2. [ ] A2 — **REQ-EXP-005 verdrahten** (Buchten-Windschutz):
+   - Öffnungssektor je Bucht **aus der Küstengeometrie ableiten** — die
+     Wassermaske und `nearestWaterCell` (`src/lib/navigation/watermask.ts`)
+     existieren bereits: rund um die Bucht Richtungen abtasten, offener
+     Wassersektor = Öffnung, Mittelrichtung + Breite ableiten. Rein + testbar.
+   - **ENTSCHIEDEN:** `oeffnungsbreite_deg` **gewichtet den Score** (der ganze
+     Öffnungssektor gilt als exponiert). `windschutzScore` entsprechend
+     erweitern, bestehende Tests anpassen, Kommentar/JSDoc mitziehen.
+   - Kuratierte Korrektur je Bucht als Datenfeld vorsehen (Community später).
+   - UI: Ranking-Liste hinter Flag `NEXT_PUBLIC_FEATURE_BUCHTEN_RANKING`,
+     `WINDSCHUTZ_HINWEIS` („keine Ankerplatz-Freigabe") sichtbar im Footer.
+3. [ ] A3 — **BUG-002 Schlei läuft zu**: Wassermaske ist mit 1-km-Rasterung für
+   enge Förden zu grob (Hafen Kappeln lag im „Land"). Feinere Rasterung oder
+   gezielte Nachbearbeitung für schmale Gewässer; Regressionstest mit Kappeln.
+4. [ ] A4 — **REQ-NAV-022 Törn-Stil & Tagesetappen (v1)**: zwei Stile —
+   „Urlaubstörn" (Ankunft bis 18 Uhr, übernachten, morgens weiter) und
+   „Durchfahren" (inkl. Nachtfahrt). Route in Tagesetappen teilen,
+   Wunsch-Ankunftszeit → empfohlene Abfahrt (Rückwärtsrechnung über den
+   bestehenden Abfahrts-Scan). Reine Logik zuerst, UI danach.
+
+**Bewusst NICHT autonom (Begründung, damit es nicht doch jemand startet):**
+- **REQ-EXP-003 Community-Votum** wartet auf ein Konto-System — es gibt in
+  KEINEM der beiden Projekte Auth (kein next-auth, keine Nutzertabelle,
+  `skipper-login.html` ist eine leere Hülle). Der Betreiber hat entschieden:
+  Konto-System wird als **eigenes Projekt geplant** (REQ-AUTH-001, Konzept),
+  nicht nachts nebenbei gebaut. Sicherheitskritisch + DSGVO.
+- **REQ-EXP-006** baut auf A2 auf → erst danach sinnvoll.
+- **REQ-EXP-007 Referral**: Produkt- und Compliance-Entscheidungen offen.
+- **REQ-EXP-008 Revier-Wiki**: mehrtägig (Architektur, LLM-Budget, Inhalte).
+- **REQ-NAV-027 AR, iOS, Android, NavApp-Refactor**: Kamera/Xcode/Signing bzw.
+  zu breiter Diff — lokal mit dem Betreiber.
