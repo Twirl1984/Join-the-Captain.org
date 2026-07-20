@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { NavApp } from "@/components/navigation/NavApp";
 import { navigationEnabled } from "@/lib/flags";
 import { aktuelleSprache, uebersetzer } from "@/lib/i18n/server";
+import { WOERTERBUECHER } from "@/lib/i18n/woerterbuch";
 
 export const metadata: Metadata = {
   title: "Navigation & Wetter — Seekarte, Tiefen & GPS",
@@ -39,7 +40,7 @@ export default async function NavigationPage() {
           <span lang="de">Planungshilfe: ersetzt keine amtlichen Seekarten.</span>
         </p>
       </div>
-      <NavApp sprache={sprache} />
+      <NavApp woerter={WOERTERBUECHER[sprache]} />
     </div>
   );
 }

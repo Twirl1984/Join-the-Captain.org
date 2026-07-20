@@ -41,8 +41,7 @@ import {
   type Bearing,
 } from "@/lib/navigation/peilung";
 import { weatherSymbolsV2Enabled } from "@/lib/flags";
-import { macheUebersetzer, STANDARD_SPRACHE, type Sprache } from "@/lib/i18n/sprache";
-import { WOERTERBUECHER } from "@/lib/i18n/woerterbuch";
+import { fuelle, type Woerterbuch } from "@/lib/i18n/sprache";
 import {
   normalisiereSymbolWahl,
   andereWahl,
@@ -126,8 +125,22 @@ const DISCLAIMER_KEY = "jtc-nav-disclaimer-v1";
 
 // `sprache` kommt vom Server (siehe app/navigation/page.tsx), damit beim ersten
 // Rendern nicht kurz die falsche Sprache steht (REQ-I18N-001).
-export function NavApp({ sprache = STANDARD_SPRACHE }: { sprache?: Sprache }) {
-  const t = macheUebersetzer(WOERTERBUECHER, sprache);
+// Das Woerterbuch kommt als Eigenschaft vom Server — und zwar NUR die aktive
+// Sprache. Wuerde NavApp es selbst importieren, laege der komplette Bestand
+// BEIDER Sprachen im Browser-Bundle jedes Nutzers (gemessen: +6 kB, Haelfte
+// davon nie gebraucht). Auf dem Boot ueber Mobilfunk zaehlt jedes Kilobyte.
+export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
+  // useMemo, weil macheUebersetzer sonst bei JEDEM Rendern eine neue Funktion
+  // erzeugt. Das kostet nicht nur Arbeit, es macht die Identitaet instabil —
+  // in dieser Komponente rendert viel und oft (GPS-Ticks, Playback-Slider).
+  const t = useMemo(
+    () =>
+      (schluessel: string, werte?: Readonly<Record<string, string | number>>) => {
+        const text = woerter[schluessel] ?? schluessel;
+        return werte ? fuelle(text, werte) : text;
+      },
+    [woerter],
+  );
   const [revierId, setRevierId] = useState(REVIER_GRUPPEN[0].reviere[0].id);
   // Pflicht-Hinweis bei Erstnutzung: App ist NICHT als Navigationsmittel
   // zugelassen (Open-Source-Daten) — Nutzer muss das aktiv bestätigen.
