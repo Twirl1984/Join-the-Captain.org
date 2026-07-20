@@ -194,6 +194,11 @@ p { margin: 0; }
 }
 .sprach-umschalter:hover { border-color: var(--accent); color: var(--accent); }
 .sprach-umschalter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Auf breiten Schirmen der ausgeschriebene Name, auf schmalen nur das Kuerzel —
+   sonst laeuft die Kopfzeile auf dem Handy seitlich ueber (siehe Komponente). */
+.sprach-umschalter .sprach-kurz { display: none; }
+/* Im Fuss nur auf schmalen Geraeten sichtbar (im Kopf ist dort kein Platz). */
+.site-footer .sprach-umschalter { display: none; }
 .burger { display: none; background: none; border: none; color: var(--fg-on-deep); cursor: pointer; }
 
 .site-footer {
@@ -364,6 +369,12 @@ p { margin: 0; }
 @media (max-width: 768px) {
   .site-nav { display: none; }
   .burger { display: block; }
+  /* Der Sprachschalter verlaesst auf schmalen Geraeten die Kopfzeile: Dort
+     stehen schon Marke, Theme-Schalter, Buchungsknopf und Burger. Mit einem
+     weiteren Knopf brach die Karten-Vollbild-Bedienung (nachgewiesen per
+     Bisect am 2026-07-20). Auf dem Handy sitzt er stattdessen im Fuss. */
+  .header-actions .sprach-umschalter { display: none; }
+  .site-footer .sprach-umschalter { display: inline-grid; }
   .btn-row { flex-direction: column; }
   .btn-row .btn { width: 100%; }
   .podcast-strip { flex-direction: column; align-items: flex-start; }

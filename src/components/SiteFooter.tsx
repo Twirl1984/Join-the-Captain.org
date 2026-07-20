@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { uebersetzer } from "@/lib/i18n/server";
+import { SprachUmschalter } from "./SprachUmschalter";
 
 // Footer mit Pflicht-Affiliate-Disclaimer (UWG), Navy in beiden Themes.
 // Zweisprachig seit REQ-I18N-001 — MIT EINER AUSNAHME, siehe unten beim
@@ -44,6 +45,8 @@ export async function SiteFooter() {
               <li><Link href="/impressum">{t("fuss.impressum")}</Link></li>
               <li><Link href="/datenschutz">{t("fuss.datenschutz")}</Link></li>
             </ul>
+            {/* Auf schmalen Geraeten steht der Sprachschalter hier statt im Kopf. */}
+            <SprachUmschalter ort="fuss" />
           </div>
         </div>
         <div className="footer-bottom">
