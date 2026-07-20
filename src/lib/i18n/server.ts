@@ -4,22 +4,33 @@
 // (`cookies()` aus next/headers). Die reine Logik bleibt drüben und damit
 // offline testbar; hier ist nur die dünne Anbindung.
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { SPRACHE_COOKIE, STANDARD_SPRACHE, normalisiereSprache, uebersetze, fuelle, type Sprache } from "./sprache";
 import { WOERTERBUECHER } from "./woerterbuch";
 
 /**
  * Die Sprache für den aktuellen Aufruf.
  *
- * Reihenfolge: ausdrückliche Wahl (Cookie) schlägt Browser-Vorgabe
- * (`Accept-Language`) schlägt Deutsch. Wer einmal umgeschaltet hat, bekommt
- * seine Wahl also auch dann, wenn der Browser etwas anderes meldet.
+ * NUR die ausdrückliche Wahl (Cookie) zählt; sonst Deutsch.
+ *
+ * Die Browser-Vorgabe (`Accept-Language`) wird BEWUSST NICHT ausgewertet —
+ * geändert am 2026-07-20, nachdem 17 E2E-Tests aufgedeckt hatten, was das in
+ * der Praxis bedeutet: Playwright startet mit `en-US`, also kam die Seite auf
+ * Englisch, ohne dass jemand umgeschaltet hatte. Dasselbe träfe einen deutschen
+ * Segler mit englisch eingestelltem Browser.
+ *
+ * Der Grund, warum das schadet: Die englische Fassung ist ABSICHTLICH
+ * unvollständig — Haftungs-, Impressums- und Datenschutztexte bleiben deutsch
+ * (REQ-SAFE-002). Wer ungefragt auf Englisch landet, bekommt eine halbdeutsche
+ * Seite. Deutsch ist die Originalsprache; Englisch ist ein Angebot, das man
+ * aktiv annimmt.
+ *
+ * Sobald es eine juristisch geprüfte englische Fassung der Rechtstexte gibt,
+ * kann `Accept-Language` als Vorauswahl wieder dazukommen.
  */
 export async function aktuelleSprache(): Promise<Sprache> {
   const gewaehlt = (await cookies()).get(SPRACHE_COOKIE)?.value;
-  if (gewaehlt) return normalisiereSprache(gewaehlt, STANDARD_SPRACHE);
-  const browser = (await headers()).get("accept-language");
-  return normalisiereSprache(browser, STANDARD_SPRACHE);
+  return normalisiereSprache(gewaehlt, STANDARD_SPRACHE);
 }
 
 /**
