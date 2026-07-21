@@ -107,6 +107,27 @@ Ende August (Bohuslän ist im Spätsommer schwächer besucht als in den schwed. 
   `/Library/Developer/CommandLineTools/usr/bin/git`; git-Identität
   `Twirl1984@users.noreply.github.com`. `main` nur mit Freigabe, volles Gate vorher.
 
+## Landkarte — alle Schlüsseldokumente für den kompletten Weiterlauf
+
+Damit der neue Chat NICHT bei null anfängt, hier der ganze Kontext:
+- **Diese Übergabe** — Ziel, Architektur, erster Input (Bohuslän).
+- `docs/conversion-messung.md` — die LIVE Funnel-Messung (REQ-BIZ-001), UTM-Konvention.
+- `docs/erlebnis-system.md` — Append-and-Review-Wissenssystem (Karpathy) für POIs.
+- `docs/feature-pipeline.md` — gestapelter Feature-Ablauf, 80-%-Definition, Deploy.
+- `docs/ki-verifikation.md` — der dev↔qa-Loop + Gates (Mutation, Property, CODEOWNERS).
+- `docs/GATES.md` — welche CI-Gates laufen und woran man ihr Greifen erkennt.
+- `docs/REQUIREMENTS.md` + `docs/TRACEABILITY.md` — Anforderungen & Test-Matrix.
+- `.claude/skills/` — `dev-loop`, `dev-tdd`, `qa-adversarial`, `aspice-istqb-workflow`,
+  `erlebnis-wissen`, `deep-research`, `businessplan-review`.
+- Businessplan + Jury-Feedback: `~/github/join-the-captain/Businessplanning/`.
+- Projektgedächtnis: `~/.claude/projects/-Users-christoph-funda-github-Join-the-Captain-org/memory/`
+  (wird automatisch geladen; enthält einen Eintrag zu genau diesem Stand + Ziel).
+
+**Git-Stand bei der Übergabe:** `origin/main` enthält i18n (REQ-I18N-001), Marketing
+(/preise, geteilte-Törn-CTA, E-Mail-Vormerkung ausgeschaltet), Conversion-Messung
+(REQ-BIZ-001) — alles LIVE auf https://join-the-captain.org deployt. Nächster Commit
+ist diese Übergabe. Die drei Feature-Branches des Wochenendes sind gemergt.
+
 ## Weitere offene Punkte (nicht Teil dieses Features, aber bekannt)
 
 - Feature-Pipeline (Cloud-Routine) **läuft leer**; VPS-dev-sessions haben
