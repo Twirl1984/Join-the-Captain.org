@@ -42,6 +42,8 @@ import {
 } from "@/lib/navigation/peilung";
 import { weatherSymbolsV2Enabled } from "@/lib/flags";
 import { fuelle, type Woerterbuch } from "@/lib/i18n/sprache";
+import { plausibleEvent } from "@/components/Plausible";
+import { EREIGNIS, mitUtm } from "@/lib/analytics/ereignisse";
 import {
   normalisiereSymbolWahl,
   andereWahl,
@@ -559,7 +561,16 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
         return;
       }
       const data = (await res.json()) as { id: string };
-      setShareUrl(`${window.location.origin}/toern/${data.id}`);
+      // Geteilter Link trägt seine Herkunft (REQ-BIZ-001): Wer ihm folgt, wird
+      // in Plausible als „toern-share" attribuiert — so sehen wir, ob der
+      // billigste Kanal (geteilte Törns) wirklich Besucher bringt.
+      setShareUrl(
+        mitUtm(`${window.location.origin}/toern/${data.id}`, {
+          source: "toern-share",
+          medium: "social",
+        }),
+      );
+      plausibleEvent(EREIGNIS.TOERN_GETEILT);
       setShareState("idle");
     } catch {
       setShareState("fehler");
@@ -782,6 +793,9 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
       }
       setPlan(data.plan);
       setRouting(data.routing);
+      // Konversion (REQ-BIZ-001): erster echter Nutzen. Nur bei sichtbarer
+      // Nutzer-Berechnung, nicht bei stillen Neuberechnungen (opts.silent).
+      if (!opts.silent) plausibleEvent(EREIGNIS.ROUTE_BERECHNET);
       // Ankunft je UI-Wegpunkt: Segment i verbindet User-Punkt i mit i+1;
       // das Leg, das am Segment-Endpunkt endet, trägt die Ankunfts-ETA.
       // WICHTIG: wpsSnapshot/gpsOffSnapshot (Request-Stand) statt Live-State —
@@ -2091,6 +2105,7 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
               className="pill"
               title={t("nav.gpx_titel")}
               onClick={() => {
+                plausibleEvent(EREIGNIS.GPX_EXPORTIERT);
                 const pts = (routing?.points ?? effectiveWaypoints).map((p) => ({
                   lat: p.lat,
                   lon: p.lon,

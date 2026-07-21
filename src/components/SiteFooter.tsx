@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { uebersetzer } from "@/lib/i18n/server";
+import { BuchungLink } from "./BuchungLink";
 import { SprachUmschalter } from "./SprachUmschalter";
 
 // Footer mit Pflicht-Affiliate-Disclaimer (UWG), Navy in beiden Themes.
@@ -38,9 +39,7 @@ export async function SiteFooter() {
             <h4>{t("fuss.mehr")}</h4>
             <ul>
               <li>
-                <a href="https://join-the-captain.de" target="_blank" rel="noopener noreferrer">
-                  {t("fuss.zur_buchung_de")}
-                </a>
+                <BuchungLink von="fuss">{t("fuss.zur_buchung_de")}</BuchungLink>
               </li>
               <li><Link href="/preise">{t("kopf.preise")}</Link></li>
               <li><Link href="/impressum">{t("fuss.impressum")}</Link></li>
