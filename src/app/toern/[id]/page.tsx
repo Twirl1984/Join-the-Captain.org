@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getToernShare } from "@/lib/toern/share";
 import { alleReviere } from "@/lib/navigation/reviere";
 import ToernShareMap from "@/components/toern/ToernShareMapLoader";
+import { uebersetzer } from "@/lib/i18n/server";
 
 // Teilbarer, read-only Törn-Link (REQ-EXP-009) — Vogelperspektive + Highlights
 // als Anreiz für Crew-Bewerbungen ("Wir ankern in dieser Bucht!"). Kein
@@ -36,11 +37,12 @@ export default async function ToernSharePage({
 
   const revier = alleReviere().find((r) => r.id === share.revier_id);
   const highlights = share.highlights_json ?? [];
+  const t = await uebersetzer();
 
   return (
     <main className="container stack" style={{ gap: 20, padding: "24px 0" }}>
       <div className="stack" style={{ gap: 6 }}>
-        <span className="tag phase-planung">Geteilter Törn</span>
+        <span className="tag phase-planung">{t("share.geteilter_toern")}</span>
         <h1>{revier?.label ?? share.revier_id}</h1>
         {share.plan_json && (
           <p className="caption">
@@ -55,7 +57,7 @@ export default async function ToernSharePage({
 
       {highlights.length > 0 && (
         <div className="card stack" style={{ gap: 8 }} data-testid="toern-share-highlights">
-          <span className="section-label">Erlebnisse entlang der Route</span>
+          <span className="section-label">{t("share.erlebnisse")}</span>
           {highlights.map((h, i) => (
             <p key={i} data-testid="toern-share-highlight-item">
               ★ {h.name}
@@ -64,10 +66,29 @@ export default async function ToernSharePage({
         </div>
       )}
 
+      {/*
+        Aufruf zum Selbstplanen (REQ-EXP-010). Vorher stand der einzige Verweis
+        auf /navigation im Kleingedruckten der Haftungszeile — ein geteilter Törn
+        erreichte also Menschen, bot ihnen aber keinen Weg weiter. Der geteilte
+        Link ist der billigste Kanal, den das Projekt besitzt; er soll auch
+        etwas bewirken.
+      */}
+      <div className="card stack" style={{ gap: 10 }} data-testid="toern-share-cta">
+        <span className="section-label">{t("share.cta_titel")}</span>
+        <p className="muted" style={{ margin: 0, maxWidth: 520 }}>
+          {t("share.cta_text")}
+        </p>
+        <a className="btn btn-teal" href="/navigation" data-testid="toern-share-cta-link">
+          {t("share.cta_knopf")}
+        </a>
+      </div>
+
       <p className="caption">
-        Planungshilfe, ersetzt keine amtlichen Seekarten. Diese Ansicht ist read-only — die volle
-        Planung gibt es unter{" "}
-        <a href="/navigation">join-the-captain.org/navigation</a>.
+        {/*
+          BEWUSST NICHT ÜBERSETZT (REQ-SAFE-002): haftungsrelevante Abgrenzung.
+        */}
+        <span lang="de">Planungshilfe, ersetzt keine amtlichen Seekarten.</span>{" "}
+        {t("share.readonly_hinweis")}
       </p>
     </main>
   );

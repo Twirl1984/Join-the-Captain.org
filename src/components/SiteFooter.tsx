@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
+import { uebersetzer } from "@/lib/i18n/server";
+import { SprachUmschalter } from "./SprachUmschalter";
 
 // Footer mit Pflicht-Affiliate-Disclaimer (UWG), Navy in beiden Themes.
-export function SiteFooter() {
+// Zweisprachig seit REQ-I18N-001 — MIT EINER AUSNAHME, siehe unten beim
+// Affiliate-Hinweis.
+export async function SiteFooter() {
+  const t = await uebersetzer();
   return (
     <footer className="site-footer">
       <div className="container">
@@ -16,37 +21,50 @@ export function SiteFooter() {
                 join-the-captain<span className="dot-org">.org</span>
               </span>
             </div>
-            <p className="footer-desc">
-              Geprüfte Tools, ehrliche Empfehlungen und Stimmen aus der Szene.
-              Von Seglern für Segler — von der Planung bis nach dem Anlegen.
-            </p>
+            <p className="footer-desc">{t("fuss.beschreibung")}</p>
           </div>
           <div className="footer-col">
-            <h4>Bereiche</h4>
+            <h4>{t("fuss.bereiche")}</h4>
             <ul>
-              <li><Link href="/tools">Tools</Link></li>
-              <li><Link href="/navigation">Navigation &amp; Wetter</Link></li>
-              <li><a href="mailto:support@join-the-captain.org">Support</a></li>
-              <li><Link href="/podcast">Podcast</Link></li>
-              <li><Link href="/community">Community</Link></li>
-              <li><Link href="/entrepreneurs">Entrepreneurs</Link></li>
+              <li><Link href="/tools">{t("kopf.tools")}</Link></li>
+              <li><Link href="/navigation">{t("fuss.nav_wetter")}</Link></li>
+              <li><a href="mailto:support@join-the-captain.org">{t("fuss.support")}</a></li>
+              <li><Link href="/podcast">{t("kopf.podcast")}</Link></li>
+              <li><Link href="/community">{t("kopf.community")}</Link></li>
+              <li><Link href="/entrepreneurs">{t("kopf.entrepreneurs")}</Link></li>
             </ul>
           </div>
           <div className="footer-col">
-            <h4>Mehr</h4>
+            <h4>{t("fuss.mehr")}</h4>
             <ul>
               <li>
                 <a href="https://join-the-captain.de" target="_blank" rel="noopener noreferrer">
-                  Zur Buchung (.de)
+                  {t("fuss.zur_buchung_de")}
                 </a>
               </li>
-              <li><Link href="/impressum">Impressum</Link></li>
-              <li><Link href="/datenschutz">Datenschutz</Link></li>
+              <li><Link href="/preise">{t("kopf.preise")}</Link></li>
+              <li><Link href="/impressum">{t("fuss.impressum")}</Link></li>
+              <li><Link href="/datenschutz">{t("fuss.datenschutz")}</Link></li>
             </ul>
+            {/* Auf schmalen Geraeten steht der Sprachschalter hier statt im Kopf. */}
+            <SprachUmschalter ort="fuss" />
           </div>
         </div>
         <div className="footer-bottom">
-          <span className="center-note">
+          {/*
+            BEWUSST NICHT ÜBERSETZT (REQ-I18N-001, REQ-SAFE-002):
+            Dies ist die nach UWG vorgeschriebene Affiliate-Kennzeichnung. Sie
+            bleibt im deutschen Wortlaut, weil eine selbst formulierte
+            Übersetzung den rechtlichen Gehalt verschieben könnte. Das `lang`
+            sagt dem Screenreader, dass hier Deutsch steht.
+
+            OFFENER PUNKT für den Betreiber: Eine Kennzeichnung, die der Leser
+            nicht versteht, erfüllt ihren Zweck möglicherweise nicht. Wenn die
+            englische Fassung wirklich an englischsprachige Nutzer geht, sollte
+            ein Jurist eine englische Kennzeichnung freigeben — dann kann sie
+            hier ergänzt werden.
+          */}
+          <span className="center-note" lang="de">
             <Icon name="info-circle" size={14} style={{ color: "var(--accent)" }} />
             Mit Affiliate gekennzeichnete Links bringen JTC eine Provision — für
             dich ohne Mehrkosten.
