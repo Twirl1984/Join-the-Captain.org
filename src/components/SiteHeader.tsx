@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
 import { SprachUmschalter } from "./SprachUmschalter";
+import { BuchungLink } from "./BuchungLink";
 import { navigationEnabled } from "@/lib/flags";
 import { uebersetzer } from "@/lib/i18n/server";
 
@@ -11,7 +12,6 @@ import { uebersetzer } from "@/lib/i18n/server";
 // Links und Lesezeichen sollen weiter funktionieren.
 export async function SiteHeader() {
   const t = await uebersetzer();
-  const buchungUrl = "https://join-the-captain.de";
   return (
     <header className="site-header">
       <div className="container">
@@ -35,14 +35,9 @@ export async function SiteHeader() {
         <div className="header-actions">
           <SprachUmschalter />
           <ThemeToggle />
-          <a
-            className="header-cta"
-            href={buchungUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("kopf.zur_buchung")} <Icon name="arrow-right" size={16} />
-          </a>
+          <BuchungLink von="kopf" className="header-cta" mitPfeil>
+            {t("kopf.zur_buchung")}
+          </BuchungLink>
           <button className="burger" aria-label={t("kopf.menue_oeffnen")}>
             <Icon name="menu" size={24} />
           </button>
