@@ -190,6 +190,9 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
   const [suche, setSuche] = useState("");
   const [waypoints, setWaypoints] = useState<NavUiWaypoint[]>([]);
   const nextId = useRef(1);
+  // Merker: nach dem Laden eines Törn-Presets EINMAL automatisch berechnen,
+  // sobald die neuen Wegpunkte im State stehen (REQ-NAV-028).
+  const pendingToernCalc = useRef(false);
   const [showDepth, setShowDepth] = useState(true);
   // Karte im Vollbild (REQ-NAV-018): auf dem Handy den ganzen Bildschirm nutzen.
   const [mapFull, setMapFull] = useState(false);
@@ -1041,6 +1044,16 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
     return () => clearInterval(iv);
   }, [autoUpdate, startAtGps, planVorhanden]);
 
+  // Törn-Preset geladen (REQ-NAV-028): sobald die neuen Wegpunkte im State
+  // stehen, EINMAL automatisch berechnen — so ist der Törn wirklich mit einem
+  // Klick "greifbar". Der Merker verhindert, dass manuelles Setzen/Ziehen
+  // einzelner Wegpunkte ungewollt eine Route auslöst.
+  useEffect(() => {
+    if (!pendingToernCalc.current || waypoints.length === 0) return;
+    pendingToernCalc.current = false;
+    void calcRef.current();
+  }, [waypoints]);
+
   // Playback-Ticker.
   useEffect(() => {
     if (!playing || !timeline) return;
@@ -1207,8 +1220,11 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
                         setTimeline(null);
                         setArrivals({});
                         setError(null);
-                        // Analytics: Törn geladen [REQ-NAV-028]
-                        plausibleEvent(EREIGNIS.ROUTE_BERECHNET);
+                        // Nach dem State-Update EINMAL automatisch die Route
+                        // berechnen (Effekt unten). Das Konversions-Event
+                        // ROUTE_BERECHNET feuert dann korrekt IN calculate() —
+                        // nicht hier, sonst zählt es Berechnungen, die nie liefen.
+                        pendingToernCalc.current = true;
                       }}
                     >
                       {toern.label}
