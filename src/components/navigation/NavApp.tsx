@@ -15,6 +15,7 @@ import { Icon } from "@/components/Icon";
 import { REVIER_GRUPPEN, alleReviere, sucheReviere } from "@/lib/navigation/reviere";
 import type { RouteSegmentInfo } from "@/lib/navigation/route-helpers";
 import { flachwasserCheck, type FlachwasserStatus } from "@/lib/navigation/depth";
+import { toernsFuerRevier } from "@/lib/navigation/toerns";
 import { boatFromSpecs, BOAT_PRESETS, type BoatSpecs } from "@/lib/weather/polar";
 import type { DepartureScan } from "@/lib/weather/departure-scan";
 import { RECOMMENDED_SENSITIVITY } from "@/lib/weather/warnings";
@@ -1171,6 +1172,52 @@ export function NavApp({ woerter = {} }: { woerter?: Woerterbuch }) {
                 ))}
               </select>
             </label>
+
+          {/* Törn-Presets pro Revier (REQ-NAV-028) — vordefinierte Routen zum Laden. */}
+          {(() => {
+            const toerns = toernsFuerRevier(revierId);
+            return toerns.length > 0 ? (
+              <div className="stack" style={{ gap: 6 }}>
+                <span className="caption">Vordefinierte Törns</span>
+                <div className="pills" data-testid={`nav-toerns-${revierId}`}>
+                  {toerns.map((toern) => (
+                    <button
+                      key={toern.id}
+                      type="button"
+                      className="pill"
+                      title={toern.beschreibung}
+                      onClick={() => {
+                        // Wegpunkte aus dem Törn laden → neue State, reset bestehende Planung
+                        setWaypoints(
+                          toern.wegpunkte.map((wp, i) => ({
+                            id: String(nextId.current + i),
+                            lat: wp.lat,
+                            lon: wp.lon,
+                            name: wp.name,
+                            depart_at: undefined,
+                            stay_min: undefined,
+                          })),
+                        );
+                        nextId.current += toern.wegpunkte.length;
+                        // Existing route/depth/timeline reset, damit die neuen Wegpunkte
+                        // als saubere Planung gelten (wie ein manueller Reset)
+                        setPlan(null);
+                        setRouting(null);
+                        setDepths(null);
+                        setTimeline(null);
+                        setArrivals({});
+                        setError(null);
+                        // Analytics: Törn geladen [REQ-NAV-028]
+                        plausibleEvent(EREIGNIS.ROUTE_BERECHNET);
+                      }}
+                    >
+                      {toern.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
           </div>
 
           {/* Revier-Sicherheitshinweis (z. B. Gezeiten im Wattenmeer) */}
