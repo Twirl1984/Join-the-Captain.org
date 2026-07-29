@@ -52,3 +52,6 @@ reports/
 
 # Test-/Verify-Protokolle (versehentlich in c927350 gelandet)
 *.log
+
+# Notizdateien von Agenten
+woerterbuch_neue_schluessel.txt

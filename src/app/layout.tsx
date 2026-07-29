@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Plausible } from "@/components/Plausible";
+import { aktuelleSprache } from "@/lib/i18n/server";
 import { SwRegister } from "@/components/SwRegister";
 
 const outfit = Outfit({
@@ -57,10 +58,13 @@ export const metadata: Metadata = {
 // Default = dunkel (neues Startdesign); gespeicherte Wahl gewinnt.
 const themeScript = `(function(){try{var t=localStorage.getItem('jtc-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Sprache serverseitig bestimmen (REQ-I18N-001), damit `lang` korrekt gesetzt
+  // ist — wichtig für Screenreader, Suchmaschinen und die Silbentrennung.
+  const sprache = await aktuelleSprache();
   return (
     <html
-      lang="de"
+      lang={sprache}
       data-theme="dark"
       suppressHydrationWarning
       className={`${outfit.variable} ${playfair.variable}`}

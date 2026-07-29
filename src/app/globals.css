@@ -183,6 +183,22 @@ p { margin: 0; }
   color: var(--fg-on-deep); cursor: pointer; transition: border-color 0.2s, color 0.2s;
 }
 .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Sprachumschalter (REQ-I18N-001): steht neben dem Theme-Schalter, zeigt das
+   ZIEL des Klicks. Breiter als der Icon-Knopf, weil hier Text steht. */
+.sprach-umschalter {
+  display: inline-grid; place-items: center; height: 38px; padding: 0 12px;
+  background: transparent; border: 1px solid rgba(242, 237, 228, 0.2);
+  color: var(--fg-on-deep); cursor: pointer; font-size: 12px; letter-spacing: 0.06em;
+  transition: border-color 0.2s, color 0.2s;
+}
+.sprach-umschalter:hover { border-color: var(--accent); color: var(--accent); }
+.sprach-umschalter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Auf breiten Schirmen der ausgeschriebene Name, auf schmalen nur das Kuerzel —
+   sonst laeuft die Kopfzeile auf dem Handy seitlich ueber (siehe Komponente). */
+.sprach-umschalter .sprach-kurz { display: none; }
+/* Im Fuss nur auf schmalen Geraeten sichtbar (im Kopf ist dort kein Platz). */
+.site-footer .sprach-umschalter { display: none; }
 .burger { display: none; background: none; border: none; color: var(--fg-on-deep); cursor: pointer; }
 
 .site-footer {
@@ -353,6 +369,12 @@ p { margin: 0; }
 @media (max-width: 768px) {
   .site-nav { display: none; }
   .burger { display: block; }
+  /* Der Sprachschalter verlaesst auf schmalen Geraeten die Kopfzeile: Dort
+     stehen schon Marke, Theme-Schalter, Buchungsknopf und Burger. Mit einem
+     weiteren Knopf brach die Karten-Vollbild-Bedienung (nachgewiesen per
+     Bisect am 2026-07-20). Auf dem Handy sitzt er stattdessen im Fuss. */
+  .header-actions .sprach-umschalter { display: none; }
+  .site-footer .sprach-umschalter { display: inline-grid; }
   .btn-row { flex-direction: column; }
   .btn-row .btn { width: 100%; }
   .podcast-strip { flex-direction: column; align-items: flex-start; }
@@ -568,4 +590,20 @@ p { margin: 0; }
 .nav-erlebnis-marker {
   color: var(--accent); font-size: 16px; line-height: 1;
   text-shadow: 0 0 3px rgba(255,255,255,0.9); cursor: default;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Produkt- & Preisseite (REQ-EXP-011)
+   ════════════════════════════════════════════════════════════════════ */
+/* Faehigkeiten und Abgrenzung stehen NEBENEINANDER, gleich breit — die
+   ehrliche Einschraenkung ist kein Kleingedrucktes, sondern Teil des
+   Angebots (REQ-SAFE-002). */
+.preis-zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.preis-pakete { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.preis-paket { padding: 18px; }
+.preis-paket--hervor { border-color: var(--accent); }
+.preis-betrag { font-family: var(--font-serif); font-size: 30px; line-height: 1.1; color: var(--fg); }
+@media (max-width: 768px) {
+  .preis-zwei { grid-template-columns: 1fr; }
+  .preis-pakete { grid-template-columns: 1fr; }
 }

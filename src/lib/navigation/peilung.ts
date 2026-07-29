@@ -159,10 +159,23 @@ export function gpsPlausibility(
   // Kleiner Boden (≈18 m), damit die Warnung bei perfekter Geometrie nicht
   // schon durch Rundungsrauschen anschlägt.
   const toleranz = Math.max(0.01, gpsAccuracyNm + fix.error_nm + bearingUncertaintyNm);
+
+  // Das Urteil fällt auf denselben Zahlen, die auch angezeigt werden
+  // (Betreiber-Entscheidung 2026-07-20). Vorher wurde gerundet ausgegeben, aber
+  // ungerundet entschieden — an der Grenze konnte die App dadurch
+  // "Abweichung 1,50 sm · Toleranz 1,50 sm" anzeigen und trotzdem "unplausibel"
+  // melden. Ein sichtbarer Selbstwiderspruch untergräbt genau das Vertrauen,
+  // das eine Warnung braucht.
+  //
+  // Der Preis: Die Warnung wird um höchstens 0,005 sm (≈9 m) nachsichtiger.
+  // Das ist vertretbar, weil der Toleranzboden oben mit 0,01 sm (≈18 m) ohnehin
+  // größer ist — er existiert genau dafür, Rundungsrauschen abzufangen.
+  const deviationGerundet = Math.round(deviation * 100) / 100;
+  const toleranzGerundet = Math.round(toleranz * 100) / 100;
   return {
-    deviation_nm: Math.round(deviation * 100) / 100,
-    toleranz_nm: Math.round(toleranz * 100) / 100,
-    plausibel: deviation <= toleranz,
+    deviation_nm: deviationGerundet,
+    toleranz_nm: toleranzGerundet,
+    plausibel: deviationGerundet <= toleranzGerundet,
   };
 }
 

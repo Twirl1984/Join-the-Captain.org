@@ -9,6 +9,15 @@
 // nav-result, nav-eta, nav-routing-hinweis, nav-error, nav-gps-start,
 // nav-gps-status, nav-start-at-gps, nav-live-badge, nav-depth-check,
 // nav-depth-warning, nav-playback-panel, nav-playback-slider, nav-attribution.
+//
+// HINWEIS zu den Karten-Overlays (2026-07-20): Pruefungen der Form
+// `expect(await locator.count()).toBeGreaterThan(0)` sind Momentaufnahmen OHNE
+// Wiederholung — ist das Overlay im Moment der Messung noch nicht gerendert,
+// faellt der Test sofort. Das war unter WebKit sporadisch der Fall. Deshalb
+// hier wartende Zusicherungen. Bewusst `toBeAttached` und NICHT `toBeVisible`:
+// Die Glyphen stecken in Leaflet-DivIcons und erfuellen die strenge
+// Sichtbarkeitspruefung nicht — geprueft werden soll ihre EXISTENZ, so wie es
+// die urspruengliche Zaehlung tat, nur eben wartend.
 
 import { test, expect, type Page } from "@playwright/test";
 
@@ -268,10 +277,11 @@ async function calculate(page: Page) {
 test.describe("/navigation — Grundgerüst", () => {
   test("[REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution", async ({ page }) => {
     await openWithMap(page);
-    // Reviere als GRUPPEN (optgroup Nordsee/Ostsee/Mittelmeer/Binnen).
+    // Reviere als GRUPPEN (optgroup Nordsee/Ostsee/Mittelmeer/Atlantik/Binnen).
     const groups = page.getByTestId("nav-revier-select").locator("optgroup");
-    await expect(groups).toHaveCount(4);
+    await expect(groups).toHaveCount(5);
     await expect(groups.nth(0)).toHaveAttribute("label", "Nordsee");
+    await expect(groups.nth(3)).toHaveAttribute("label", "Atlantik");
     await expect(page.getByTestId("nav-revier-search")).toBeVisible();
     await expect(page.getByTestId("nav-depth-toggle")).toBeChecked();
     await expect(page.getByTestId("nav-attribution")).toContainText(/EMODnet/i);
@@ -375,7 +385,7 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await expect(page.getByTestId("nav-playback-time")).not.toHaveText(before);
     // Wolkenfelder: Leaflet-Circles mit unserer Klasse (Opazität = Bedeckung).
     const clouds = page.locator("path.nav-cloud-patch");
-    expect(await clouds.count()).toBeGreaterThan(0);
+    await expect(clouds.first()).toBeAttached();
   });
 
   test("[REQ-WET-014] Zeitreise zeigt Himmels-Icons; wolkenlose Nacht ergibt einen Mond", async ({ page }) => {
@@ -386,7 +396,7 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
     // Jeder Overlay-Punkt trägt ein Himmels-Icon — auch ohne Wolken ist etwas zu sehen.
     const sky = page.locator(".wx-sky");
-    expect(await sky.count()).toBeGreaterThan(0);
+    await expect(sky.first()).toBeAttached();
     // Der wolkenlose Punkt (5 %) bei Nacht zeigt einen Mond statt leer zu wirken.
     await expect(page.locator(".wx-sky", { hasText: "🌙" }).first()).toBeVisible();
   });
@@ -401,12 +411,12 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await calculate(page);
     await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
     // Beaufort-Windfahne (SVG) statt Pfeil (REQ-WET-015).
-    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+    await expect(page.locator("svg.wx-barb").first()).toBeAttached();
     // Temperatur-Label (°) an den Overlay-Punkten (REQ-WET-016).
     await expect(page.locator(".wx-temp").first()).toContainText("°");
     // Trocken (Schritt 0) → kein Regen-Glyph; nach Vorspulen auf Schritt 3 (1.2 mm)
     // erscheint das Niederschlags-Symbol.
-    expect(await page.locator(".wx-precip").count()).toBe(0);
+    await expect(page.locator(".wx-precip")).toHaveCount(0);
     await page.getByTestId("nav-playback-slider").fill("3");
     await expect(page.locator(".wx-precip").first()).toBeVisible();
   });
@@ -421,12 +431,12 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
     await expect(page.getByTestId("nav-playback-panel")).toBeVisible();
 
     // Startwert (Env-Flag im Test-Build an): Beaufort-Windfahnen.
-    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+    await expect(page.locator("svg.wx-barb").first()).toBeAttached();
 
     // Umschalten → Fahnen verschwinden, Pfeil-Marker bleiben auf der Karte.
     await page.getByTestId("nav-symbol-toggle").click();
     await expect(page.locator("svg.wx-barb")).toHaveCount(0);
-    expect(await page.locator(".wx-marker").count()).toBeGreaterThan(0);
+    await expect(page.locator(".wx-marker").first()).toBeAttached();
 
     // Die Wahl ist gespeichert: nach einem Reload bleibt es beim Pfeil.
     await page.reload();
@@ -438,7 +448,7 @@ test.describe("/navigation — Tiefen & Wolken-Playback", () => {
 
     // Und zurück: zweimal umschalten ergibt wieder den Ausgangszustand.
     await page.getByTestId("nav-symbol-toggle").click();
-    expect(await page.locator("svg.wx-barb").count()).toBeGreaterThan(0);
+    await expect(page.locator("svg.wx-barb").first()).toBeAttached();
   });
 });
 

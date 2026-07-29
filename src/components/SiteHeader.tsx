@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { ThemeToggle } from "./ThemeToggle";
+import { SprachUmschalter } from "./SprachUmschalter";
+import { BuchungLink } from "./BuchungLink";
 import { navigationEnabled } from "@/lib/flags";
+import { uebersetzer } from "@/lib/i18n/server";
 
 // Globaler Header der .org-Site (Navy in beiden Themes, Gold-Akzent).
-export function SiteHeader() {
-  const buchungUrl = "https://join-the-captain.de";
+// Zweisprachig seit REQ-I18N-001: Beschriftungen kommen aus dem Wörterbuch,
+// die URLs bleiben unverändert deutsch (keine Sprachpräfixe) — bestehende
+// Links und Lesezeichen sollen weiter funktionieren.
+export async function SiteHeader() {
+  const t = await uebersetzer();
   return (
     <header className="site-header">
       <div className="container">
@@ -18,25 +24,21 @@ export function SiteHeader() {
           </span>
         </Link>
         <nav className="site-nav">
-          <Link href="/tools">Tools</Link>
-          <Link href="/wissen">Wissen</Link>
-          <Link href="/wetter">Wetter</Link>
-          {navigationEnabled() && <Link href="/navigation">Navigation</Link>}
-          <Link href="/podcast">Podcast</Link>
-          <Link href="/community">Community</Link>
-          <Link href="/entrepreneurs">Entrepreneurs</Link>
+          <Link href="/tools">{t("kopf.tools")}</Link>
+          <Link href="/wissen">{t("kopf.wissen")}</Link>
+          <Link href="/wetter">{t("kopf.wetter")}</Link>
+          {navigationEnabled() && <Link href="/navigation">{t("kopf.navigation")}</Link>}
+          <Link href="/podcast">{t("kopf.podcast")}</Link>
+          <Link href="/community">{t("kopf.community")}</Link>
+          <Link href="/entrepreneurs">{t("kopf.entrepreneurs")}</Link>
         </nav>
         <div className="header-actions">
+          <SprachUmschalter />
           <ThemeToggle />
-          <a
-            className="header-cta"
-            href={buchungUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Zur Buchung <Icon name="arrow-right" size={16} />
-          </a>
-          <button className="burger" aria-label="Menü öffnen">
+          <BuchungLink von="kopf" className="header-cta" mitPfeil>
+            {t("kopf.zur_buchung")}
+          </BuchungLink>
+          <button className="burger" aria-label={t("kopf.menue_oeffnen")}>
             <Icon name="menu" size={24} />
           </button>
         </div>
