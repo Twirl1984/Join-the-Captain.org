@@ -277,10 +277,11 @@ async function calculate(page: Page) {
 test.describe("/navigation — Grundgerüst", () => {
   test("[REQ-SAFE-002] Seite lädt: Gruppen-Dropdown, Suche, Karte, Tiefen-Toggle, Attribution", async ({ page }) => {
     await openWithMap(page);
-    // Reviere als GRUPPEN (optgroup Nordsee/Ostsee/Mittelmeer/Binnen).
+    // Reviere als GRUPPEN (optgroup Nordsee/Ostsee/Mittelmeer/Atlantik/Binnen).
     const groups = page.getByTestId("nav-revier-select").locator("optgroup");
-    await expect(groups).toHaveCount(4);
+    await expect(groups).toHaveCount(5);
     await expect(groups.nth(0)).toHaveAttribute("label", "Nordsee");
+    await expect(groups.nth(3)).toHaveAttribute("label", "Atlantik");
     await expect(page.getByTestId("nav-revier-search")).toBeVisible();
     await expect(page.getByTestId("nav-depth-toggle")).toBeChecked();
     await expect(page.getByTestId("nav-attribution")).toContainText(/EMODnet/i);
