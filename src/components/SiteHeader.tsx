@@ -24,13 +24,11 @@ export async function SiteHeader() {
           </span>
         </Link>
         <nav className="site-nav">
+          <Link href="/reisen">Reiseblog</Link>
           <Link href="/tools">{t("kopf.tools")}</Link>
-          <Link href="/wissen">{t("kopf.wissen")}</Link>
           <Link href="/wetter">{t("kopf.wetter")}</Link>
           {navigationEnabled() && <Link href="/navigation">{t("kopf.navigation")}</Link>}
-          <Link href="/podcast">{t("kopf.podcast")}</Link>
           <Link href="/community">{t("kopf.community")}</Link>
-          <Link href="/entrepreneurs">{t("kopf.entrepreneurs")}</Link>
         </nav>
         <div className="header-actions">
           <SprachUmschalter />

@@ -1,23 +1,12 @@
 import Link from "next/link";
-import { getTools, getEpisodes, getPartner, getWissenTeaser } from "@/lib/data";
+import { getTools } from "@/lib/data";
 import { HomeToolFilter } from "@/components/HomeToolFilter";
-import { WissenVideoCard } from "@/components/WissenVideoCard";
 import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
-function initialen(name: string): string {
-  return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
 export default async function Home() {
-  const [tools, episodes, partner, wissen] = await Promise.all([
-    getTools(),
-    getEpisodes(),
-    getPartner(),
-    getWissenTeaser(3),
-  ]);
-  const neuesteFolge = episodes[0];
+  const tools = await getTools();
 
   return (
     <div className="container home">
@@ -31,10 +20,27 @@ export default async function Home() {
             Alles für deinen <em>Törn</em> — von der Planung bis nach dem Anlegen
           </h1>
           <p className="home-hero-sub">
-            Geprüfte Tools, ehrliche Empfehlungen und Stimmen aus der Szene. Kein
+            Geprüfte Tools, ehrliche Empfehlungen und echte Törnberichte. Kein
             Marketing-Lärm — nur, was an Bord wirklich hilft.
           </p>
         </div>
+      </section>
+
+      {/* ── Reiseblog-Strip ────────────────────────────────────── */}
+      <section className="podcast-strip">
+        <span className="mic"><Icon name="compass" size={24} /></span>
+        <div className="stack" style={{ gap: 4, flex: 1 }}>
+          <span className="eyebrow" style={{ letterSpacing: "0.3em" }}>Reiseblog</span>
+          <strong style={{ fontFamily: "var(--font-serif)", fontWeight: 400, fontSize: 20, color: "var(--fg)" }}>
+            Echte Törns, ehrlich erzählt
+          </strong>
+          <span className="caption">
+            Schären · Dänische Südsee · Kanaren · Äolische Inseln
+          </span>
+        </div>
+        <Link href="/reisen" className="btn btn-gold">
+          <Icon name="arrow-right" size={16} /> Berichte lesen
+        </Link>
       </section>
 
       {/* ── Tool-Verzeichnis ───────────────────────────────────── */}
@@ -82,49 +88,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── Podcast-Strip ──────────────────────────────────────── */}
-      <section className="podcast-strip">
-        <span className="mic"><Icon name="microphone" size={24} /></span>
-        <div className="stack" style={{ gap: 4, flex: 1 }}>
-          <span className="eyebrow" style={{ letterSpacing: "0.3em" }}>Der Podcast</span>
-          <strong style={{ fontFamily: "var(--font-serif)", fontWeight: 400, fontSize: 20, color: "var(--fg)" }}>
-            Segeln &amp; Selbstständigkeit
-          </strong>
-          <span className="caption">
-            {neuesteFolge
-              ? `Folge ${neuesteFolge.folge_nr} · ${neuesteFolge.titel}`
-              : "Folge 1 · in Vorbereitung"}
-          </span>
-        </div>
-        {neuesteFolge ? (
-          <Link href="/podcast" className="btn btn-gold">
-            <Icon name="play" size={16} /> Hören
-          </Link>
-        ) : (
-          <span className="status-pill"><Icon name="clock" size={14} className="ic" /> Coming soon</span>
-        )}
-      </section>
-
-      {/* ── Segel-Wissen (Videos) ──────────────────────────────── */}
-      {wissen.length > 0 && (
-        <section>
-          <div className="row-between" style={{ alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
-            <div className="home-section-head" style={{ marginBottom: 0 }}>
-              <span className="eyebrow">Segel-Wissen</span>
-              <h2>Videos aus der <em>Szene</em></h2>
-            </div>
-            <Link href="/wissen" className="row" style={{ color: "var(--accent)", fontWeight: 500, fontSize: 13 }}>
-              Alle ansehen <Icon name="arrow-right" size={16} />
-            </Link>
-          </div>
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
-            {wissen.map((v) => (
-              <WissenVideoCard key={v.id} video={v} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* ── Community / Feature-Loop ───────────────────────────── */}
       <section className="card stack" style={{ gap: 14, padding: "28px 26px" }}>
         <span className="eyebrow">Community</span>
@@ -137,32 +100,6 @@ export default async function Home() {
         </p>
         <Link href="/community" className="btn btn-outline-gold" style={{ alignSelf: "flex-start" }}>
           Zum Feature-Board <Icon name="arrow-right" size={16} />
-        </Link>
-      </section>
-
-      {/* ── Segler-Entrepreneurs ───────────────────────────────── */}
-      <section>
-        <div className="home-section-head">
-          <span className="eyebrow">Netzwerk</span>
-          <h2 style={{ margin: 0 }}>Kollegen, die gute <em>Arbeit</em> machen</h2>
-        </div>
-        {partner.length > 0 ? (
-          <div className="row" style={{ flexWrap: "wrap", gap: 14 }}>
-            {partner.map((p) => (
-              <div key={p.id} className="partner-chip">
-                <span className="avatar">{initialen(p.name)}</span>
-                <div className="stack" style={{ gap: 2 }}>
-                  <strong style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>{p.name}</strong>
-                  {p.rolle && <span className="caption">{p.rolle}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="muted" style={{ fontSize: 13 }}>Echte Partner folgen, sobald sie bestätigt sind.</p>
-        )}
-        <Link href="/entrepreneurs" className="row" style={{ marginTop: 20, color: "var(--accent)", fontWeight: 500, fontSize: 13 }}>
-          Zum Netzwerk <Icon name="arrow-right" size={16} />
         </Link>
       </section>
 

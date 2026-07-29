@@ -27,12 +27,11 @@ export async function SiteFooter() {
           <div className="footer-col">
             <h4>{t("fuss.bereiche")}</h4>
             <ul>
+              <li><Link href="/reisen">Reiseblog</Link></li>
               <li><Link href="/tools">{t("kopf.tools")}</Link></li>
               <li><Link href="/navigation">{t("fuss.nav_wetter")}</Link></li>
               <li><a href="mailto:support@join-the-captain.org">{t("fuss.support")}</a></li>
-              <li><Link href="/podcast">{t("kopf.podcast")}</Link></li>
               <li><Link href="/community">{t("kopf.community")}</Link></li>
-              <li><Link href="/entrepreneurs">{t("kopf.entrepreneurs")}</Link></li>
             </ul>
           </div>
           <div className="footer-col">
