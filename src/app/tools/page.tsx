@@ -36,8 +36,8 @@ export default async function ToolsPage({
         <span className="section-label">Tool-Verzeichnis</span>
         <h1>Tools für deinen Törn</h1>
         <p className="muted" style={{ maxWidth: 560 }}>
-          Wir empfehlen nur, was wir selbst nutzen würden. Jeder Affiliate-Link
-          ist gekennzeichnet — für dich ohne Mehrkosten.
+          Ausgewählte Tools, teils mit Provisionslinks. Jeder Affiliate-Link ist
+          mit „Werbung“ gekennzeichnet — für dich ohne Mehrkosten.
         </p>
       </div>
 
@@ -98,7 +98,7 @@ function WetterToolCard() {
         Ankunftszeiten — mit einstellbarer Warn-Empfindlichkeit.
       </p>
       <div className="row-between" style={{ marginTop: "auto", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
-        <span className="caption">JTC-Eigenbau · kostenlos</span>
+        <span className="caption">Eigenbau von Join the Captain · kostenlos</span>
         <span className="row" style={{ color: "var(--accent)", fontWeight: 500, fontSize: 12 }}>
           Öffnen <Icon name="arrow-right" size={14} />
         </span>

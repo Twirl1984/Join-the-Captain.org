@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     template: "%s · join-the-captain.org",
   },
   description:
-    "Geprüfte Tools, ehrliche Empfehlungen und Stimmen aus der Szene. " +
+    "Ausgewählte Tools und Empfehlungen (teils mit Werbe-/Affiliate-Links) und Stimmen aus der Szene. " +
     "Von Seglern für Segler — von der Planung bis nach dem Anlegen.",
   openGraph: {
     type: "website",

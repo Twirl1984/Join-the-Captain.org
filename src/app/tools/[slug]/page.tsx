@@ -5,6 +5,7 @@ import { getToolBySlug, getVerwandteTools } from "@/lib/data";
 import { ToolCard } from "@/components/ToolCard";
 import { JourneyTag } from "@/components/JourneyTag";
 import { Icon, iconForKey } from "@/components/Icon";
+import { AffiliateLabel, AFFILIATE_REL } from "@/components/AffiliateLabel";
 import { JsonLd } from "@/components/JsonLd";
 
 export const dynamic = "force-dynamic";
@@ -129,11 +130,11 @@ export default async function ToolDetail({
           className="btn btn-teal"
           href={`/api/tools/${tool.id}/click`}
           target="_blank"
-          rel="noopener noreferrer"
+          rel={AFFILIATE_REL}
         >
-          Zur App <Icon name="external-link" size={18} />
+          Zum Anbieter (Werbung) <Icon name="external-link" size={18} />
         </a>
-        <span className="caption">Affiliate · für dich ohne Mehrkosten</span>
+        <span className="caption"><AffiliateLabel /> Provisionslink – für dich ohne Mehrkosten. <Link href="/so-waehlen-wir-aus">So wählen wir aus</Link></span>
       </div>
 
       {verwandt.length > 0 && (

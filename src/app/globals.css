@@ -607,3 +607,6 @@ p { margin: 0; }
   .preis-zwei { grid-template-columns: 1fr; }
   .preis-pakete { grid-template-columns: 1fr; }
 }
+
+/* Werbekennzeichnung (§ 5a UWG): gut lesbar, Fließtextgröße, Kontrast ≥ 4.5:1 */
+.affiliate-label { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 1px 7px; margin-right: 8px; border: 1px solid currentColor; color: var(--fg); background: transparent; }

@@ -64,8 +64,9 @@ export async function SiteFooter() {
           */}
           <span className="center-note" lang="de">
             <Icon name="info-circle" size={14} style={{ color: "var(--accent)" }} />
-            Mit Affiliate gekennzeichnete Links bringen JTC eine Provision — für
-            dich ohne Mehrkosten.
+            Mit „Werbung“ gekennzeichnete Links sind Provisions-/Affiliate-Links:
+            Wenn du darüber kaufst oder buchst, erhält Join the Captain eine
+            Provision — für dich ohne Mehrkosten. <Link href="/so-waehlen-wir-aus">So wählen wir aus</Link>.
           </span>
           <span>© {new Date().getFullYear()} Join the Captain</span>
         </div>

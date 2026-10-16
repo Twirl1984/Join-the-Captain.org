@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTools } from "@/lib/data";
 import { HomeToolFilter } from "@/components/HomeToolFilter";
 import { Icon } from "@/components/Icon";
+import { AffiliateLabel } from "@/components/AffiliateLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,8 @@ export default async function Home() {
             Alles für deinen <em>Törn</em> — von der Planung bis nach dem Anlegen
           </h1>
           <p className="home-hero-sub">
-            Geprüfte Tools, ehrliche Empfehlungen und echte Törnberichte. Kein
-            Marketing-Lärm — nur, was an Bord wirklich hilft.
+            Ausgewählte Tools und Empfehlungen (teils mit Werbe-/Affiliate-Links)
+            und Törnberichte rund um deinen Törn.
           </p>
         </div>
       </section>
@@ -69,21 +70,21 @@ export default async function Home() {
           </h2>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 300, lineHeight: 1.8, color: "var(--fg-muted)" }}>
             Die Kaution beim Charter ist schnell vierstellig. Eine
-            Kautionsversicherung deckt den Selbstbehalt, plus Skipper-Haftpflicht,
-            wenn es ernster wird. Wichtig: rechtzeitig <strong>vor dem Törn</strong>{" "}
+            Kautionsversicherung kann den Selbstbehalt abdecken, eine
+            Skipper-Haftpflicht Personen- und Sachschäden. Wichtig: rechtzeitig <strong>vor dem Törn</strong>{" "}
             abschließen — danach ist es zu spät. Später bleibt höchstens noch
             Support, um einen Schadensfall zu klären.
           </p>
           <ul className="focus-list">
-            <li><Icon name="shield-check" size={17} /> Kaution &amp; Selbstbehalt bis 5.000&nbsp;€ abgedeckt</li>
-            <li><Icon name="anchor" size={17} /> Skipper-Haftpflicht für Personen- &amp; Sachschäden</li>
-            <li><Icon name="clock" size={17} /> Tagesgenau buchbar — auch für den einen Törn</li>
+            <li><Icon name="shield-check" size={17} /> Laut Anbieter: Kaution &amp; Selbstbehalt abgedeckt (Höchstbeträge siehe Bedingungen)</li>
+            <li><Icon name="anchor" size={17} /> Laut Anbieter: Skipper-Haftpflicht für Personen- &amp; Sachschäden</li>
+            <li><Icon name="clock" size={17} /> Laut Anbieter: tageweise buchbar</li>
           </ul>
           <div className="row" style={{ gap: 18, flexWrap: "wrap", marginTop: 4 }}>
             <Link href="/tools?phase=planung" className="btn btn-gold">
               Versicherung ansehen <Icon name="arrow-right" size={15} />
             </Link>
-            <span className="affiliate-note">Affiliate · ohne Mehrkosten</span>
+            <span className="affiliate-note"><AffiliateLabel /> Provisionslink – für dich ohne Mehrkosten</span>
           </div>
         </div>
       </section>
@@ -106,7 +107,8 @@ export default async function Home() {
       {/* ── Affiliate-Disclaimer ───────────────────────────────── */}
       <div className="affiliate-footer-note">
         <Icon name="info-circle" size={15} style={{ color: "var(--accent)" }} />
-        Mit Affiliate gekennzeichnete Links bringen JTC eine Provision — für dich
+        Mit „Werbung“ gekennzeichnete Links sind Provisions-/Affiliate-Links: Wenn du
+        darüber kaufst oder buchst, erhält Join the Captain eine Provision — für dich
         ohne Mehrkosten.
       </div>
     </div>

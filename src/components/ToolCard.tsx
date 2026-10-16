@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon, iconForKey } from "./Icon";
 import { JourneyTag } from "./JourneyTag";
+import { AffiliateLabel } from "./AffiliateLabel";
 import type { AffiliateTool } from "@/lib/types";
 
 // Tool-Karte fürs Verzeichnis und den Startseiten-Auszug.
@@ -28,7 +29,7 @@ export function ToolCard({ tool }: { tool: AffiliateTool }) {
         </p>
       )}
       <div className="row-between" style={{ marginTop: "auto", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
-        <span className="caption">Affiliate · ohne Mehrkosten</span>
+        <span className="caption"><AffiliateLabel /> Provisionslink</span>
         <span className="row" style={{ color: "var(--accent)", fontWeight: 500, fontSize: 12 }}>
           Ansehen <Icon name="arrow-right" size={14} />
         </span>

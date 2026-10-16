@@ -28,7 +28,7 @@ const de: Woerterbuch = {
 
   // Fußbereich (ohne den Affiliate-Pflichthinweis — der bleibt deutsch)
   "fuss.beschreibung":
-    "Geprüfte Tools, ehrliche Empfehlungen und Stimmen aus der Szene. Von Seglern für Segler — von der Planung bis nach dem Anlegen.",
+    "Ausgewählte Tools und Empfehlungen (teils mit Werbe-/Affiliate-Links) und Stimmen aus der Szene. Von Seglern für Segler — von der Planung bis nach dem Anlegen.",
   "fuss.bereiche": "Bereiche",
   "fuss.mehr": "Mehr",
   "fuss.nav_wetter": "Navigation & Wetter",

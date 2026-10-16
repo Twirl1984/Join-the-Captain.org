@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon, iconForKey } from "@/components/Icon";
+import { AffiliateLabel } from "@/components/AffiliateLabel";
 import { JourneyTag } from "@/components/JourneyTag";
 import { plausibleEvent } from "@/components/Plausible";
 import type { FeatureCard as FeatureCardData } from "@/lib/types";
@@ -178,7 +179,7 @@ function AffiliateCard({ card }: { card: FeatureCardData }) {
           </span>
           <div className="stack" style={{ gap: 2 }}>
             <strong style={{ fontSize: 14 }}>{tool.name}</strong>
-            <span className="affiliate-note">Affiliate-Link · für dich ohne Mehrkosten</span>
+            <span className="affiliate-note"><AffiliateLabel /> Provisionslink – für dich ohne Mehrkosten</span>
           </div>
           {tool.veroeffentlicht ? (
             <Link href={`/tools/${tool.slug}`} className="btn btn-outline-teal" style={{ marginLeft: "auto" }}>
