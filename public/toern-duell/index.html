@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Törn-Manöver-Duell</title>
+  <meta name="theme-color" content="#0B2545">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Manöver-Duell">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="meldungen" aria-live="polite"></div>
+  <main id="app" tabindex="-1"><noscript>Diese App braucht JavaScript.</noscript></main>
+  <nav class="tabs" aria-label="Hauptnavigation">
+    <a data-nav="start" href="#/start">Start</a>
+    <a data-nav="karten" href="#/karten">Karten</a>
+    <a data-nav="bewertung" href="#/bewertung">Bewerten</a>
+    <a data-nav="landgang" href="#/landgang">Landgang</a>
+    <a data-nav="rangliste" href="#/rangliste">Rangliste</a>
+  </nav>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
