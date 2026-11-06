@@ -116,3 +116,14 @@ test("[REQ-DUEL-003] Operationen verändern den Eingabezustand nicht", () => {
   St.addSeilziehenRunde(s, s.crew[0].id);
   assert.equal(JSON.stringify(s), snap);
 });
+
+test("[REQ-DUEL-002] setSkurril behält Teilangaben (Fund ohne Person und Person ohne Fund), leert bei beidem leer", () => {
+  const s = mit("Anna");
+  const a = St.setSkurril(s, null, " Schuh ");
+  assert.deepEqual(a.landgang.muell.skurril, { person: null, fund: "Schuh" });
+  const b = St.setSkurril(a, s.crew[0].id, a.landgang.muell.skurril.fund);
+  assert.deepEqual(b.landgang.muell.skurril, { person: s.crew[0].id, fund: "Schuh" });
+  const c = St.setSkurril(s, s.crew[0].id, "");
+  assert.deepEqual(c.landgang.muell.skurril, { person: s.crew[0].id, fund: "" });
+  assert.equal(St.setSkurril(s, null, "  ").landgang.muell.skurril, null);
+});

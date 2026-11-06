@@ -120,3 +120,15 @@ test("[REQ-DUEL-001] Rangliste: leere Crew und 11 Personen funktionieren", () =>
   assert.equal(rl.length, 11);
   assert.ok(rl.every((z: { platz: number }) => z.platz === 1));
 });
+
+test("[REQ-DUEL-002] Skurrilster Fund: +2 nur mit Person UND Freitext-Fund (Teilangaben ergeben 0)", () => {
+  const mit = (skurril: unknown) => S.landgangPunkte({ muell: { skurril } }, "a").muell;
+  assert.equal(mit({ person: "a", fund: "Flip-Flop" }), 2);
+  assert.equal(mit({ person: "a", fund: "" }), 0);
+  assert.equal(mit({ person: "a", fund: "   " }), 0);
+  assert.equal(mit({ person: null, fund: "Schuh" }), 0);
+  assert.equal(mit(null), 0);
+  assert.equal(S.landgangStatus({ muell: { skurril: { person: "a", fund: "" } } }).muell, false);
+  assert.equal(S.landgangStatus({ muell: { skurril: { person: null, fund: "x" } } }).muell, false);
+  assert.equal(S.landgangStatus({ muell: { skurril: { person: "a", fund: "x" } } }).muell, true);
+});
