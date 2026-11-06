@@ -1,0 +1,451 @@
+[
+ {
+  "id": 1,
+  "title": "Anlegen längsseits",
+  "tag": "HAFEN",
+  "intro": "Parallel zum Steg aufstoppen, Leinen sicher an Land – ohne Rumpeln.",
+  "steps": [
+   "Ansage: „Klar zum Anlegen! Klar bei Vor- und Achterleine!“ › „Ist klar!“",
+   "Fender auf Höhe prüfen, beide Leinenleute in die Bootsmitte.",
+   "Im 30–40°-Winkel langsam auf die Pier zielen – dorthin, wo die Bootsmitte liegen soll.",
+   "1–2 Bootslängen vorher auskuppeln.",
+   "Eine halbe Bootslänge vorher kräftig vom Steg weglenken, parallel aufstoppen.",
+   "Erst absteigen, wenn das Boot steht. „Leinen über und fest!“"
+  ],
+  "error": "Zu schnell, zu früh abgesprungen, Hände zwischen Boot und Steg. Luvseitige Leine zuerst belegen.",
+  "stepCaptions": [
+   "Ansage, Boot auf Anfahrt",
+   "Fender auf Höhe prüfen",
+   "30–40° auf die Pier zielen",
+   "1–2 Bootslängen vorher auskuppeln",
+   "Vom Steg weglenken, aufstoppen",
+   "Boot steht, Leinen über, fest"
+  ],
+  "images": [
+   "img/k01_s1.png",
+   "img/k01_s2.png",
+   "img/k01_s3.png",
+   "img/k01_s4.png",
+   "img/k01_s5.png",
+   "img/k01_s6.png"
+  ]
+ },
+ {
+  "id": 2,
+  "title": "Anlegen röm.-katholisch",
+  "tag": "HAFEN",
+  "intro": "Rückwärts im rechten Winkel an die Pier, Mooring am Bug aufnehmen.",
+  "steps": [
+   "Ansage: „Klar zum Anlegen! Klar bei Achterleinen und Bootshaken!“ › „Ist klar!“",
+   "Fender am Heck, Achterleinen auf beiden Seiten klar, Wind und Strom einrechnen.",
+   "Rückwärts im 90°-Winkel auf die Lücke zu, langsam und mit Gefühl für den Radeffekt.",
+   "Eine Bootslänge vorher auskuppeln.",
+   "Einen halben Meter vor der Pier kräftig aufstoppen. „Achterleinen über und fest!“",
+   "Vorwärts in die Leinen eindampfen, Mooring mit Bootshaken aufnehmen: „Mooringleine fest!“"
+  ],
+  "error": "Zu schnell rückwärts, Radeffekt vergessen, Mooring nicht klar am Bug. Leinen nie mit der Hand stoppen.",
+  "stepCaptions": [
+   "Ansage, Heck zur Lücke",
+   "Fender und Achterleinen klar",
+   "Rückwärts im 90°-Winkel",
+   "Eine Bootslänge vorher auskuppeln",
+   "Vor der Pier kräftig aufstoppen",
+   "Achterleinen fest, Mooring dicht"
+  ],
+  "images": [
+   "img/k02_s1.png",
+   "img/k02_s2.png",
+   "img/k02_s3.png",
+   "img/k02_s4.png",
+   "img/k02_s5.png",
+   "img/k02_s6.png"
+  ]
+ },
+ {
+  "id": 3,
+  "title": "Ablegen: Vorspring",
+  "tag": "HAFEN",
+  "intro": "Das Heck dreht von der Pier weg, der Bug bleibt geschützt – ohne Kratzer raus.",
+  "steps": [
+   "Ansage: „Klar zum Ablegen über Eindampfen in die Vorspring!“ Fender am Bug klar.",
+   "Vorspring auf Slip ausbringen. „Vor- und Achterleine los und ein!“",
+   "Ruder von der Pier weg, vorwärts einkuppeln – das Boot liegt stabil in der Spring.",
+   "Alle Leinen einsammeln, alle Mann an Bord.",
+   "Ruder zur Pier hin – das Heck dreht von der Pier weg.",
+   "Bei ca. 45° auskuppeln, Ruder gerade, „Vorspring los und ein!“ Gasstoß rückwärts."
+  ],
+  "error": "Vorspring zu früh gelöst, Fender am Bug vergessen, Crew nicht komplett an Bord.",
+  "stepCaptions": [
+   "Ansage, Fender am Bug klar",
+   "Vorspring auf Slip ausbringen",
+   "Ruder von Pier weg, einkuppeln",
+   "Leinen einsammeln, alle an Bord",
+   "Ruder zur Pier: Heck dreht weg",
+   "Bei ca. 45° auskuppeln, Spring los"
+  ],
+  "images": [
+   "img/k03_s1.png",
+   "img/k03_s2.png",
+   "img/k03_s3.png",
+   "img/k03_s4.png",
+   "img/k03_s5.png",
+   "img/k03_s6.png"
+  ]
+ },
+ {
+  "id": 4,
+  "title": "Ablegen: Achterspring",
+  "tag": "HAFEN",
+  "intro": "Der Bug dreht vom Steg weg, das Heck bleibt geschützt – ohne Kratzer raus.",
+  "steps": [
+   "Ansage: „Klar zum Ablegen über Eindampfen in die Achterspring!“ Fender am Heck klar.",
+   "Achterspring auf Slip ausbringen. „Vor- und Achterleine los und ein!“",
+   "Rückwärts einkuppeln und langsam in die Achterspring eindampfen.",
+   "Der Bug dreht vom Steg weg. Heck beobachten!",
+   "Bei ca. 45° auskuppeln: „Achterspring los und ein!“ Alle Mann an Bord.",
+   "Vorwärts einkuppeln, Ruder gerade, sauber vom Steg wegfahren."
+  ],
+  "error": "Achterspring zu früh gelöst, Heck kratzt am Steg, Gas zu hart.",
+  "stepCaptions": [
+   "Ansage, Fender am Heck klar",
+   "Achterspring auf Slip ausbringen",
+   "Rückwärts in die Spring eindampfen",
+   "Bug dreht vom Steg weg",
+   "Bei ca. 45° auskuppeln, Spring los",
+   "Vorwärts sauber wegfahren"
+  ],
+  "images": [
+   "img/k04_s1.png",
+   "img/k04_s2.png",
+   "img/k04_s3.png",
+   "img/k04_s4.png",
+   "img/k04_s5.png",
+   "img/k04_s6.png"
+  ]
+ },
+ {
+  "id": 5,
+  "title": "Ablegen an der Mooring",
+  "tag": "HAFEN",
+  "intro": "Mooring sauber lösen, ohne dass sie in die Schraube kommt. Die Reihenfolge ist alles.",
+  "steps": [
+   "Ansage: „Klar zum Ablegen!“ Fender raus, Crew an Heckleinen und Mooring.",
+   "Heckleinen fieren, bis die Mooring Slack hat – so lässt sie sich vom Bug lösen.",
+   "Mooring lösen und fallen lassen. Rückmeldung: „Mooring abgesunken!“",
+   "Lee-Heckleine lösen und einholen. Die Luv-Heckleine hält das Heck gegen den Wind.",
+   "Luv-Heckleine lösen und einholen: „Heckleinen los und ein!“ Alle Mann an Bord.",
+   "Erst jetzt einkuppeln und ablegen, Ruder gerade. Erst Rückmeldung, dann Gas."
+  ],
+  "error": "Mooring hängt in der Schraube, weil sie noch nicht abgesunken ist. Heckleinen zu früh los: Das Boot treibt auf den Nachbarn.",
+  "stepCaptions": [
+   "Ansage, Fender raus",
+   "Heckleinen fieren: Mooring Slack",
+   "Mooring lösen und fallen lassen",
+   "Lee-Heckleine los",
+   "Luv-Heckleine los",
+   "Einkuppeln und ablegen"
+  ],
+  "images": [
+   "img/k05_s1.png",
+   "img/k05_s2.png",
+   "img/k05_s3.png",
+   "img/k05_s4.png",
+   "img/k05_s5.png",
+   "img/k05_s6.png"
+  ]
+ },
+ {
+  "id": 6,
+  "title": "Fender & Action-Fender",
+  "tag": "HAFEN & DECK",
+  "intro": "Zwei Action-Fender sitzen dort, wo es kracht – bevor es kracht.",
+  "steps": [
+   "Vor dem Manöver alle Fender auf Höhe der Pier bzw. des Nachbarboots einstellen.",
+   "Zwei Action-Fender (Joker) mit Leine klar an Deck legen: einer vorn, einer achtern.",
+   "Fenderwache einteilen: eine Person pro Seite, eine Hand fürs Schiff.",
+   "Action-Fender nur auf Ansage ausbringen: „Action-Fender Bug!“ / „Action-Fender Heck!“",
+   "Nie Hand oder Fuß zwischen Boot und Pier halten – der Fender puffert, nicht der Körper.",
+   "Nach dem Manöver Fender hochnehmen, Leinen klarieren, Action-Fender verstauen."
+  ],
+  "error": "Fender zu hoch oder zu tief, auf der falschen Seite, Action-Fender nicht griffbereit.",
+  "stepCaptions": [
+   "Fender auf Höhe einstellen",
+   "Action-Fender klar an Deck",
+   "Fenderwache einteilen",
+   "Action-Fender Bug auf Ansage",
+   "Nie die Hand dazwischen",
+   "Fender hoch, Leinen klarieren"
+  ],
+  "images": [
+   "img/k06_s1.png",
+   "img/k06_s2.png",
+   "img/k06_s3.png",
+   "img/k06_s4.png",
+   "img/k06_s5.png",
+   "img/k06_s6.png"
+  ]
+ },
+ {
+  "id": 7,
+  "title": "Seilarbeit & Festmachen",
+  "tag": "HAFEN & DECK",
+  "intro": "Leinen sicher belegen – schnell, sauber und im Notfall lösbar.",
+  "steps": [
+   "Leinen vor dem Anlegen klarieren: Auge am Ende, Bucht sauber, nichts verdreht.",
+   "Leine so aufschießen, dass sie fliegt und nicht verhakt. Das Ende ist gesichert.",
+   "Klampe: ein voller Törn, dann Kreuzschläge, zum Schluss ein Kopfschlag.",
+   "Leinen nach Plan: „Vorleine fest!“ – „Achterleine fest!“ – „Springs fest!“",
+   "Länge für Schwell, Tide und Wind einplanen. Luvseitige Leine zuerst.",
+   "Rückmeldung an den Rudergänger: „Leine fest!“ Erst dann Gas raus."
+  ],
+  "error": "Leine zu kurz, falscher Schlag, Finger in der Bucht, keine Rückmeldung.",
+  "stepCaptions": [
+   "Leine klarieren: Auge am Ende",
+   "Aufschießen: saubere Buchten",
+   "Klampe: ein voller Törn",
+   "Leinen nach Plan fest",
+   "Länge für Schwell und Wind",
+   "Rückmeldung: „Leine fest!“"
+  ],
+  "images": [
+   "img/k07_s1.png",
+   "img/k07_s2.png",
+   "img/k07_s3.png",
+   "img/k07_s4.png",
+   "img/k07_s5.png",
+   "img/k07_s6.png"
+  ]
+ },
+ {
+  "id": 8,
+  "title": "Aufstoppen unter Motor",
+  "tag": "AUFSTOPPEN",
+  "intro": "Mit dem Motor sauber an der Boje stoppen und dort halten. Das Boot dreht dabei nicht ein.",
+  "steps": [
+   "Ansage: „Klar zum Aufstoppen!“ Ziel (Boje oder Fender) wählen, geradeaus anfahren.",
+   "Gas raus, Ruder gerade, Restfahrt einschätzen.",
+   "Auskuppeln, kurz ausrollen lassen. Radeffekt im Kopf: Das Heck geht seitlich.",
+   "Rückwärts einkuppeln, Gas dosiert, gegen den Radeffekt gegenhalten – der Bug bleibt auf Kurs.",
+   "Boot steht: sofort Neutral. „Boot steht!“",
+   "Abstand zur Boje in Bootslängen ansagen und die Position halten."
+  ],
+  "error": "Zu viel Gas rückwärts, Radeffekt vergessen, Boot dreht ein, zu spät eingekuppelt.",
+  "stepCaptions": [
+   "Ziel wählen, geradeaus anfahren",
+   "Gas raus, Restfahrt einschätzen",
+   "Auskuppeln, ausrollen",
+   "Rückwärts dosiert, Kurs halten",
+   "Boot steht: Neutral",
+   "Abstand ansagen, Position halten"
+  ],
+  "images": [
+   "img/k08_s1.png",
+   "img/k08_s2.png",
+   "img/k08_s3.png",
+   "img/k08_s4.png",
+   "img/k08_s5.png",
+   "img/k08_s6.png"
+  ]
+ },
+ {
+  "id": 9,
+  "title": "Aufstoppen unter Segeln",
+  "tag": "AUFSTOPPEN",
+  "intro": "Mit Segeln punktgenau an der Boje stoppen: Halbwind anfahren, am Ende gegen den Wind aufschießen. Der Motor bleibt aus.",
+  "steps": [
+   "„Klar zum Aufschießer!“ Boje anpeilen, Anfahrt auf Halbwind-Kurs. Die Boje liegt etwas in Luv deiner Linie.",
+   "Fahrt und Abstand einschätzen: Wie weit gleitet das Boot aus? Die Segel stehen noch.",
+   "Etwa drei Bootslängen vorher anluven: Ruder sanft Richtung Wind, kein hartes Ruder.",
+   "„Schoten los!“ Groß und Fock fieren, die Segel flattern lassen.",
+   "Gegen den Wind ausgleiten lassen, Ruder mittschiffs, nicht weiter drehen.",
+   "Boot steht mit dem Bug an der Boje: „Boot steht!“ Segel bleiben lose."
+  ],
+  "error": "Zu spät angeluvt und vorbeigefahren, Schoten zu spät gelöst, Ruder zu hart: Das Boot dreht über den Wind hinaus. Boje in Lee der Anfahrt: Dann reicht der Aufschießer nicht.",
+  "stepCaptions": [
+   "Boje anpeilen, Halbwind",
+   "Fahrt und Abstand einschätzen",
+   "Ca. 3 Bootslängen vorher anluven",
+   "Schoten los, Segel flattern",
+   "Gegen den Wind ausgleiten",
+   "Bug an der Boje: „Boot steht!“"
+  ],
+  "images": [
+   "img/k09_s1.png",
+   "img/k09_s2.png",
+   "img/k09_s3.png",
+   "img/k09_s4.png",
+   "img/k09_s5.png",
+   "img/k09_s6.png"
+  ]
+ },
+ {
+  "id": 10,
+  "title": "Wende",
+  "tag": "SEGELN",
+  "intro": "Bug durch den Wind, Fahrt halten, sauber auf dem neuen Bug ankommen.",
+  "steps": [
+   "Am-Wind, Ruder gerade, Fahrt aufbauen. „Klar zur Wende!“ › „Ist klar!“",
+   "Ruder nach Luv, anluven: „Ree!“",
+   "Sobald das Vorsegel killt: „Vorsegel über!“ Schot lose werfen.",
+   "Auf der neuen Seite dichtholen.",
+   "Sobald Am-Wind anliegt: Ruder mittschiffs.",
+   "„Neuer Kurs ist Am-Wind-Kurs.“ Trimm prüfen."
+  ],
+  "error": "Zu zaghaft gedreht – in Irons. Fockschot zu früh gelöst oder verklemmt.",
+  "stepCaptions": [
+   "Am-Wind: „Klar zur Wende!“",
+   "Ruder nach Luv: „Ree!“",
+   "Fock killt: „Vorsegel über!“",
+   "Neuer Bug: dichtholen",
+   "Am-Wind: Ruder mittschiffs",
+   "Neuer Kurs, Trimm prüfen"
+  ],
+  "images": [
+   "img/k10_s1.png",
+   "img/k10_s2.png",
+   "img/k10_s3.png",
+   "img/k10_s4.png",
+   "img/k10_s5.png",
+   "img/k10_s6.png"
+  ]
+ },
+ {
+  "id": 11,
+  "title": "Halse",
+  "tag": "SEGELN",
+  "intro": "Heck durch den Wind, der Baum bleibt unter Kontrolle.",
+  "steps": [
+   "Raumschots, Ruder gerade. „Klar zur Halse!“ › „Ist klar!“ Bullenstander prüfen.",
+   "„Holt dicht die Großschot!“ Köpfe runter: „Achtung, Baum kommt!“",
+   "Leeruder, langsam abfallen.",
+   "„Rund achtern!“ – das Heck geht durch den Wind.",
+   "Groß schlägt um: sofort Stützruder, „Fier auf die Großschot!“, „Vorsegel über!“",
+   "Ruder gerade: „Neuer Kurs: Raumschotskurs!“"
+  ],
+  "error": "Groß nicht dicht = Patenthalse. Kein Stützruder = Sonnenschuss.",
+  "stepCaptions": [
+   "Raumschots: „Klar zur Halse!“",
+   "Großschot dicht, Köpfe runter",
+   "Leeruder, abfallen",
+   "„Rund achtern!“",
+   "Groß schlägt um: Stützruder",
+   "Ruder gerade, neuer Kurs"
+  ],
+  "images": [
+   "img/k11_s1.png",
+   "img/k11_s2.png",
+   "img/k11_s3.png",
+   "img/k11_s4.png",
+   "img/k11_s5.png",
+   "img/k11_s6.png"
+  ]
+ },
+ {
+  "id": 12,
+  "title": "Beidrehen",
+  "tag": "SEGELN",
+  "intro": "Die Pausentaste: Das Boot liegt fast still und driftet leicht nach Lee. So kommst du hinein.",
+  "steps": [
+   "„Klar zum Beidrehen!“ Seeraum nach Lee prüfen. Anluven auf Am-Wind, Schoten dicht.",
+   "Wende fahren, aber die Fockschot nicht lösen: Die Fock steht back. Groß auffieren.",
+   "Ruder nach Lee feststellen. Das Boot liegt ruhig mit leichter Abdrift.",
+   "Lage prüfen: Abdrift, Seeraum nach Lee, andere Schiffe. Das Boot ist stabil und kontrolliert.",
+   "Aufgaben an Deck erledigen (Reffen, Essen, Mann über Bord üben). Ein Rudergänger beobachtet.",
+   "Zum Weiterfahren: Karte „Beidrehen auflösen“."
+  ],
+  "error": "Zu wenig Platz nach Lee. Groß zu dicht: Das Boot luvt an und nimmt wieder Fahrt auf.",
+  "stepCaptions": [
+   "„Klar zum Beidrehen!“ Anluven",
+   "Wende, Fock bleibt back",
+   "Ruder nach Lee festsetzen",
+   "Ruhig liegen, Lage prüfen",
+   "Aufgaben an Deck erledigen",
+   "Abdrift beobachten"
+  ],
+  "images": [
+   "img/k12_s1.png",
+   "img/k12_s2.png",
+   "img/k12_s3.png",
+   "img/k12_s4.png",
+   "img/k12_s5.png",
+   "img/k12_s6.png"
+  ]
+ },
+ {
+  "id": 13,
+  "title": "Beidrehen auflösen",
+  "tag": "SEGELN",
+  "intro": "Standard: Auflösen über die Halse, das schont das Material. Alternative: über die Fock bzw. Wende.",
+  "steps": [
+   "„Klar zum Auflösen über die Halse!“ Seeraum und Lage prüfen.",
+   "Ruder nach Lee legen und „Hol dicht die Großschot!“ – das verhindert eine Patenthalse.",
+   "Das Boot nimmt Fahrt auf und fällt ab bis Vorwind. Die Fock wird frei.",
+   "„Rund achtern!“ Das Groß geht kontrolliert auf die andere Seite. Die Fock steht nun richtig, meist nicht übergeholt.",
+   "„Neuer Kurs Raumwind“ (oder Am-Wind): Ruder gerade, Schoten einstellen.",
+   "Alternative: „Fock über!“, das Boot fällt ab, Groß passend dichter. Oder Fahrt holen und mit Wende."
+  ],
+  "error": "Groß nicht dicht: Patenthalse. Zu wenig Platz nach Lee. Bei der Wende-Variante zu wenig Fahrt: Das Boot bleibt in Irons.",
+  "stepCaptions": [
+   "„Klar zum Auflösen über die Halse“",
+   "Ruder nach Lee, Großschot dicht",
+   "Fahrt aufnehmen, abfallen",
+   "„Rund achtern!“ Groß geht über",
+   "Neuer Kurs Raumwind, Schoten",
+   "Alternative: Fock über, abfallen"
+  ],
+  "images": [
+   "img/k13_s1.png",
+   "img/k13_s2.png",
+   "img/k13_s3.png",
+   "img/k13_s4.png",
+   "img/k13_s5.png",
+   "img/k13_s6.png"
+  ]
+ },
+ {
+  "id": 14,
+  "title": "Quickstopp: Person links",
+  "tag": "SEGELN",
+  "intro": "Enger Kreis um die Person, Groß dicht, Fock back. Person links über Bord: Ruder nach links.",
+  "steps": [
+   "Ruf: „Mann über Bord an links!“ MOB-Taste, Rettungsmittel zuwerfen. Eine Person zeigt ununterbrochen mit gestrecktem Arm auf die Person.",
+   "Ruder SOFORT nach links zur Person, hart anluven, Wende. Groß dicht lassen, Fock bleibt back. Motor starten, Leerlauf. Läuft das Boot raumschots: Groß zuerst dichtholen.",
+   "Mit back stehender Fock weiter nach links abfallen, bis Vorwind. Groß bleibt dicht, die Person immer im Blick.",
+   "„Klar zur Halse!“ Mit dichtem Groß schlägt der Baum kaum über. Das schont das Material.",
+   "Auf Am-Wind-Kurs anluven. Ca. zwei Bootslängen im Lee der Person bleiben, damit der Aufschießer reicht.",
+   "„Klar zum Nahezu-Aufschießer!“ Schoten komplett los, Segel killen. Mit Restfahrt an die Person, Bergen auf der Lee-Seite. Ggf. mit Motor aufstoppen (Schraube nie neben der Person)."
+  ],
+  "error": "Zu dicht oder zu hoch an der Person: Der Aufschießer reicht nicht. Groß beim Kreisen gefiert: Patenthalse. Ruder auf die falsche Seite: Das Heck schwenkt auf die Person zu.",
+  "stepCaptions": [
+   "1 Ruf · 2 Wende, Fock back · 3 abfallen · 4 Halse · 5 anluven",
+   "5 · 2 Bootslängen im Lee · 6 · Aufschießer, Schoten los"
+  ],
+  "images": [
+   "img/k14_p1.png",
+   "img/k14_p2.png"
+  ]
+ },
+ {
+  "id": 15,
+  "title": "Quickstopp: Person rechts",
+  "tag": "SEGELN",
+  "intro": "Enger Kreis um die Person, Groß dicht, Fock back. Person rechts über Bord: Ruder nach rechts.",
+  "steps": [
+   "Ruf: „Mann über Bord an rechts!“ MOB-Taste, Rettungsmittel zuwerfen. Eine Person zeigt ununterbrochen mit gestrecktem Arm auf die Person.",
+   "Ruder SOFORT nach rechts zur Person, hart anluven, Wende. Groß dicht lassen, Fock bleibt back. Motor starten, Leerlauf. Läuft das Boot raumschots: Groß zuerst dichtholen.",
+   "Mit back stehender Fock weiter nach rechts abfallen, bis Vorwind. Groß bleibt dicht, die Person immer im Blick.",
+   "„Klar zur Halse!“ Mit dichtem Groß schlägt der Baum kaum über. Das schont das Material.",
+   "Auf Am-Wind-Kurs anluven. Ca. zwei Bootslängen im Lee der Person bleiben, damit der Aufschießer reicht.",
+   "„Klar zum Nahezu-Aufschießer!“ Schoten komplett los, Segel killen. Mit Restfahrt an die Person, Bergen auf der Lee-Seite. Ggf. mit Motor aufstoppen (Schraube nie neben der Person)."
+  ],
+  "error": "Zu dicht oder zu hoch an der Person: Der Aufschießer reicht nicht. Groß beim Kreisen gefiert: Patenthalse. Ruder auf die falsche Seite: Das Heck schwenkt auf die Person zu.",
+  "stepCaptions": [
+   "1 Ruf · 2 Wende, Fock back · 3 abfallen · 4 Halse · 5 anluven",
+   "5 · 2 Bootslängen im Lee · 6 · Aufschießer, Schoten los"
+  ],
+  "images": [
+   "img/k15_p1.png",
+   "img/k15_p2.png"
+  ]
+ }
+]

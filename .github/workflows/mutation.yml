@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - name: Stryker (Kern-Libs)
         run: npx stryker run
+      - name: Stryker (Törn-Manöver-Duell, reine Logik; Mindestscore 85 %)
+        run: npx stryker run stryker.duell.config.json
       - name: Score in die Zusammenfassung schreiben
         if: always()
         run: |
@@ -33,5 +35,7 @@ jobs:
         if: always()
         with:
           name: mutation-report
-          path: reports/mutation/
+          path: |
+            reports/mutation/
+            reports/mutation-duell/
           retention-days: 14
