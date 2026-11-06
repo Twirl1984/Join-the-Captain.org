@@ -64,7 +64,7 @@ test("[REQ-DUEL-003] Haupt- und Backup kaputt → Reset mit Warnung, Rohdaten bl
 
 test("[REQ-DUEL-003] Strukturell ungültiger Zustand (12 Personen) gilt als kaputt", () => {
   const ms = new MemStorage();
-  const s: any = zustand();
+  const s: Record<string, unknown> = zustand();
   s.crew = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
   ms.setItem(Db.KEY, JSON.stringify(s));
   assert.equal(Db.laden(ms, now).warnung, "reset");
@@ -81,7 +81,7 @@ test("[REQ-DUEL-003] Neuere Version als bekannt: nichts überschreiben, Warnung 
 
 test("[REQ-DUEL-003] Version 0 (ohne Feld) wird migriert, Warnung „migriert“", () => {
   const ms = new MemStorage();
-  const alt: any = zustand(); delete alt.version;
+  const alt: Record<string, unknown> = zustand(); delete alt.version;
   ms.setItem(Db.KEY, JSON.stringify(alt));
   const r = Db.laden(ms, now);
   assert.equal(r.warnung, "migriert");
@@ -94,7 +94,7 @@ test("[REQ-DUEL-003] Speicherfehler (Quota) wird gemeldet, nicht verschluckt; al
   ms.failWrites = true;
   const r = Db.speichern(ms, zustand("neu"), now);
   assert.equal(r.ok, false);
-  assert.match(r.fehler, /Quota|voll/i);
+  assert.match(r.fehler ?? "", /Quota|voll/i);
   assert.equal(JSON.parse(ms.getItem(Db.KEY)!).boot, "alt");
 });
 
@@ -103,7 +103,7 @@ test("[REQ-DUEL-003] Verify-nach-Schreiben: stilles Verwerfen wird erkannt", () 
   ms.silentDrop = true;
   const r = Db.speichern(ms, zustand(), now);
   assert.equal(r.ok, false);
-  assert.match(r.fehler, /verifiz|abweich/i);
+  assert.match(r.fehler ?? "", /verifiz|abweich/i);
 });
 
 test("[REQ-DUEL-003] Storage nicht verfügbar (null/wirft) → Warnung statt Absturz", () => {
@@ -126,7 +126,7 @@ test("[REQ-DUEL-004] Import lehnt Müll, falsche App, 12 Personen, neuere Versio
   assert.equal(Db.importJson("kein json").ok, false);
   assert.equal(Db.importJson("[]").ok, false);
   assert.equal(Db.importJson(JSON.stringify({ app: "andere", daten: zustand() })).ok, false);
-  const viele: any = zustand();
+  const viele: Record<string, unknown> = zustand();
   viele.crew = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
   assert.equal(Db.importJson(Db.exportJson(viele, now)).ok, false);
   const neu = JSON.parse(Db.exportJson(zustand(), now)); neu.daten.version = 99;

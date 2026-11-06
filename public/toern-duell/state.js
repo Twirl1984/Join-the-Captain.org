@@ -6,6 +6,7 @@ export const MAX_CREW = 11;
 export const KARTEN = 15;
 export const MAX_NAME = 40;
 
+/** @returns {any} */
 export function leererZustand() {
   return {
     version: VERSION,
@@ -17,11 +18,15 @@ export function leererZustand() {
   };
 }
 
+/** @returns {any} */
 export function leererLandgang() {
   return { seilziehen: [], muell: { platz1: null, platz2: null, platz3: null, skurril: null }, geocache: {} };
 }
 
+/** @typedef {{state: any, fehler?: string}} Ergebnis */
+/** @returns {Ergebnis} */
 const ok = (state) => ({ state });
+/** @returns {Ergebnis} */
 const fehler = (state, code) => ({ state, fehler: code });
 
 function neuerId() {
@@ -37,6 +42,7 @@ function pruefeName(state, name, ausserId) {
   return { name: n };
 }
 
+/** @returns {Ergebnis} */
 export function addPerson(state, name, idFn = neuerId) {
   if (state.crew.length >= MAX_CREW) return fehler(state, "voll");
   const r = pruefeName(state, name);
@@ -44,6 +50,7 @@ export function addPerson(state, name, idFn = neuerId) {
   return ok({ ...state, crew: [...state.crew, { id: idFn(), name: r.name }] });
 }
 
+/** @returns {Ergebnis} */
 export function renamePerson(state, id, name) {
   if (!state.crew.some((p) => p.id === id)) return fehler(state, "unbekannt");
   const r = pruefeName(state, name, id);
@@ -52,6 +59,7 @@ export function renamePerson(state, id, name) {
 }
 
 /** Entfernt eine Person. Eigene Versuche entfallen; Bewertungen anderer bleiben (Bewerter → null). */
+/** @returns {any} */
 export function removePerson(state, id) {
   const l = state.landgang;
   const nullen = (x) => (x === id ? null : x);
@@ -89,6 +97,7 @@ function pruefeVersuch(state, v, bisher) {
   return null;
 }
 
+/** @returns {Ergebnis} */
 export function addVersuch(state, eingabe, idFn = neuerId) {
   const v = { notiz: "", ...eingabe, id: idFn() };
   const f = pruefeVersuch(state, v, null);
@@ -96,6 +105,7 @@ export function addVersuch(state, eingabe, idFn = neuerId) {
   return ok({ ...state, versuche: [...state.versuche, v] });
 }
 
+/** @returns {Ergebnis} */
 export function updateVersuch(state, id, patch) {
   const alt = state.versuche.find((v) => v.id === id);
   if (!alt) return fehler(state, "unbekannt");

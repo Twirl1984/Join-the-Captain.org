@@ -35,7 +35,7 @@ test("[REQ-DUEL-004] ranglisteCsv: Kopf, eine Zeile je Person, Platz/Gesamt, CRL
 });
 
 test("[REQ-DUEL-004] bewertungenCsv: eine Zeile je Versuch mit Summen, Bonus, Punkten", () => {
-  const state: any = {
+  const state = {
     crew: [{ id: "a", name: "Anna" }, { id: "b", name: "Ben" }],
     versuche: [{
       id: "v1", karte: 14, rudergaenger: "a", bewerter: "b", notiz: 'knapp; "ok"',
@@ -43,13 +43,13 @@ test("[REQ-DUEL-004] bewertungenCsv: eine Zeile je Versuch mit Summen, Bonus, Pu
     }],
   };
   const titel = new Map([[14, "Quickstopp: Person links"]]);
-  const zeilen = C.bewertungenCsv(state, titel).slice(1).split("\r\n").filter(Boolean);
+  const zeilen = C.bewertungenCsv(state as never, titel).slice(1).split("\r\n").filter(Boolean);
   assert.equal(zeilen[0], "Karte;Titel;Rudergänger;Bewerter;Selbst;Fremd;Bonus;Kartenpunkte;Notiz");
   assert.equal(zeilen[1], '14;Quickstopp: Person links;Anna;Ben;12;9;1;10;"knapp; ""ok"""');
 });
 
 test("[REQ-DUEL-004] bewertungenCsv: unbekannte Person/Karte bricht nicht ab", () => {
-  const state: any = { crew: [], versuche: [{ id: "v", karte: 99, rudergaenger: "x", bewerter: "y",
+  const state = { crew: [], versuche: [{ id: "v", karte: 99, rudergaenger: "x", bewerter: "y",
     selbst: { kommunikation: 0, crew: 0, steuerung: 0 }, fremd: { kommunikation: 0, crew: 0, steuerung: 0 } }] };
-  assert.doesNotThrow(() => C.bewertungenCsv(state, new Map()));
+  assert.doesNotThrow(() => C.bewertungenCsv(state as never, new Map()));
 });
