@@ -77,3 +77,12 @@ export function communityVotumEnabled(): boolean {
 export function appInteresseEnabled(): boolean {
   return flagExplizitAn(process.env.NEXT_PUBLIC_FEATURE_APP_INTERESSE);
 }
+
+/**
+ * Törn-Manöver-Duell (statische Offline-App unter /toern-duell/, REQ-DUEL-*).
+ * Default an; `off/false/0` blendet Link und Sitemap-Eintrag aus und leitet
+ * /toern-duell/* auf /tools um (next.config.ts, gleiche Auswertung).
+ */
+export function duellEnabled(): boolean {
+  return flagEnabled(process.env.NEXT_PUBLIC_FEATURE_DUELL);
+}

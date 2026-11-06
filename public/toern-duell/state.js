@@ -14,7 +14,7 @@ export function leererZustand() {
     crew: [],
     versuche: [],
     landgang: leererLandgang(),
-    meta: { letztesBackup: null },
+    meta: { letztesBackup: null, rev: 0 },
   };
 }
 
@@ -140,7 +140,8 @@ export function setMuellPlatz(state, platz, personId) {
 
 export function setSkurril(state, personId, fund) {
   const text = String(fund ?? "").trim();
-  const skurril = personId && text ? { person: personId, fund: text } : null;
+  // Teilangaben bleiben erhalten (erst Fund, dann Person – oder umgekehrt); Punkte gibt es erst bei beidem.
+  const skurril = personId || text ? { person: personId ?? null, fund: text } : null;
   return mitLandgang(state, { muell: { ...state.landgang.muell, skurril } });
 }
 

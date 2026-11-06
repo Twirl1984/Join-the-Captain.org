@@ -13,6 +13,9 @@ export const PUNKTE = {
   geocache: 2,
 };
 
+/** Skurrilster Fund zählt nur mit Person UND Freitext-Fund. */
+const skurrilVollstaendig = (s) => Boolean(s?.person) && String(s?.fund ?? "").trim() !== "";
+
 function summe(bewertung, name) {
   let s = 0;
   for (const k of KATEGORIEN) {
@@ -74,11 +77,21 @@ export function landgangPunkte(landgang, personId) {
   ["platz1", "platz2", "platz3"].forEach((key, i) => {
     if (m[key] === personId) muell += PUNKTE.muell[i];
   });
-  if (m.skurril?.person === personId) muell += PUNKTE.muellSkurril;
+  if (skurrilVollstaendig(m.skurril) && m.skurril.person === personId) muell += PUNKTE.muellSkurril;
   const caches = Number(l.geocache?.[personId] ?? 0);
   const geocache = (Number.isFinite(caches) && caches > 0 ? Math.floor(caches) : 0) * PUNKTE.geocache;
   return { seilziehen, muell, geocache, gesamt: seilziehen + muell + geocache };
 }
+
+/** Plätze nach Wettbewerbsregel vergeben: Gleichstand = gleicher Platz, danach Lücke (1,1,3,…). */
+function vergebePlaetze(zeilen, schluessel) {
+  zeilen.forEach((z, i) => {
+    z.platz = i > 0 && z[schluessel] === zeilen[i - 1][schluessel] ? zeilen[i - 1].platz : i + 1;
+  });
+  return zeilen;
+}
+
+const nachNameSortieren = (a, b) => String(a.name).localeCompare(String(b.name), "de");
 
 /** Rangliste: absteigend nach Gesamt, Gleichstand = gleicher Platz (1,1,3,…). */
 export function rangliste(crew, versuche, landgang) {
@@ -96,9 +109,48 @@ export function rangliste(crew, versuche, landgang) {
       gesamt: m.punkte + l.gesamt,
     };
   });
-  zeilen.sort((a, b) => b.gesamt - a.gesamt || String(a.name).localeCompare(String(b.name), "de"));
-  zeilen.forEach((z, i) => {
-    z.platz = i > 0 && z.gesamt === zeilen[i - 1].gesamt ? zeilen[i - 1].platz : i + 1;
-  });
-  return zeilen;
+  zeilen.sort((a, b) => b.gesamt - a.gesamt || nachNameSortieren(a, b));
+  return vergebePlaetze(zeilen, "gesamt");
+}
+
+/** Welche Landgang-Disziplinen haben überhaupt Daten? (0 Punkte ≠ „nicht erfasst“) */
+export function landgangStatus(landgang) {
+  const l = landgang ?? {};
+  const m = l.muell ?? {};
+  const seilziehen = (l.seilziehen ?? []).length > 0;
+  const muell = Boolean(m.platz1 || m.platz2 || m.platz3 || skurrilVollstaendig(m.skurril));
+  const geocache = Object.values(l.geocache ?? {}).some((n) => Number(n) > 0);
+  return { seilziehen, muell, geocache, erfasst: seilziehen || muell || geocache };
+}
+
+/**
+ * Stand der Erfassung: macht sichtbar, was in einem Zwischenstand noch fehlt.
+ * vollstaendig = Manöver erfasst, niemand unter MIN_CARDS, alle drei Landgang-Disziplinen erfasst.
+ */
+export function fortschritt(crew, versuche, landgang) {
+  const unter = crew.filter((p) => manoeverPunkte(versuche, p.id).unterMin).map((p) => p.name);
+  const lg = landgangStatus(landgang);
+  const manoeverErfasst = versuche.some((v) => crew.some((p) => p.id === v.rudergaenger));
+  return {
+    manoever: { erfasst: manoeverErfasst, personenUnterMin: unter },
+    landgang: lg,
+    vollstaendig: crew.length > 0 && manoeverErfasst && unter.length === 0 && lg.seilziehen && lg.muell && lg.geocache,
+  };
+}
+
+/**
+ * Teil-Rangliste nur nach Manöver- ODER nur nach Landgang-Punkten – auch wenn der andere
+ * Bereich fehlt. Hat der Bereich keine Daten, ist die Liste leer (niemand wird „gewertet“).
+ */
+export function teilrangliste(crew, versuche, landgang, bereich) {
+  const f = fortschritt(crew, versuche, landgang);
+  const erfasst = bereich === "manoever" ? f.manoever.erfasst : f.landgang.erfasst;
+  if (!erfasst) return [];
+  const zeilen = crew.map((p) => ({
+    id: p.id,
+    name: p.name,
+    punkte: bereich === "manoever" ? manoeverPunkte(versuche, p.id).punkte : landgangPunkte(landgang, p.id).gesamt,
+  }));
+  zeilen.sort((a, b) => b.punkte - a.punkte || nachNameSortieren(a, b));
+  return vergebePlaetze(zeilen, "punkte");
 }

@@ -32,7 +32,7 @@ export function istGueltig(s) {
 }
 
 /** → {art:"ok"|"migriert"|"zu-neu"|"kaputt", state?} */
-function auswerten(roh) {
+export function auswerten(roh) {
   let obj;
   try { obj = JSON.parse(roh); } catch { return { art: "kaputt" }; }
   if (!istObjekt(obj)) return { art: "kaputt" };
@@ -125,5 +125,5 @@ export function importJson(text) {
 }
 
 export function dateiname(art) {
-  return { backup: "toern-duell-backup.json", rangliste: "toern-duell-rangliste.csv", bewertungen: "toern-duell-bewertungen.csv" }[art];
+  return { backup: "toern-duell-backup.json", rangliste: "toern-duell-rangliste.csv", bewertungen: "toern-duell-bewertungen.csv", ueberblick: "toern-duell-ueberblick.html" }[art];
 }

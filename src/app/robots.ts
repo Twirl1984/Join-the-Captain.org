@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // API und Feature-Detail-Seiten nicht crawlen.
-      disallow: ["/api/", "/community/"],
+      disallow: ["/api/", "/community/", "/toern-duell/"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

@@ -1,5 +1,5 @@
 // router.js — Hash-Routing (rein). "#/karte/10", "#/bewertung?karte=3&fahrer=x".
-export const ROUTEN = ["start", "karten", "karte", "bewertung", "landgang", "rangliste"];
+export const ROUTEN = ["start", "karten", "karte", "bewertung", "landgang", "rangliste", "ueberblick"];
 
 /** @returns {{name: string, id: number|null, query: Record<string,string>}} */
 export function parseHash(hash) {

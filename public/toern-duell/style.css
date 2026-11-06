@@ -40,7 +40,7 @@ a { color: var(--teal); }
 }
 .tabs a {
   flex: 1; min-height: var(--tab-h); display: flex; align-items: center; justify-content: center;
-  color: #fff; text-decoration: none; font-size: .78rem; font-weight: 600; text-align: center; padding: 0 2px;
+  color: #fff; text-decoration: none; font-size: .7rem; font-weight: 600; text-align: center; padding: 0 1px;
 }
 .tabs a[aria-current="page"] { color: var(--gold); box-shadow: inset 0 3px 0 var(--gold); }
 
@@ -169,3 +169,10 @@ select.feld { appearance: auto; }
 .seg__feld, .seg__feld input, .seg__feld span, .feld, .knopf { scroll-margin-bottom: 210px; }
 .kategorie h2 { margin: 12px 0 0; }
 @media print { .stern { color: #000; } }
+
+/* Überblick */
+.l { text-align: left !important; }
+.fortschritt { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fortschritt li { display: grid; grid-template-columns: minmax(0, 1fr) 72px 40px; gap: 8px; align-items: center; }
+.fortschritt li > span:first-child { overflow-wrap: anywhere; }
+.fortschritt progress { width: 100%; height: 14px; accent-color: var(--teal); }

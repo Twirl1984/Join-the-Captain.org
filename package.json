@@ -23,6 +23,7 @@
     "test:toern": "node --import tsx --test src/lib/toern/__tests__/*.test.ts",
     "test:i18n": "node --import tsx --test src/lib/i18n/__tests__/*.test.ts",
     "test:marketing": "node --import tsx --test src/lib/marketing/__tests__/*.test.ts",
+    "duell:sw": "tsx scripts/duell-precache.ts",
     "test:duell": "node --import tsx --test src/lib/toern-duell/__tests__/*.test.ts",
     "test:analytics": "node --import tsx --test src/lib/analytics/__tests__/*.test.ts",
     "nav:watermask": "tsx scripts/navigation-fetch-watermask.ts",

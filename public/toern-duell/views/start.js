@@ -1,7 +1,7 @@
 // start.js (View) — Bootsname, Crew (bis 11), Zugänge, Backup (Export/Import).
 import { h } from "../dom.js";
 import { MAX_CREW, addPerson, removePerson, renamePerson } from "../state.js";
-import { backupAlterTage, dateiname, exportJson, importJson, markiereBackup } from "../store.js";
+import { auswerten, backupAlterTage, dateiname, exportJson, importJson, markiereBackup } from "../store.js";
 import { speichereDatei, leseDatei } from "../files.js";
 
 const FEHLER = {
@@ -11,7 +11,7 @@ const FEHLER = {
   "zu-lang": "Der Name ist zu lang (höchstens 40 Zeichen).",
 };
 
-export function startView({ state, dispatch, melde, jetzt }) {
+export function startView({ state, dispatch, melde, jetzt, speicherStatus, verlaufLaden }) {
   const meldung = h("p", { class: "meldung", role: "status", "data-testid": "crew-meldung" });
   const zeige = (f) => { meldung.textContent = f ? (FEHLER[f] ?? f) : ""; };
   const nameFeld = h("input", { class: "feld", id: "neuer-name", name: "name", maxlength: "40", autocomplete: "off", placeholder: "Name der Person", "data-testid": "crew-neu" });
@@ -36,6 +36,19 @@ export function startView({ state, dispatch, melde, jetzt }) {
   const alter = backupAlterTage(state, jetzt);
   const hatDaten = state.crew.length > 0 || state.versuche.length > 0;
   const backupText = alter === null ? "Noch kein Backup exportiert." : alter === 0 ? "Letztes Backup: heute." : `Letztes Backup vor ${alter} Tag${alter === 1 ? "" : "en"}.`;
+  const ort = (ok) => (ok === null ? "…" : ok ? "✓" : "✗");
+  const verlaufListe = h("ul", { class: "verlauf", "data-testid": "verlauf" });
+  verlaufLaden().then((liste) => {
+    verlaufListe.replaceChildren(...liste.slice(0, 8).map((e) => {
+      const r = auswerten(e.roh);
+      if (r.art !== "ok" && r.art !== "migriert") return "";
+      const st = r.state;
+      return h("li", { class: "versuch", "data-testid": "verlauf-eintrag" },
+        h("span", {}, `Stand ${e.rev} · ${new Date(e.zeit).toLocaleString("de-DE")} · ${st.crew.length} Personen, ${st.versuche.length} Versuche`),
+        h("button", { type: "button", class: "knopf knopf--klein knopf--hell", "data-testid": "verlauf-wiederherstellen",
+          onclick: () => { if (confirm("Diesen früheren Stand wiederherstellen? Der aktuelle Stand bleibt im Verlauf erhalten.")) { dispatch(() => st); melde("Früherer Stand wiederhergestellt.", "ok"); } } }, "Wiederherstellen"));
+    }));
+  });
   const importFeld = h("input", { type: "file", accept: "application/json,.json", hidden: true, "data-testid": "import-datei",
     onchange: async (e) => {
       const datei = e.target.files?.[0];
@@ -61,8 +74,10 @@ export function startView({ state, dispatch, melde, jetzt }) {
       h("a", { class: "knopf", href: "#/karten" }, "Karten"),
       h("a", { class: "knopf", href: "#/bewertung" }, "Bewertung"),
       h("a", { class: "knopf", href: "#/landgang" }, "Landgang"),
-      h("a", { class: "knopf", href: "#/rangliste" }, "Rangliste")),
+      h("a", { class: "knopf", href: "#/rangliste" }, "Rangliste"),
+      h("a", { class: "knopf", href: "#/ueberblick" }, "Überblick")),
     h("h2", {}, "Sicherung"),
+    h("p", { class: "hinweis", "data-testid": "speicher-status" }, `Gespeichert in: IndexedDB ${ort(speicherStatus.idb)} · Browser-Speicher ${ort(speicherStatus.ls)}`),
     h("p", { class: "hinweis", "data-testid": "backup-alter" }, backupText),
     h("div", { class: "reihe" },
       h("button", { type: "button", class: "knopf knopf--hell", "data-testid": "export-json",
@@ -71,5 +86,6 @@ export function startView({ state, dispatch, melde, jetzt }) {
           dispatch((s) => markiereBackup(s, jetzt));
         } }, "Backup exportieren (JSON)"),
       h("button", { type: "button", class: "knopf knopf--hell", onclick: () => importFeld.click(), "data-testid": "import-knopf" }, "Backup importieren"),
-      importFeld));
+      importFeld),
+    h("h2", {}, "Frühere Stände"), verlaufListe);
 }
