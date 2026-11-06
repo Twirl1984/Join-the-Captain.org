@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation-Gate fuer die reine Logik des Toern-Manoever-Duells (REQ-DUEL-009). Bewusst NICHT mutiert: DOM-Views/app.js/sw.js/idb.js (Browser-Code, per E2E geprueft). Testkommando OHNE data.test.ts: dessen SW-Drift-Test hasht alle App-Dateien und wuerde JEDEN Mutanten toeten (Schein-Score).",
+  "testRunner": "command",
+  "commandRunner": { "command": "npm run -s test:duell:mutation" },
+  "mutate": [
+    "public/toern-duell/scoring.js",
+    "public/toern-duell/state.js",
+    "public/toern-duell/store.js",
+    "public/toern-duell/persistenz.js",
+    "public/toern-duell/csv.js",
+    "public/toern-duell/ueberblick.js",
+    "public/toern-duell/karten.js",
+    "public/toern-duell/entwurf.js",
+    "public/toern-duell/router.js"
+  ],
+  "coverageAnalysis": "off",
+  "concurrency": 4,
+  "timeoutMS": 30000,
+  "reporters": ["json", "html", "progress", "clear-text"],
+  "jsonReporter": { "fileName": "reports/mutation-duell/mutation.json" },
+  "htmlReporter": { "fileName": "reports/mutation-duell/index.html" },
+  "tempDirName": ".stryker-tmp",
+  "thresholds": { "high": 92, "low": 85, "break": 85 }
+}

@@ -4,7 +4,7 @@
 // fehl, bleibt der alte Stand aktiv), danach Cache-First. Daten liegen im
 // localStorage der Seite und werden vom SW nie angefasst.
 // Liste + Version erzeugt `npm run duell:sw` (Drift-Test sichert das ab).
-const VERSION = "duell-78123d975a"; // SYNC:VERSION
+const VERSION = "duell-b9e9166474"; // SYNC:VERSION
 const CACHE = `jtc-${VERSION}`;
 const PRECACHE = [
   // SYNC:START

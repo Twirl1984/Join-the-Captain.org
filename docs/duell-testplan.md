@@ -42,3 +42,33 @@ Voraussetzung: HTTPS-Adresse (Staging/Produktion) mit der gebauten App.
 - **M3** 3 Personen anlegen, Karte 14 öffnen, 1 Versuch bewerten (Live-Bonus sichtbar). **M4** Flugmodus an, App **komplett schließen** (App-Wechsler) und neu starten.
 - **M5** Alles unverändert (Crew, Versuch, Rangliste); Karten + Bilder laden; Bild antippen → Vollbild, Pinch-Zoom. **M6** Offline einen zweiten Versuch speichern, App neu starten, noch da;
   Startseite: „Gespeichert in: IndexedDB ✓ · Browser-Speicher ✓“; JSON-Export öffnet das Share-Sheet.
+
+## Qualitätsmessungen (lokal, isoliert)
+
+**Lighthouse** (Version 11.7.1 – die letzte mit PWA-Kategorie; ab Version 12 wurde sie entfernt), mobil simuliert, gegen die statisch
+ausgelieferte App auf `localhost`, Chrome for Testing 156, Installation in einem Wegwerf-Verzeichnis außerhalb des Repos (`npm i --ignore-scripts`):
+
+| Kategorie | Score | Anmerkung |
+|---|---|---|
+| PWA | **100** | installierbar, SW, Manifest, Maskable-Icon, Theme-Color |
+| Barrierefreiheit | **100** | |
+| Best Practices | **100** | |
+| Performance | 92 | LCP 0,69: erster Inhalt erst nach `cards.json` + IndexedDB-Öffnen; bewusst akzeptiert (Offline-App, Daten vor Darstellung) |
+| SEO | 82 | **gewollt**: `noindex` (App nur für den Skipper); Meta-Description ergänzt |
+
+Aufruf: `lighthouse http://localhost:8766/toern-duell/index.html --only-categories=pwa,performance,accessibility,best-practices,seo`
+(Server: `python3 -m http.server 8766 -d public`). Kein CI-Gate (Chrome-Version/Netz), Messung vor Release wiederholen.
+
+**Stryker** (`npm run mutation:duell`, Konfiguration `stryker.duell.config.json`): mutiert nur die reine Logik (scoring, state, store, persistenz, csv,
+ueberblick, karten, entwurf, router). Das Test-Kommando (`test:duell:mutation`) lässt `data.test.ts` bewusst weg, weil dessen SW-Drift-Test alle Dateien hasht und
+sonst **jeden** Mutanten „töten“ würde (Schein-Score). DOM-Views/`app.js`/`sw.js`/`idb.js` werden nicht mutiert (Browser-Code, per E2E geprüft).
+
+| Lauf | Mutation-Score | Mutanten (getötet / überlebt) |
+|---|---|---|
+| 1. Messung (vor Härtung) | 77,85 % | 963 / 274 |
+| nach Härtung (`haertung.test.ts`) | **94,99 %** | 1175 / 62 |
+
+Je Datei: csv, entwurf, karten 100 % · persistenz 95,5 % · scoring 94,7 % · ueberblick 94,7 % · state 94,3 % · store 93,9 % · router 86,5 %.
+Die Härtung schloss echte Lücken (u. a. jede einzelne Ungültigkeit in `istGueltig`, Fehlertexte, Müll-Plätze, Geocache-Grenzwerte, Tie-Break
+bei gleichen Kartenpunkten, „vollständig“-Bedingungen). Verbleibend: überwiegend Text-Literale und defensives `?.`.
+Schwelle `break: 85` in `stryker.duell.config.json`; läuft wöchentlich im Workflow `mutation-report` (kein Required Check).
